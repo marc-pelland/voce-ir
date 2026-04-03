@@ -1,0 +1,278 @@
+// Voce IR — Data & Backend Integration
+//
+// The data trinity: ActionNode (mutations), SubscriptionNode (real-time),
+// plus AuthContextNode, ContentSlot, and RichTextNode.
+// DataNode is in state.fbs (reads). These types handle writes, real-time,
+// auth, CMS content, and structured rich text.
+//
+// See docs/research/DATA_INTEGRATION.md for full design rationale.
+
+include "types.fbs";
+include "state.fbs";
+
+namespace voce;
+
+// ─── ActionNode ─────────────────────────────────────────────────
+//
+// The server action equivalent. Declares a mutation with optimistic
+// update strategy, cache invalidation, and error handling. The compiler
+// emits TanStack Query useMutation calls.
+
+enum OptimisticStrategy : byte {
+  None = 0,
+  MirrorInput,
+  CustomTransform
+}
+
+enum RollbackStrategy : byte {
+  Revert = 0,
+  ShowErrorKeepData
+}
+
+enum ErrorFallback : byte {
+  ShowToast = 0,
+  ShowInlineError,
+  Redirect
+}
+
+table RetryConfig {
+  max_attempts: int32 = 3;
+  /// Backoff strategy: "exponential" or "linear".
+  backoff: string;
+}
+
+table OptimisticConfig {
+  strategy: OptimisticStrategy = None;
+  /// Which DataNode to optimistically update.
+  target_data_node_id: string;
+  rollback: RollbackStrategy = Revert;
+}
+
+table ErrorHandling {
+  retry: RetryConfig;
+  fallback: ErrorFallback = ShowToast;
+  /// Route to redirect to on error (for Redirect fallback).
+  redirect_path: string;
+}
+
+table ActionNode {
+  node_id: string (required);
+  name: string;
+
+  /// Endpoint configuration (reuses DataSource from state.fbs).
+  source: DataSource (required);
+  method: HttpMethod = POST;
+
+  /// Input/output type hints for the compiler.
+  input_type: string;
+  output_type: string;
+
+  /// Optimistic update behavior.
+  optimistic: OptimisticConfig;
+
+  /// DataNode IDs to refetch after successful mutation.
+  invalidates: [string];
+  /// Cache tags to invalidate (matches DataNode.cache_tags).
+  invalidate_tags: [string];
+
+  /// Error handling.
+  error_handling: ErrorHandling;
+
+  /// Auth requirements.
+  auth_required: bool = false;
+  required_roles: [string];
+
+  /// Security.
+  csrf_protected: bool = true;
+  idempotent: bool = false;
+}
+
+// ─── SubscriptionNode ───────────────────────────────────────────
+//
+// Real-time data via WebSocket, SSE, or polling. Keeps a DataNode
+// live-updated.
+
+enum SubscriptionTransport : byte {
+  WebSocket = 0,
+  ServerSentEvents,
+  Polling
+}
+
+enum UpdateStrategy : byte {
+  Replace = 0,
+  Merge,
+  Append
+}
+
+table ConnectionConfig {
+  reconnect: bool = true;
+  reconnect_interval_ms: uint32 = 3000;
+  max_retries: int32 = 10;
+  heartbeat_interval_ms: uint32 = 30000;
+}
+
+table SubscriptionNode {
+  node_id: string (required);
+  name: string;
+
+  source: DataSource (required);
+  transport: SubscriptionTransport = WebSocket;
+
+  /// Channel/topic/table to subscribe to.
+  channel: string;
+  /// Filter expression for the subscription.
+  filter: string;
+
+  /// How to apply incoming updates to the target DataNode.
+  update_strategy: UpdateStrategy = Replace;
+  /// Which DataNode to keep updated.
+  target_data_node_id: string (required);
+
+  connection: ConnectionConfig;
+}
+
+// ─── AuthContextNode ────────────────────────────────────────────
+//
+// Application-level auth configuration. Provider-agnostic — the
+// compiler adapts to the chosen provider.
+
+enum AuthProvider : byte {
+  Auth0 = 0,
+  Clerk,
+  Supabase,
+  Firebase,
+  NextAuth,
+  Custom
+}
+
+enum SessionStrategy : byte {
+  JwtCookie = 0,
+  JwtHeader,
+  SessionCookie
+}
+
+table AuthContextNode {
+  node_id: string (required);
+  name: string;
+
+  provider: AuthProvider;
+  session_strategy: SessionStrategy = JwtCookie;
+
+  /// Type hint for the user object shape.
+  user_type: string;
+  /// Field path for roles in the user object.
+  role_field: string;
+
+  /// Action references for auth operations.
+  login_action_id: string;
+  logout_action_id: string;
+  refresh_action_id: string;
+}
+
+// ─── ContentSlot ────────────────────────────────────────────────
+//
+// Declares a CMS content dependency. Cache strategy determines
+// compiler behavior: static (bake in), isr (bake + revalidate),
+// dynamic (runtime fetch).
+
+enum ContentCacheStrategy : byte {
+  /// Fetch at compile time, bake into output.
+  Static = 0,
+  /// Fetch at compile time, include revalidation mechanism.
+  Isr,
+  /// Fetch at runtime via DataNode.
+  Dynamic
+}
+
+enum ContentType : byte {
+  Text = 0,
+  RichText,
+  Media,
+  Structured
+}
+
+table ContentSource {
+  /// CMS provider.
+  provider: string;
+  /// API endpoint or base URL.
+  endpoint: string;
+  /// Authentication method for the CMS API.
+  auth_method: string;
+}
+
+table ContentSlot {
+  node_id: string (required);
+
+  /// Content key in the CMS (entry ID or content path).
+  content_key: string (required);
+  source: ContentSource;
+
+  /// Fallback content if CMS fetch fails.
+  fallback: string;
+
+  cache_strategy: ContentCacheStrategy = Static;
+  content_type: ContentType = Text;
+
+  /// Locale for this content slot (i18n).
+  locale: string;
+}
+
+// ─── RichTextNode ───────────────────────────────────────────────
+//
+// Structured rich text — paragraphs, headings, lists, images,
+// code blocks, quotes. Maps directly from Sanity Portable Text,
+// Contentful Rich Text JSON, and Payload Lexical JSON.
+
+enum RichTextBlockType : byte {
+  Paragraph = 0,
+  Heading,
+  UnorderedList,
+  OrderedList,
+  ListItem,
+  Image,
+  CodeBlock,
+  Blockquote,
+  Divider,
+  Table,
+  TableRow,
+  TableCell
+}
+
+enum RichTextMark : byte {
+  Bold = 0,
+  Italic,
+  Underline,
+  Strikethrough,
+  Code,
+  Subscript,
+  Superscript
+}
+
+table RichTextSpan {
+  text: string (required);
+  marks: [RichTextMark];
+  /// If this span is a link, the URL.
+  link_url: string;
+}
+
+table RichTextBlock {
+  block_type: RichTextBlockType;
+  /// Heading level (1-6), list depth, etc.
+  level: int8 = 0;
+  /// Inline text content.
+  children: [RichTextSpan];
+  /// For Image blocks — embedded media.
+  media_src: string;
+  media_alt: string;
+  /// For CodeBlock — language hint.
+  code_language: string;
+  /// For Table — nested rows.
+  rows: [RichTextBlock];
+}
+
+table RichTextNode {
+  node_id: string (required);
+  blocks: [RichTextBlock] (required);
+  /// Content source (if from CMS).
+  content_slot: ContentSlot;
+}

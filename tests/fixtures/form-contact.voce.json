@@ -1,0 +1,25 @@
+{
+  "schema_version_major": 1,
+  "schema_version_minor": 0,
+  "root": {
+    "node_id": "root",
+    "viewport_width": { "value": 600, "unit": "Px" },
+    "children": [
+      {
+        "value_type": "FormNode",
+        "value": {
+          "node_id": "contact-form",
+          "action": { "method": "POST", "endpoint": "/api/contact" },
+          "fields": [
+            { "name": "email", "field_type": "Email", "label": "Email", "required": true, "autocomplete": "Email" },
+            { "name": "message", "field_type": "Textarea", "label": "Message", "required": true }
+          ],
+          "submit_label": "Send",
+          "csrf_token": "auto"
+        }
+      }
+    ],
+    "metadata": { "title": "Form Test", "description": "Contact form with validation." }
+  },
+  "metadata": { "title": "Form Test", "description": "Contact form with validation.", "language": "en" }
+}

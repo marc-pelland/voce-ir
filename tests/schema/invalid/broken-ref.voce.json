@@ -1,0 +1,15 @@
+{
+  "root": {
+    "node_id": "root",
+    "children": [
+      {
+        "value_type": "AnimationTransition",
+        "value": {
+          "node_id": "anim-1",
+          "target_node_id": "nonexistent-node",
+          "properties": []
+        }
+      }
+    ]
+  }
+}

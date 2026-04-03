@@ -1,0 +1,30 @@
+# Voce IR Project Brief
+# Demo 1: SaaS Landing Page
+
+project:
+  version: 1
+  created: "2026-04-02T00:00:00Z"
+  last_modified: "2026-04-02T00:00:00Z"
+
+style_pack: "minimal-saas"
+
+vision: "A landing page for TaskFlow, a project management tool for small teams with kanban boards, time tracking, and team chat"
+
+target_audience:
+  primary: "Small team leads and project managers at companies with 5-50 people"
+
+sections:
+  - "Hero with headline, subtitle, and Start Free Trial CTA"
+  - "Features grid — kanban boards, time tracking, team chat"
+  - "Pricing — Free, Pro $12/mo, Team $29/mo"
+  - "Testimonials — 3 customer quotes"
+  - "Footer with links and copyright"
+
+ctas:
+  - "Start Free Trial"
+
+tone: "Clean and modern, like Linear. Light background, good whitespace."
+
+constraints: []
+
+readiness_score: 100

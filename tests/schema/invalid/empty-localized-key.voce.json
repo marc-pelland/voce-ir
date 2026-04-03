@@ -1,0 +1,17 @@
+{
+  "root": {
+    "node_id": "root",
+    "children": [
+      {
+        "value_type": "TextNode",
+        "value": {
+          "node_id": "bad-i18n",
+          "localized_content": {
+            "message_key": "",
+            "default_value": "Fallback text"
+          }
+        }
+      }
+    ]
+  }
+}

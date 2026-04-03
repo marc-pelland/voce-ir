@@ -1,0 +1,199 @@
+// Voce IR — Foundation Types
+//
+// Primitive types, composite types, and shared definitions used by
+// all other schema files. This is the base layer everything imports.
+
+namespace voce;
+
+// ─── Spatial Primitives ──────────────────────────────────────────
+
+struct Color {
+  r: ubyte;
+  g: ubyte;
+  b: ubyte;
+  a: ubyte;
+}
+
+struct Vec2 {
+  x: float32;
+  y: float32;
+}
+
+struct Vec3 {
+  x: float32;
+  y: float32;
+  z: float32;
+}
+
+struct Vec4 {
+  x: float32;
+  y: float32;
+  z: float32;
+  w: float32;
+}
+
+// ─── Length ──────────────────────────────────────────────────────
+
+enum LengthUnit : byte {
+  Px = 0,
+  Rem,
+  Em,
+  Percent,
+  Vw,
+  Vh,
+  Dvh,
+  Svh,
+  Auto,
+  FitContent,
+  MinContent,
+  MaxContent,
+  Fr
+}
+
+table Length {
+  value: float32;
+  unit: LengthUnit = Px;
+}
+
+// ─── Duration ───────────────────────────────────────────────────
+
+table Duration {
+  ms: float32;
+}
+
+// ─── Angle ──────────────────────────────────────────────────────
+
+table Angle {
+  degrees: float32;
+}
+
+// ─── Easing ─────────────────────────────────────────────────────
+//
+// Supports: linear, cubic-bezier, spring (compile-time solved to
+// CSS linear() points), steps, and pre-computed custom curves.
+
+enum EasingType : byte {
+  Linear = 0,
+  CubicBezier,
+  Spring,
+  Steps,
+  CustomLinear
+}
+
+table Easing {
+  easing_type: EasingType = Linear;
+
+  // CubicBezier control points
+  x1: float32;
+  y1: float32;
+  x2: float32;
+  y2: float32;
+
+  // Spring parameters (compiler solves ODE at compile time)
+  stiffness: float32 = 200.0;
+  damping: float32 = 20.0;
+  mass: float32 = 1.0;
+
+  // Steps
+  steps: int32;
+
+  // CustomLinear: pre-computed points for CSS linear()
+  points: [float32];
+}
+
+// ─── Layout Enums ───────────────────────────────────────────────
+
+enum Alignment : byte {
+  Start = 0,
+  Center,
+  End,
+  Stretch,
+  SpaceBetween,
+  SpaceAround,
+  SpaceEvenly,
+  Baseline
+}
+
+enum LayoutDirection : byte {
+  Row = 0,
+  Column,
+  RowReverse,
+  ColumnReverse
+}
+
+enum TextDirection : byte {
+  Ltr = 0,
+  Rtl,
+  Auto
+}
+
+enum Overflow : byte {
+  Visible = 0,
+  Hidden,
+  Scroll,
+  Auto
+}
+
+enum Position : byte {
+  Relative = 0,
+  Absolute,
+  Fixed,
+  Sticky
+}
+
+// ─── Composite Layout Types ─────────────────────────────────────
+
+table EdgeInsets {
+  top: Length;
+  right: Length;
+  bottom: Length;
+  left: Length;
+}
+
+table CornerRadii {
+  top_left: Length;
+  top_right: Length;
+  bottom_right: Length;
+  bottom_left: Length;
+}
+
+table Shadow {
+  offset_x: Length;
+  offset_y: Length;
+  blur: Length;
+  spread: Length;
+  color: Color;
+  inset: bool;
+}
+
+// ─── Data Binding ───────────────────────────────────────────────
+//
+// References a value from a DataNode, ComputeNode, or ContextNode.
+// Used for dynamic content that resolves at runtime.
+
+table DataBinding {
+  source_node_id: string;
+  field_path: string;
+}
+
+// ─── Border ─────────────────────────────────────────────────────
+
+enum BorderStyle : byte {
+  None = 0,
+  Solid,
+  Dashed,
+  Dotted
+}
+
+table Border {
+  width: Length;
+  style: BorderStyle = Solid;
+  color: Color;
+}
+
+table BorderSides {
+  top: Border;
+  right: Border;
+  bottom: Border;
+  left: Border;
+}

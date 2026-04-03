@@ -1,0 +1,87 @@
+// Voce IR — Navigation & Routing
+//
+// Routing is modeled as a state machine where states are views and
+// transitions are navigation events. Supports nested routes, guards
+// (auth checks), and data preloading.
+
+include "types.fbs";
+include "motion.fbs";
+
+namespace voce;
+
+// ─── Enums (defined before use) ─────────────────────────────────
+
+enum ChangeFrequency : byte {
+  Always = 0,
+  Hourly,
+  Daily,
+  Weekly,
+  Monthly,
+  Yearly,
+  Never
+}
+
+enum RouteTransitionType : byte {
+  None = 0,
+  Crossfade,
+  Slide,
+  SharedElement,
+  Custom
+}
+
+enum SlideDirection : byte {
+  Left = 0,
+  Right,
+  Up,
+  Down
+}
+
+// ─── Leaf Tables (no forward references) ────────────────────────
+
+table SharedElementPair {
+  transition_name: string (required);
+  source_node_id: string;
+  target_node_id: string;
+}
+
+table RouteGuard {
+  requires_auth: bool = false;
+  required_roles: [string];
+  redirect_on_fail: string;
+  custom_guard: string;
+}
+
+table RouteTransitionConfig {
+  transition_type: RouteTransitionType;
+  duration: Duration;
+  easing: Easing;
+  slide_direction: SlideDirection;
+  shared_elements: [SharedElementPair];
+  custom_sequence_id: string;
+  reduced_motion: ReducedMotion;
+}
+
+// ─── RouteEntry ─────────────────────────────────────────────────
+
+table RouteEntry {
+  path: string (required);
+  name: string;
+  view_root_id: string (required);
+  guard: RouteGuard;
+  preload_data: [string];
+  transition: RouteTransitionConfig;
+  sitemap_priority: float32 = 0.5;
+  sitemap_change_freq: ChangeFrequency;
+  sitemap_last_modified: string;
+  exclude_from_sitemap: bool = false;
+  children: [RouteEntry];
+}
+
+// ─── RouteMap ───────────────────────────────────────────────────
+
+table RouteMap {
+  node_id: string (required);
+  routes: [RouteEntry] (required);
+  not_found_route: string;
+  default_transition: RouteTransitionConfig;
+}

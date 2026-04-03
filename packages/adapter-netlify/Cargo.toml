@@ -1,0 +1,14 @@
+[package]
+name = "voce-adapter-netlify"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Voce IR Netlify deployment adapter"
+
+[dependencies]
+voce-adapter-core = { path = "../adapter-core" }
+anyhow.workspace = true
+serde.workspace = true
+toml.workspace = true

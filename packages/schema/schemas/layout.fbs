@@ -1,0 +1,263 @@
+// Voce IR — Layout Nodes
+//
+// Scene and layout primitives: ViewRoot, Container, Surface,
+// TextNode, MediaNode. These define spatial composition without CSS.
+
+include "types.fbs";
+
+namespace voce;
+
+// ─── Forward reference note ─────────────────────────────────────
+//
+// ChildUnion, ChildNode, and VoceDocument are defined in voce.fbs
+// (the master file) because the union must reference types from all
+// schema domains. Container, Surface, etc. reference [ChildNode]
+// which is resolved when voce.fbs includes this file.
+
+// ─── ViewRoot ───────────────────────────────────────────────────
+//
+// Top-level container. One per route. Defines viewport bounds,
+// base theme, and the semantic document root.
+
+table ViewRoot {
+  node_id: string (required);
+  children: [ChildNode];
+
+  // Viewport
+  width: Length;
+  height: Length;
+  background: Color;
+
+  // Document
+  document_language: string;
+  text_direction: TextDirection = Ltr;
+
+  // Semantic nodes — flat list referenced by visual nodes via semantic_node_id.
+  semantic_nodes: [SemanticNode];
+
+  // SEO — per-page metadata (added Sprint 05).
+  metadata: PageMetadata;
+}
+
+// ─── Container ──────────────────────────────────────────────────
+//
+// Groups children with a layout strategy. The primary structural
+// node for composition.
+
+enum ContainerLayout : byte {
+  Stack = 0,
+  Flex,
+  Grid,
+  Absolute
+}
+
+table Container {
+  node_id: string (required);
+  children: [ChildNode];
+
+  // Layout
+  layout: ContainerLayout = Stack;
+  direction: LayoutDirection = Column;
+  main_align: Alignment = Start;
+  cross_align: Alignment = Start;
+  gap: Length;
+  padding: EdgeInsets;
+  wrap: bool = false;
+
+  // Grid-specific
+  grid_columns: [Length];
+  grid_rows: [Length];
+
+  // Sizing
+  width: Length;
+  height: Length;
+  min_width: Length;
+  max_width: Length;
+  min_height: Length;
+  max_height: Length;
+
+  // Overflow and clipping
+  overflow_x: Overflow = Visible;
+  overflow_y: Overflow = Visible;
+  clip: bool = false;
+
+  // Positioning (for children of Absolute containers)
+  position: Position = Relative;
+  top: Length;
+  right: Length;
+  bottom: Length;
+  left: Length;
+  z_index: int32 = 0;
+
+  // Visual
+  opacity: float32 = 1.0;
+  background: Color;
+  border: BorderSides;
+  corner_radius: CornerRadii;
+  shadow: [Shadow];
+
+  // Accessibility — reference to a SemanticNode in ViewRoot.semantic_nodes.
+  semantic_node_id: string;
+}
+
+// ─── Surface ────────────────────────────────────────────────────
+//
+// A visible rectangular region. The base visual primitive for
+// cards, backgrounds, dividers, and decorative elements.
+
+table Surface {
+  node_id: string (required);
+  children: [ChildNode];
+
+  // Visual
+  fill: Color;
+  stroke: Color;
+  stroke_width: Length;
+  corner_radius: CornerRadii;
+  shadow: [Shadow];
+  opacity: float32 = 1.0;
+  border: BorderSides;
+
+  // Sizing
+  width: Length;
+  height: Length;
+  min_width: Length;
+  max_width: Length;
+  min_height: Length;
+  max_height: Length;
+  padding: EdgeInsets;
+
+  // If true, no SemanticNode required (decorative element)
+  decorative: bool = false;
+
+  // Accessibility
+  semantic_node_id: string;
+}
+
+// ─── TextNode ───────────────────────────────────────────────────
+//
+// Styled text content. All typography properties are explicit —
+// no CSS text properties, no cascade.
+
+enum FontWeight : int16 {
+  Thin = 100,
+  ExtraLight = 200,
+  Light = 300,
+  Regular = 400,
+  Medium = 500,
+  SemiBold = 600,
+  Bold = 700,
+  ExtraBold = 800,
+  Black = 900
+}
+
+enum TextAlign : byte {
+  Start = 0,
+  Center,
+  End,
+  Justify
+}
+
+enum TextOverflow : byte {
+  Clip = 0,
+  Ellipsis,
+  Fade
+}
+
+enum TextDecoration : byte {
+  None = 0,
+  Underline,
+  LineThrough
+}
+
+table TextNode {
+  node_id: string (required);
+
+  // Content (static string; LocalizedString added in i18n sprint)
+  content: string;
+
+  // Dynamic content binding (resolves at runtime from DataNode)
+  content_binding: DataBinding;
+
+  // Localized content (i18n — alternative to static content string).
+  localized_content: LocalizedString;
+
+  // Typography
+  font_family: string;
+  font_size: Length;
+  font_weight: FontWeight = Regular;
+  line_height: float32 = 1.5;
+  letter_spacing: Length;
+  text_align: TextAlign = Start;
+  text_overflow: TextOverflow = Clip;
+  text_decoration: TextDecoration = None;
+  max_lines: int32;
+
+  // Visual
+  color: Color;
+  opacity: float32 = 1.0;
+
+  // Semantic heading level (0 = not a heading, 1-6 = h1-h6)
+  heading_level: int8 = 0;
+
+  // Accessibility
+  semantic_node_id: string;
+}
+
+// ─── MediaNode ──────────────────────────────────────────────────
+//
+// Image, video, or audio with explicit dimensions, loading
+// strategy, and format negotiation.
+
+enum MediaType : byte {
+  Image = 0,
+  Video,
+  Audio,
+  Svg
+}
+
+enum LoadingStrategy : byte {
+  Eager = 0,
+  Lazy
+}
+
+enum ObjectFit : byte {
+  Cover = 0,
+  Contain,
+  Fill,
+  ScaleDown,
+  None
+}
+
+table MediaNode {
+  node_id: string (required);
+
+  media_type: MediaType = Image;
+  src: string (required);
+  alt: string;
+
+  // Dimensions (required for CLS prevention)
+  width: Length;
+  height: Length;
+  aspect_ratio: float32;
+
+  // Display
+  object_fit: ObjectFit = Cover;
+  loading: LoadingStrategy = Lazy;
+  corner_radius: CornerRadii;
+  opacity: float32 = 1.0;
+
+  // Optimization hints for the compiler's asset pipeline
+  srcset_widths: [int32];
+  sizes: string;
+
+  // Flags
+  decorative: bool = false;
+  above_fold: bool = false;
+
+  // Accessibility
+  semantic_node_id: string;
+}
+
+// VoceDocument, ChildUnion, ChildNode, root_type, and file_identifier
+// are defined in voce.fbs (master schema file).

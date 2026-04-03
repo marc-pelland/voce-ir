@@ -1,0 +1,24 @@
+{
+  "schema_version_major": 1,
+  "schema_version_minor": 0,
+  "root": {
+    "node_id": "root",
+    "viewport_width": { "value": 400, "unit": "Px" },
+    "children": [
+      {
+        "value_type": "Surface",
+        "value": {
+          "node_id": "card",
+          "fill": { "r": 255, "g": 255, "b": 255, "a": 255 },
+          "corner_radius": { "top_left": { "value": 8, "unit": "Px" }, "top_right": { "value": 8, "unit": "Px" }, "bottom_left": { "value": 8, "unit": "Px" }, "bottom_right": { "value": 8, "unit": "Px" } },
+          "shadow": [{ "offset_x": { "value": 0, "unit": "Px" }, "offset_y": { "value": 2, "unit": "Px" }, "blur": { "value": 8, "unit": "Px" }, "spread": { "value": 0, "unit": "Px" }, "color": { "r": 0, "g": 0, "b": 0, "a": 40 } }],
+          "children": [
+            { "value_type": "TextNode", "value": { "node_id": "card-title", "content": "Card Title", "heading_level": 2, "font_size": { "value": 20, "unit": "Px" }, "font_weight": "SemiBold" } }
+          ]
+        }
+      }
+    ],
+    "metadata": { "title": "Card", "description": "Surface card with shadow." }
+  },
+  "metadata": { "title": "Card", "description": "Surface card with shadow.", "language": "en" }
+}

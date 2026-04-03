@@ -1,0 +1,17 @@
+[package]
+name = "voce-compiler-webgpu"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Voce IR WebGPU compiler — compiles 3D scene IR to WebGPU render pipelines"
+
+[dependencies]
+voce-schema = { path = "../schema" }
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+insta.workspace = true

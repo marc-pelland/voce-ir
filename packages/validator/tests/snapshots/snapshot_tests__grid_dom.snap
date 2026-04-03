@@ -1,0 +1,29 @@
+---
+source: packages/validator/tests/snapshot_tests.rs
+expression: html
+---
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="X-Frame-Options" content="DENY">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Grid Test</title>
+<meta name="description" content="Grid container.">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5}
+img{max-width:100%;height:auto;display:block}
+</style>
+</head>
+<body>
+  <div style="grid-template-columns:1fr 1fr 1fr;display:flex;flex-direction:column;gap:24px;">
+    <p style="font-size:16px;">Cell 1</p>
+    <p style="font-size:16px;">Cell 2</p>
+    <p style="font-size:16px;">Cell 3</p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,14 @@
+[package]
+name = "voce-compiler-ios"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Voce IR iOS compiler — compiles IR to SwiftUI code with VoiceOver accessibility"
+
+[dependencies]
+voce-schema = { path = "../schema" }
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true

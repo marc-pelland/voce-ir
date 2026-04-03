@@ -1,0 +1,227 @@
+// Voce IR — Forms
+//
+// Declarative forms with compiler-generated validation, progressive
+// enhancement, and accessible markup. The compiler emits native <form>
+// elements that work without JavaScript, then layers on client-side
+// validation and enhanced submission handling.
+//
+// See docs/research/FORMS_SEO_I18N.md for full design rationale.
+
+include "types.fbs";
+
+namespace voce;
+
+// ─── Form Field Types ───────────────────────────────────────────
+
+enum FormFieldType : byte {
+  Text = 0,
+  Email,
+  Password,
+  Number,
+  Tel,
+  Url,
+  Search,
+  Select,
+  MultiSelect,
+  Checkbox,
+  Radio,
+  Textarea,
+  File,
+  Date,
+  Time,
+  DateTimeLocal,
+  Hidden,
+  Color,
+  Range
+}
+
+enum ValidationMode : byte {
+  /// Validate all fields on submit only.
+  OnSubmit = 0,
+  /// Validate each field on blur.
+  OnBlur,
+  /// Validate on every keystroke (use sparingly).
+  OnChange,
+  /// Validate on blur, then on change after first error (best UX).
+  OnBlurThenChange
+}
+
+enum FormEncoding : byte {
+  UrlEncoded = 0,
+  Multipart,
+  Json
+}
+
+enum AutocompleteHint : byte {
+  Off = 0,
+  On,
+  Name,
+  GivenName,
+  FamilyName,
+  Email,
+  Username,
+  NewPassword,
+  CurrentPassword,
+  Tel,
+  StreetAddress,
+  City,
+  State,
+  PostalCode,
+  Country,
+  CreditCardNumber,
+  CreditCardExp,
+  CreditCardCsc
+}
+
+// ─── Validation Rules ───────────────────────────────────────────
+
+enum ValidationType : byte {
+  Required = 0,
+  MinLength,
+  MaxLength,
+  Pattern,
+  Min,
+  Max,
+  Email,
+  Url,
+  Custom
+}
+
+table ValidationRule {
+  rule_type: ValidationType;
+  /// Value for the rule (e.g., min_length: "8", pattern: "^[a-z]+$").
+  value: string;
+  /// Error message (should be a LocalizedString key in production).
+  message: string (required);
+}
+
+table AsyncValidation {
+  /// Endpoint to check against (e.g., /api/check-email).
+  endpoint: string (required);
+  /// Debounce delay in ms before sending the request.
+  debounce_ms: uint32 = 300;
+  /// Error message if validation fails.
+  message: string (required);
+}
+
+table CrossFieldValidation {
+  /// Field names involved in this validation.
+  field_names: [string] (required);
+  /// Expression that must evaluate to true (e.g., "password == confirm_password").
+  expression: string (required);
+  /// Error message.
+  message: string (required);
+  /// Which field shows the error.
+  target_field: string;
+}
+
+// ─── Form Field ─────────────────────────────────────────────────
+
+table SelectOption {
+  label: string (required);
+  value: string (required);
+  disabled: bool = false;
+}
+
+table FormField {
+  /// Field identifier (used as form submission key).
+  name: string (required);
+  field_type: FormFieldType = Text;
+
+  /// Visible label (required for accessibility).
+  label: string (required);
+  placeholder: string;
+  /// Help text displayed below the field (aria-describedby).
+  description: string;
+
+  /// Default value.
+  initial_value: string;
+
+  /// Validation rules (run client-side).
+  validations: [ValidationRule];
+  /// Server-side async validations (e.g., uniqueness check).
+  async_validations: [AsyncValidation];
+
+  /// For Select/Radio: available options.
+  options: [SelectOption];
+
+  /// Conditional visibility (reference to a ComputeNode or expression).
+  visible_when: string;
+  /// Conditional disable.
+  disabled_when: string;
+
+  /// Browser autocomplete hint.
+  autocomplete: AutocompleteHint = Off;
+
+  /// For File: accepted MIME types (e.g., "image/*", ".pdf").
+  accept: string;
+  /// For File: max file size in bytes.
+  max_file_size: uint32;
+  /// For File: allow multiple files.
+  multiple: bool = false;
+
+  /// For Number/Range: step value.
+  step: float32;
+
+  /// Accessibility.
+  semantic_node_id: string;
+}
+
+// ─── Form Submission ────────────────────────────────────────────
+
+table FormSubmission {
+  /// ActionNode that handles the submission.
+  action_node_id: string (required);
+  encoding: FormEncoding = Json;
+
+  /// If true, the form works without JavaScript (native form action).
+  progressive: bool = true;
+
+  /// State machine event to fire on success.
+  success_event: string;
+  success_state_machine: string;
+  /// Route to navigate to on success.
+  success_redirect: string;
+
+  /// How to display server-side errors.
+  /// "field" = map errors to individual fields, "summary" = show error list.
+  error_display: string;
+}
+
+// ─── FormNode ───────────────────────────────────────────────────
+
+table FormFieldGroup {
+  /// Group label (rendered as <fieldset><legend>).
+  label: string (required);
+  /// Field names in this group.
+  field_names: [string] (required);
+  description: string;
+}
+
+table AutosaveConfig {
+  /// Save interval in ms (0 = save on every change).
+  interval_ms: uint32 = 5000;
+  /// Storage key for draft persistence.
+  storage_key: string;
+}
+
+table FormNode {
+  node_id: string (required);
+  name: string;
+
+  fields: [FormField] (required);
+  field_groups: [FormFieldGroup];
+  cross_validations: [CrossFieldValidation];
+
+  validation_mode: ValidationMode = OnBlurThenChange;
+  submission: FormSubmission (required);
+
+  /// Initial values loaded from a DataNode (for edit forms).
+  initial_values_node_id: string;
+
+  /// Draft persistence configuration.
+  autosave: AutosaveConfig;
+
+  /// Accessibility.
+  semantic_node_id: string;
+}

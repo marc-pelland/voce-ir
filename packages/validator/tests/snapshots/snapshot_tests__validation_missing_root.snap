@@ -1,0 +1,5 @@
+---
+source: packages/validator/tests/snapshot_tests.rs
+expression: "errors.join(\"\\n\")"
+---
+[error] STR001: Document is missing a root ViewRoot

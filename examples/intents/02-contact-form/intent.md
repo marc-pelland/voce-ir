@@ -1,0 +1,1 @@
+A contact form with name, email, and message fields. All fields are required. The email field should validate email format. Include a submit button that posts to an API endpoint. The form should work without JavaScript (progressive enhancement).

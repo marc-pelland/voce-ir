@@ -1,0 +1,215 @@
+// Voce IR — Motion & Interaction Nodes
+//
+// Animation is a first-class IR concern, not a CSS afterthought.
+// Every motion declaration includes a reduced-motion fallback
+// (required by the validator). The compiler uses a tiered strategy:
+// CSS transitions → WAAPI → minimal rAF JS.
+
+include "types.fbs";
+
+namespace voce;
+
+// ─── AnimationTransition ────────────────────────────────────────
+//
+// Animates property changes between state machine states.
+// The compiler chooses the optimal technique:
+// - CSS transition for pseudo-class states (hover, focus)
+// - WAAPI for programmatic state changes
+// - Pre-computed linear() for spring easing (zero JS)
+
+table AnimatedProperty {
+  /// CSS-like property path (e.g., "transform.translateY", "opacity", "background.color").
+  property: string (required);
+  /// Value in the "from" state.
+  from: string (required);
+  /// Value in the "to" state.
+  to: string (required);
+}
+
+table AnimationTransition {
+  node_id: string (required);
+  name: string;
+
+  /// Target node to animate.
+  target_node_id: string (required);
+  /// Which state machine transition triggers this animation.
+  trigger_state_machine: string;
+  trigger_event: string;
+
+  /// Properties to animate.
+  properties: [AnimatedProperty] (required);
+
+  /// Timing.
+  duration: Duration;
+  delay: Duration;
+  easing: Easing;
+
+  /// Reduced motion alternative (required by validator).
+  reduced_motion: ReducedMotion;
+}
+
+// ─── Sequence ───────────────────────────────────────────────────
+//
+// Choreographed animation timeline. Multiple transitions played
+// in sequence or parallel with stagger offsets.
+
+table SequenceStep {
+  /// Reference to an AnimationTransition node.
+  transition_id: string (required);
+  /// Delay before this step starts (relative to sequence start or previous step).
+  delay: Duration;
+  /// If true, this step starts at the same time as the previous step (parallel).
+  parallel: bool = false;
+}
+
+table Sequence {
+  node_id: string (required);
+  name: string;
+  steps: [SequenceStep] (required);
+
+  /// Stagger delay between sequential elements (e.g., for list entrance).
+  stagger: Duration;
+
+  /// Number of times to play (0 = infinite).
+  iterations: int32 = 1;
+  /// Whether to reverse on alternate iterations.
+  alternate: bool = false;
+
+  /// Reduced motion alternative for the entire sequence.
+  reduced_motion: ReducedMotion;
+}
+
+// ─── GestureHandler ─────────────────────────────────────────────
+//
+// Maps touch/mouse/keyboard input to state transitions or
+// continuous property updates.
+
+enum GestureType : byte {
+  Tap = 0,
+  DoubleTap,
+  LongPress,
+  Drag,
+  Swipe,
+  Pinch,
+  Hover,
+  Focus
+}
+
+table GestureHandler {
+  node_id: string (required);
+
+  /// Target node that receives the gesture.
+  target_node_id: string (required);
+  gesture_type: GestureType;
+
+  /// For tap/click: which state machine event to fire.
+  trigger_event: string;
+  trigger_state_machine: string;
+
+  /// For drag/continuous: property to update and value mapping.
+  continuous_property: string;
+  continuous_axis: string;
+
+  /// Keyboard equivalent (required by validator for accessibility).
+  keyboard_key: string;
+  keyboard_modifier: string;
+
+  /// Gesture thresholds.
+  threshold_px: float32;
+  velocity_threshold: float32;
+}
+
+// ─── ScrollBinding ──────────────────────────────────────────────
+//
+// Binds node properties to scroll position. Compiled to CSS
+// scroll-driven animations where supported, with IntersectionObserver
+// fallback.
+
+enum ScrollAxis : byte {
+  Vertical = 0,
+  Horizontal
+}
+
+enum ScrollTrigger : byte {
+  /// Animate as element enters/exits viewport.
+  ViewProgress = 0,
+  /// Animate based on scroll position within a container.
+  ScrollProgress
+}
+
+table ScrollBinding {
+  node_id: string (required);
+
+  /// Target node whose properties are scroll-linked.
+  target_node_id: string (required);
+
+  scroll_trigger: ScrollTrigger = ViewProgress;
+  scroll_axis: ScrollAxis = Vertical;
+
+  /// Range of scroll progress that maps to animation (0.0 to 1.0).
+  range_start: float32 = 0.0;
+  range_end: float32 = 1.0;
+
+  /// Properties to animate over the scroll range.
+  properties: [AnimatedProperty] (required);
+
+  /// Optional scroll container (default: nearest scrollable ancestor).
+  scroll_container_id: string;
+
+  /// Reduced motion: if true, skip scroll-linked animation entirely.
+  reduced_motion: ReducedMotion;
+}
+
+// ─── PhysicsBody ────────────────────────────────────────────────
+//
+// Attaches physics simulation to a node. Used for spring animations,
+// momentum scrolling, draggable elements, and procedural motion.
+// Non-interruptible springs are compiled to CSS linear() at build time.
+
+table PhysicsBody {
+  node_id: string (required);
+
+  /// Target node to apply physics to.
+  target_node_id: string (required);
+
+  /// Spring parameters (the primary use case).
+  stiffness: float32 = 300.0;
+  damping: float32 = 25.0;
+  mass: float32 = 1.0;
+
+  /// Friction for momentum decay (0.0 = no friction, 1.0 = instant stop).
+  friction: float32 = 0.05;
+  /// Restitution / bounciness (0.0 = no bounce, 1.0 = perfect bounce).
+  restitution: float32 = 0.0;
+
+  /// If true, the compiler emits a per-frame rAF stepper instead of
+  /// pre-computed CSS linear() easing. Needed when the animation can
+  /// be interrupted mid-flight (e.g., rapid hover/unhover).
+  interruptible: bool = false;
+}
+
+// ─── ReducedMotion ──────────────────────────────────────────────
+//
+// Every animation MUST reference a ReducedMotion alternative.
+// The validator rejects IR where any Transition, Sequence, or
+// ScrollBinding lacks a ReducedMotion reference.
+
+enum ReducedMotionStrategy : byte {
+  /// Remove the animation entirely — snap to final state.
+  Remove = 0,
+  /// Replace with a simpler animation (e.g., opacity fade instead of slide).
+  Simplify,
+  /// Keep the animation but reduce duration to near-instant.
+  ReduceDuration,
+  /// This animation is functional (loading spinner, progress bar) —
+  /// simplify but don't remove.
+  Functional
+}
+
+table ReducedMotion {
+  strategy: ReducedMotionStrategy = Remove;
+  /// For Simplify: replacement properties to animate instead.
+  simplified_properties: [AnimatedProperty];
+  /// For ReduceDuration: the reduced duration (e.g., 1ms for instant).
+  reduced_duration: Duration;
+}

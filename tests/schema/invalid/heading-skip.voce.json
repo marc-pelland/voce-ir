@@ -1,0 +1,9 @@
+{
+  "root": {
+    "node_id": "root",
+    "children": [
+      { "value_type": "TextNode", "value": { "node_id": "h1", "content": "Title", "heading_level": 1 } },
+      { "value_type": "TextNode", "value": { "node_id": "h3", "content": "Skipped", "heading_level": 3 } }
+    ]
+  }
+}

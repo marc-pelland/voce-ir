@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voce IR — Specification v0.1</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Instrument+Serif&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+
+  :root {
+    --bg: #0C0C0E;
+    --bg-surface: #141417;
+    --bg-elevated: #1C1C21;
+    --bg-accent: #26262E;
+    --text-primary: #E8E6E1;
+    --text-secondary: #9B9A94;
+    --text-tertiary: #6B6A65;
+    --border: rgba(255,255,255,0.06);
+    --border-strong: rgba(255,255,255,0.12);
+    --accent-coral: #E8593C;
+    --accent-coral-dim: rgba(232,89,60,0.15);
+    --accent-teal: #1D9E75;
+    --accent-teal-dim: rgba(29,158,117,0.12);
+    --accent-amber: #EF9F27;
+    --accent-amber-dim: rgba(239,159,39,0.12);
+    --accent-purple: #7F77DD;
+    --accent-purple-dim: rgba(127,119,221,0.12);
+    --accent-blue: #378ADD;
+    --accent-blue-dim: rgba(55,138,221,0.12);
+    --font-body: 'DM Sans', -apple-system, sans-serif;
+    --font-display: 'Instrument Serif', Georgia, serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 15.5px;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* --- HEADER --- */
+  .hero {
+    padding: 80px 40px 60px;
+    max-width: 960px;
+    margin: 0 auto;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--accent-coral);
+    margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-family: var(--font-display);
+    font-size: clamp(42px, 6vw, 64px);
+    font-weight: 400;
+    line-height: 1.1;
+    color: var(--text-primary);
+    margin-bottom: 24px;
+  }
+  .hero h1 em {
+    font-style: italic;
+    color: var(--accent-coral);
+  }
+  .hero-sub {
+    font-size: 17px;
+    color: var(--text-secondary);
+    max-width: 640px;
+    line-height: 1.7;
+  }
+  .hero-meta {
+    display: flex;
+    gap: 32px;
+    margin-top: 32px;
+    font-size: 13px;
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
+  }
+  .hero-meta span { display: flex; align-items: center; gap: 6px; }
+  .hero-meta .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent-teal);
+    display: inline-block;
+  }
+
+  /* --- CONTENT --- */
+  .content {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 40px;
+  }
+
+  /* --- SECTIONS --- */
+  section {
+    padding: 64px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  section:last-of-type { border-bottom: none; }
+
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--accent-teal);
+    margin-bottom: 16px;
+  }
+  .section-label.coral { color: var(--accent-coral); }
+  .section-label.amber { color: var(--accent-amber); }
+  .section-label.purple { color: var(--accent-purple); }
+  .section-label.blue { color: var(--accent-blue); }
+
+  h2 {
+    font-family: var(--font-display);
+    font-size: clamp(28px, 4vw, 38px);
+    font-weight: 400;
+    line-height: 1.2;
+    margin-bottom: 24px;
+    color: var(--text-primary);
+  }
+  h3 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-top: 40px;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+  }
+  h4 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-top: 28px;
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  p { margin-bottom: 16px; color: var(--text-secondary); }
+  p strong { color: var(--text-primary); font-weight: 500; }
+
+  /* --- PRINCIPLE CARDS --- */
+  .pillars {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin: 32px 0;
+  }
+  @media (max-width: 700px) { .pillars { grid-template-columns: 1fr; } }
+  .pillar {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 24px;
+  }
+  .pillar-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+  .pillar-icon.coral { background: var(--accent-coral-dim); color: var(--accent-coral); }
+  .pillar-icon.teal { background: var(--accent-teal-dim); color: var(--accent-teal); }
+  .pillar-icon.amber { background: var(--accent-amber-dim); color: var(--accent-amber); }
+  .pillar h4 {
+    margin: 0 0 8px;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 16px;
+    color: var(--text-primary);
+  }
+  .pillar p { font-size: 13.5px; margin: 0; color: var(--text-tertiary); line-height: 1.6; }
+
+  /* --- NODE TYPE TABLE --- */
+  .node-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1px;
+    background: var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 24px 0;
+  }
+  .node-row {
+    display: grid;
+    grid-template-columns: 180px 1fr 160px;
+    background: var(--bg-surface);
+    padding: 16px 20px;
+    gap: 16px;
+    align-items: start;
+  }
+  @media (max-width: 700px) {
+    .node-row { grid-template-columns: 1fr; }
+  }
+  .node-row.header {
+    background: var(--bg-elevated);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    padding: 12px 20px;
+  }
+  .node-name {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent-coral);
+  }
+  .node-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+  .node-target {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-tertiary);
+  }
+
+  /* --- CODE BLOCKS --- */
+  pre {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    overflow-x: auto;
+    margin: 20px 0;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text-secondary);
+  }
+  code {
+    font-family: var(--font-mono);
+    font-size: 13px;
+  }
+  p code, li code {
+    background: var(--bg-elevated);
+    padding: 2px 7px;
+    border-radius: 4px;
+    color: var(--accent-amber);
+    font-size: 13px;
+  }
+
+  /* --- CALLOUT --- */
+  .callout {
+    border-left: 3px solid var(--accent-teal);
+    padding: 16px 20px;
+    margin: 24px 0;
+    background: var(--accent-teal-dim);
+    border-radius: 0 8px 8px 0;
+  }
+  .callout.coral {
+    border-left-color: var(--accent-coral);
+    background: var(--accent-coral-dim);
+  }
+  .callout.amber {
+    border-left-color: var(--accent-amber);
+    background: var(--accent-amber-dim);
+  }
+  .callout.purple {
+    border-left-color: var(--accent-purple);
+    background: var(--accent-purple-dim);
+  }
+  .callout p { margin: 0; font-size: 14px; color: var(--text-secondary); }
+  .callout strong { color: var(--text-primary); }
+
+  /* --- FLOW DIAGRAM --- */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 32px 0;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .flow-node {
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .flow-node.intent { background: var(--accent-purple-dim); color: var(--accent-purple); border: 1px solid rgba(127,119,221,0.2); }
+  .flow-node.ir { background: var(--accent-coral-dim); color: var(--accent-coral); border: 1px solid rgba(232,89,60,0.2); }
+  .flow-node.compile { background: var(--accent-teal-dim); color: var(--accent-teal); border: 1px solid rgba(29,158,117,0.2); }
+  .flow-node.target { background: var(--accent-blue-dim); color: var(--accent-blue); border: 1px solid rgba(55,138,221,0.2); }
+  .flow-arrow {
+    color: var(--text-tertiary);
+    padding: 0 12px;
+    font-size: 16px;
+  }
+
+  /* --- LAYER STACK --- */
+  .layer-stack {
+    margin: 32px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .layer {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 20px;
+    padding: 20px 24px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    align-items: start;
+  }
+  .layer:first-child { border-radius: 12px 12px 0 0; }
+  .layer:last-child { border-radius: 0 0 12px 12px; }
+  .layer-label {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 500;
+    padding-top: 2px;
+  }
+  .layer-label.purple { color: var(--accent-purple); }
+  .layer-label.coral { color: var(--accent-coral); }
+  .layer-label.teal { color: var(--accent-teal); }
+  .layer-label.blue { color: var(--accent-blue); }
+  .layer-content { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+  .layer-content strong { color: var(--text-primary); }
+
+  /* --- LISTS --- */
+  ul, ol {
+    margin: 12px 0 16px 24px;
+    color: var(--text-secondary);
+  }
+  li {
+    margin-bottom: 8px;
+    font-size: 14.5px;
+    line-height: 1.65;
+  }
+  li strong { color: var(--text-primary); font-weight: 500; }
+
+  /* --- COMPARISON --- */
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 24px 0;
+  }
+  @media (max-width: 700px) { .compare { grid-template-columns: 1fr; } }
+  .compare-col {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+  .compare-col h5 {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .compare-col.before h5 { color: var(--text-tertiary); }
+  .compare-col.after h5 { color: var(--accent-teal); }
+  .compare-col p { font-size: 13.5px; margin-bottom: 8px; }
+  .compare-col code { font-size: 12px; }
+
+  /* --- FOOTER --- */
+  .footer {
+    padding: 48px 40px;
+    text-align: center;
+    color: var(--text-tertiary);
+    font-size: 13px;
+    border-top: 1px solid var(--border);
+    max-width: 960px;
+    margin: 0 auto;
+  }
+  .footer a { color: var(--accent-coral); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-eyebrow">Specification Document &mdash; Draft v0.1</div>
+  <h1>Voce <em>IR</em></h1>
+  <p class="hero-sub">An intermediate representation for AI-generated user interfaces. Optimized for machine authorship, compiled for human experience. No human-readable code in the pipeline &mdash; just intent in, extraordinary UI out.</p>
+  <div class="hero-meta">
+    <span><span class="dot"></span> Fire Burns Up</span>
+    <span>Status: RFC</span>
+    <span>2026-03-20</span>
+  </div>
+</div>
+
+<div class="content">
+
+<!-- ============================================ -->
+<!-- SECTION 1: THESIS -->
+<!-- ============================================ -->
+<section>
+  <div class="section-label coral">01 &mdash; Thesis</div>
+  <h2>Code is a constraint, not a feature</h2>
+  <p>Every framework in use today &mdash; React, Vue, Svelte, Angular &mdash; was designed with one core assumption: <strong>a human will read and write this code.</strong> That assumption shapes everything: syntax must be learnable, abstractions must map to human mental models, error messages must be diagnostic, and the module structure must be navigable.</p>
+  <p>In a world where AI generates the vast majority of interface code, that assumption becomes a <strong>performance tax.</strong> Every abstraction that exists for human comprehension &mdash; the virtual DOM, CSS cascade, JSX transpilation, hook ordering rules &mdash; is overhead that the machine pays to communicate with itself in a language designed for someone else.</p>
+  <p><strong>Voce IR removes the human from the code.</strong> The human stays in the loop &mdash; describing intent, reviewing output, guiding iteration &mdash; but never touches the intermediate representation. The IR is a binary, typed, machine-optimized format that an AI generates and a compiler consumes. It is not designed to be read. It is designed to be <em>fast, correct, and expressive.</em></p>
+
+  <div class="flow">
+    <div class="flow-node intent">Human intent</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node ir">AI &rarr; Binary IR</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node compile">Compiler</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node target">Optimized output</div>
+  </div>
+
+  <div class="callout">
+    <p><strong>Design principle:</strong> The quality of the output is the only metric that matters. The IR exists to maximize the expressiveness, performance, and stability of compiled interfaces &mdash; not to be understood by a developer reading source files.</p>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- SECTION 2: THREE PILLARS -->
+<!-- ============================================ -->
+<section>
+  <div class="section-label teal">02 &mdash; Output Quality Pillars</div>
+  <h2>Built for the human who sees it, not the one who codes it</h2>
+  <p>The IR must be expressive enough to produce interfaces that meet three non-negotiable quality standards. These pillars constrain every design decision in the specification.</p>
+
+  <div class="pillars">
+    <div class="pillar">
+      <div class="pillar-icon coral">&#9670;</div>
+      <h4>Stability</h4>
+      <p>Compiled output must be deterministic, crash-free, and resilient across devices and network conditions. The IR's type system and constraint validation make entire categories of runtime error structurally impossible.</p>
+    </div>
+    <div class="pillar">
+      <div class="pillar-icon teal">&#9671;</div>
+      <h4>Experience</h4>
+      <p>3D scenes, choreographed animation sequences, particle systems, shader effects, scroll-driven interactions, and personalized theming must be first-class primitives &mdash; not afterthoughts bolted on via third-party libraries.</p>
+    </div>
+    <div class="pillar">
+      <div class="pillar-icon amber">&#9675;</div>
+      <h4>Accessibility</h4>
+      <p>Every visual node in the IR carries a parallel semantic node. Accessibility is not opt-in &mdash; it is structurally required by the format. The compiler enforces semantic completeness before emitting output.</p>
+    </div>
+  </div>
+
+  <div class="callout amber">
+    <p><strong>Enforcement:</strong> The compiler will refuse to emit output if the IR fails validation against any pillar. A missing semantic label is a compile error, not a linting warning. A state machine with an unreachable state is rejected. An animation without a reduced-motion fallback is invalid.</p>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- SECTION 3: ARCHITECTURE -->
+<!-- ============================================ -->
+<section>
+  <div class="section-label purple">03 &mdash; Architecture</div>
+  <h2>Four-layer pipeline</h2>
+
+  <div class="layer-stack">
+    <div class="layer">
+      <div class="layer-label purple">Intent</div>
+      <div class="layer-content"><strong>The human interface.</strong> Natural language conversation with constraints: "Build a product detail page with a 3D model viewer, add-to-cart animation, and support for screen readers. Target: 120fps on M-series chips, graceful degradation to 2D on low-end Android." The AI parses intent, resolves ambiguity, and asks clarifying questions before emitting IR.</div>
+    </div>
+    <div class="layer">
+      <div class="layer-label coral">Generation</div>
+      <div class="layer-content"><strong>The AI engine.</strong> Translates intent into valid IR. The engine understands the IR schema natively &mdash; it does not generate human-readable code and then convert it. It emits typed binary IR directly, validating constraints as it generates. Generation can be incremental: a change to one view's state machine does not require regenerating the entire IR.</div>
+    </div>
+    <div class="layer">
+      <div class="layer-label teal">Compilation</div>
+      <div class="layer-content"><strong>The optimizing compiler.</strong> Takes IR + a device profile and emits the smallest, fastest possible output for the target. Whole-program optimization: dead state elimination, data request fusion, layout pre-computation, animation frame scheduling, shader compilation. The device profile includes GPU capabilities, screen size, refresh rate, network conditions, and accessibility preferences.</div>
+    </div>
+    <div class="layer">
+      <div class="layer-label blue">Runtime</div>
+      <div class="layer-content"><strong>The execution target.</strong> DOM (minimal, surgical mutations &mdash; no virtual DOM), WebGPU (direct draw calls for experiential/3D), WASM (near-native compute for complex state), Native (platform APIs for iOS/Android/desktop), or hybrid combinations where the compiler mixes targets per-component based on what each component needs.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- SECTION 4: IR NODE TYPES -->
+<!-- ============================================ -->
+<section>
+  <div class="section-label coral">04 &mdash; IR Node Types</div>
+  <h2>The primitives</h2>
+  <p>The IR is a directed acyclic graph of typed nodes. Each node has a fixed schema, typed inputs and outputs, and a set of constraints that must be satisfied for the IR to validate. Below are the core node types, grouped by domain.</p>
+
+  <h3>Scene &amp; Layout</h3>
+  <p>Layout is expressed as a spatial graph with explicit constraints &mdash; not CSS. Every spatial relationship is declared, never inherited or cascaded. The compiler resolves constraints into concrete coordinates at build time when possible, or emits a minimal constraint solver for runtime-dependent layouts.</p>
+
+  <div class="node-grid">
+    <div class="node-row header">
+      <span>Node</span><span>Description</span><span>Compiles to</span>
+    </div>
+    <div class="node-row">
+      <span class="node-name">ViewRoot</span>
+      <span class="node-desc">Top-level container. Defines viewport bounds, base theme, and the semantic document root. One per route.</span>
+      <span class="node-target">document / canvas / scene</span>
+    </div>
+    <div class="node-row">
+      <span class="node-name">Container</span>
+      <span class="node-desc">Groups children with a layout strategy: stack (vertical/horizontal), grid (explicit rows/cols), absolute (positioned by anchor + offset), or flex (proportional allocation).</span>
+      <span class="node-target">div / flex / GPU quad</span>
+    </div>
+    <div class="node-row">
+      <span class="node-name">Surface</span>
+      <span class="node-desc">A visible rectangular region with fill, stroke, corner radius, and optional clipping. The base visual primitive for 2D interfaces.</span>
+      <span class="node-target">div / rect / draw call</span>
+    </div>
+    <div class="node-row">
+      <span class="node-name">TextNode</span>
+      <span class="node-desc">Styled text content. Properties: content (string or data binding), typeface, size, weight, color, line height, truncation strategy, locale. No CSS text properties &mdash; all explicit.</span>
+      <span class="node-target">span / text / glyph mesh</span>
+    </div>
+    <div class="node-row">
+      <span class="node-name">MediaNode</span>
+      <span class="node-desc">Image, video, or audio with explicit dimensions, loading strategy (eager, lazy, placeholder), format negotiation, and alt description (required).</span>
+      <span class="node-target">img / video / texture</span>
+    </div>
+    <div class="node-row">
+      <span class="node-name">Scene3D</span>
+      <span class="node-desc">A 3D scene subgraph. Contains camera, lights, meshes, materials, and an animation timeline. The compiler decides whether to emit WebGPU, Three.js, or a native 3D renderer.</span>
+      <span class="node-target">WebGPU / Three.js / SceneKit</span>
+    </div>
+    <div class="node-row">
+      <span class="node-name">MeshNode</span>
+      <span class="node-desc">Geometry + material reference within a Scene3D. Supports instancing, LOD levels, and bounding volume hints for culling. Geometry can reference external glTF/USD assets.</span>
+      <span class="node-target">GPU mesh / instanced draw</span>
+    </div>
+    <div class="node-row">
+      <span class="node-name">ShaderNode</span>
+      <span class="node-desc">Custom shader definition for materials or post-processing. Expressed as a portable shader IR (subset of WGSL) that the compiler translates to the target's shader language.</span>
+      <span class="node-target">WGSL / GLSL / Metal</span>
+    </div>
+    <div class="node-row">
+      <span class="node-name">ParticleSystem</span>
+      <span class="node-desc">GPU-driven particle emitter with configurable spawn rate, velocity field, color over lifetime, and collision bounds. Used for ambient effects, transitions, and environmental detail.</span>
+      <span class="node-target">Compute shader / Canvas</span>
+    </div>
+  </div>
+
+  <h3>State &amp; Logic</h3>
+  <p>All state is modeled as explicit, typed finite state machines. No implicit closures, no dependency arrays, no hook ordering. The compiler can statically analyze every possible state transition and eliminate unreachable paths.</p>
+
+  <div class="node-grid">
+    <div class="node-row header">
+      <span>Node</span><span>Description</span><span>Compiles to</span>
+    </div>
+    <div class="node-row">
+      <span class="node-name">StateMachine</span>
+      <span class="node-desc">Named machine with typed states, typed transitions, guard conditions, and side effects. Supports hierarchical (nested) and parallel (concurrent) state machines. Every component's behavior is a state machine.</span>
+      <span class="node-target">Switch / lookup table</span>
+    </div>
+    <div class="node-row">
+      <span class="node-name">DataNode</span>
+      <span class="node-desc">Declares an external data dependency with type, source (API, static, realtime), caching policy, refresh interval, and error/loading states. The compiler fuses co-located DataNodes into batched requests.</span>
+      <span class="node-target">fetch / WS / cache read</span>
+    </div>
+    <div class="node-row">
+      <span class="node-name">ComputeNode</span>
+      <span class="node-desc">A pure function that transforms inputs to outputs. Used for derived state, formatting, filtering. Referentially transparent &mdash; the compiler can memoize or pre-compute at build time.</span>
+      <span class="node-target">Inline JS / WASM func</span>
+    </div>
+    <div class="node-row">
+      <span class="node-name">EffectNode</span>
+      <span class="node-desc">A side effect triggered by a state transition: analytics event, API mutation, local storage write, haptic feedback. Effects are always attached to transitions, never to states &mdash; eliminating "effect on mount/unmount" ambiguity.</span>
+      <span class="node-target">Imperative call</span>
+    </div>
+    <div class="node-row">
+      <span class="node-name">ContextNode</span>
+      <span class="node-desc">Shared state scoped to a subtree. Replaces React Context, Redux stores, and prop drilling. Typed, with explicit read/write boundaries &mdash; a child can read context without being able to trigger transitions on it.</span>
+      <span class="node-target">Scoped variable / closure</span>
+    </div>
+  </div>
+
+  <h3>Motion &amp; Interaction</h3>
+  <p>Animation is a first-class IR concern, not a CSS afterthought. Every motion declaration includes a reduced-motion fallback (required by the validator). The compiler can schedule animations on the GPU compositor thread, pre-compute keyframe values, and batch transform operations.</p>
+
+  <div class="node-grid">
+    <div class="node-row header">
+      <span>Node</span><span>Description</span><span>Compiles to</span>
+    </div>
+    <div class="node-row">
+      <span class="node-name">Transition</span>
+      <span class="node-desc">Animates property changes between state machine states. Properties: target node, property path, from/to values, duration, easing (cubic-bezier or spring physics), delay, and reduced-motion alternative.</span>
+      <span class="node-target">CSS transition / tween / GPU anim</span>
+    </div>
+    <div class="node-row">
+      <span class="node-name">Sequence</span>
+      <span class="node-desc">Choreographed animation timeline: multiple Transitions played in sequence or parallel with stagger offsets. Supports labels for seeking and looping. Think GSAP timeline, but as IR data.</span>
+      <span class="node-target">Scheduled animation chain</span>
+    </div>
+    <div class="node-row">
+      <span class="node-name">GestureHandler</span>
+      <span class="node-desc">Maps touch/mouse/keyboard input to state transitions or continuous property updates. Supports tap, drag, pinch, long-press, swipe with configurable thresholds and velocity curves. Keyboard equivalents are required.</span>
+      <span class="node-target">Event listener / pointer API</span>
+    </div>
+    <div class="node-row">
+      <span class="node-name">ScrollBinding</span>
+      <span class="node-desc">Binds a node's properties to scroll position within a scrollable container. Properties: scroll range (start/end), property to animate, value mapping curve. Used for parallax, reveal effects, and progress indicators.</span>
+      <span class="node-target">Scroll observer / GPU scroll</span>
+    </div>
+    <div class="node-row">
+      <span class="node-name">PhysicsBody</span>
+      <span class="node-desc">Attaches physics simulation to a node: mass, velocity, friction, restitution, constraints. Used for spring animations, momentum scrolling, draggable elements, and procedural motion. The compiler selects a solver appropriate for the target.</span>
+      <span class="node-target">Physics engine / spring fn</span>
+    </div>
+  </div>
+
+  <h3>Navigation &amp; Routing</h3>
+
+  <div class="node-grid">
+    <div class="node-row header">
+      <span>Node</span><span>Description</span><span>Compiles to</span>
+    </div>
+    <div class="node-row">
+      <span class="node-name">RouteMap</span>
+      <span class="node-desc">A state machine where states are views and transitions are navigation events. Supports nested routes (layouts wrapping child routes), guards (auth checks), and data preloading tied to route entry.</span>
+      <span class="node-target">History API / deep links</span>
+    </div>
+    <div class="node-row">
+      <span class="node-name">RouteTransition</span>
+      <span class="node-desc">Defines the visual transition between routes: shared element morphing, page-level enter/exit animations, and loading state handling. The compiler ensures smooth handoff between outgoing and incoming views.</span>
+      <span class="node-target">View Transitions API / custom</span>
+    </div>
+  </div>
+
+  <h3>Accessibility &amp; Semantics</h3>
+
+  <div class="node-grid">
+    <div class="node-row header">
+      <span>Node</span><span>Description</span><span>Compiles to</span>
+    </div>
+    <div class="node-row">
+      <span class="node-name">SemanticNode</span>
+      <span class="node-desc">Parallel tree mirroring every visual node. Carries: role (button, heading, list, landmark, etc.), label (human-readable text), relationships (labelledby, describedby, controls), and keyboard focus order. <strong>Required.</strong> The compiler rejects IR where any interactive visual node lacks a SemanticNode.</span>
+      <span class="node-target">ARIA attrs / a11y API</span>
+    </div>
+    <div class="node-row">
+      <span class="node-name">LiveRegion</span>
+      <span class="node-desc">Declares a region whose content changes should be announced by screen readers. Properties: politeness (polite, assertive), atomic (announce whole region or just changes), relevant (additions, removals, text).</span>
+      <span class="node-target">aria-live region</span>
+    </div>
+    <div class="node-row">
+      <span class="node-name">FocusTrap</span>
+      <span class="node-desc">Constrains keyboard focus to a subtree (for modals, drawers, dialogs). Specifies initial focus target, tab order within the trap, and escape behavior.</span>
+      <span class="node-target">Focus management JS</span>
+    </div>
+    <div class="node-row">
+      <span class="node-name">ReducedMotion</span>
+      <span class="node-desc">Every Transition and Sequence node must reference a ReducedMotion alternative. This can be: a simplified transition (opacity fade instead of complex movement), an instant cut, or a static state. The compiler enforces this at validation time.</span>
+      <span class="node-target">prefers-reduced-motion</span>
+    </div>
+  </div>
+
+  <h3>Theming &amp; Personalization</h3>
+
+  <div class="node-grid">
+    <div class="node-row header">
+      <span>Node</span><span>Description</span><span>Compiles to</span>
+    </div>
+    <div class="node-row">
+      <span class="node-name">ThemeNode</span>
+      <span class="node-desc">A named set of design tokens: colors, typefaces, spacing scale, border radii, shadow definitions. Multiple themes can coexist (light, dark, high-contrast, brand variants). Theme selection is a state machine transition.</span>
+      <span class="node-target">CSS vars / runtime tokens</span>
+    </div>
+    <div class="node-row">
+      <span class="node-name">PersonalizationSlot</span>
+      <span class="node-desc">A point in the IR that adapts based on user context: locale, preferences, device capabilities, A/B test cohort, or external personalization API. The slot declares its variants and the conditions under which each activates.</span>
+      <span class="node-target">Conditional branch</span>
+    </div>
+    <div class="node-row">
+      <span class="node-name">ResponsiveRule</span>
+      <span class="node-desc">Adapts layout and content based on viewport dimensions, device pixel ratio, or input modality (touch vs pointer vs keyboard). Expressed as explicit breakpoints with full layout overrides &mdash; not CSS media queries with cascading patches.</span>
+      <span class="node-target">Container query / layout swap</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- SECTION 5: TYPE SYSTEM -->
+<!-- ============================================ -->
+<section>
+  <div class="section-label amber">05 &mdash; Type System</div>
+  <h2>Correctness by construction</h2>
+  <p>The IR's type system is structural and strict. Every value has a known type at IR generation time. The compiler performs full type checking before emitting output &mdash; there are no runtime type errors in compiled Voce applications.</p>
+
+  <h3>Primitive types</h3>
+  <pre>
+Int32, Int64, Float32, Float64     // Numeric
+Bool                                // Boolean
+String                              // UTF-8 text
+Color                               // RGBA, supports color spaces
+Length                               // px | rem | % | vw | vh | auto
+Duration                            // ms, with min/max constraints
+Angle                               // deg | rad
+Vec2, Vec3, Vec4                    // Spatial vectors
+Mat3x3, Mat4x4                     // Transform matrices
+Quaternion                          // 3D rotation
+Easing                              // cubic-bezier(a,b,c,d) | spring(m,s,d)
+  </pre>
+
+  <h3>Composite types</h3>
+  <pre>
+Struct { field: Type, ... }         // Named product type
+Enum { Variant1, Variant2(Type) }   // Tagged union
+List&lt;T&gt;                             // Ordered collection
+Map&lt;K, V&gt;                           // Key-value store
+Optional&lt;T&gt;                         // Nullable value
+Result&lt;T, E&gt;                        // Success or typed error
+Asset&lt;mime&gt;                         // External resource reference
+Ref&lt;NodeType&gt;                       // Cross-reference to another IR node
+  </pre>
+
+  <h3>Constraint types</h3>
+  <p>These are the mechanism by which the IR enforces the three pillars at the type level:</p>
+  <pre>
+Bounded&lt;T, min, max&gt;                // Value within range (stability)
+NonEmpty&lt;String&gt;                     // Must have content (accessibility)
+Accessible&lt;T&gt;                       // T must have SemanticNode (accessibility)
+MotionSafe&lt;T&gt;                       // T must have ReducedMotion alt (accessibility)
+Cacheable&lt;T, ttl&gt;                   // Value can be cached for ttl (performance)
+  </pre>
+
+  <div class="callout purple">
+    <p><strong>Key insight:</strong> The constraint types encode the output quality pillars directly into the type system. A <code>GestureHandler</code> that lacks a keyboard equivalent won't type-check as <code>Accessible</code>. An animation without a <code>ReducedMotion</code> fallback won't type-check as <code>MotionSafe</code>. The compiler catches pillar violations at compile time, not at runtime or in QA.</p>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- SECTION 6: COMPILER -->
+<!-- ============================================ -->
+<section>
+  <div class="section-label blue">06 &mdash; Compiler</div>
+  <h2>Target-aware optimization</h2>
+  <p>The compiler accepts the validated IR plus a <strong>device profile</strong> and emits the minimal, maximally optimized output for that target. The device profile is a structured description of the execution environment.</p>
+
+  <h3>Device profile fields</h3>
+  <pre>
+DeviceProfile {
+  target: DOM | WebGPU | WASM | Native(platform)
+  gpu: { vendor, vram_mb, compute_shaders: bool, max_texture_size }
+  display: { width, height, dpr, refresh_hz, hdr: bool, color_gamut }
+  input: { touch: bool, pointer: bool, keyboard: bool, gamepad: bool }
+  network: { type: wifi | cellular | offline, bandwidth_mbps }
+  a11y: { screen_reader: bool, reduced_motion: bool, high_contrast: bool }
+  performance_budget: { js_kb, ttfi_ms, memory_mb }
+}
+  </pre>
+
+  <h3>Optimization passes</h3>
+  <ul>
+    <li><strong>Dead state elimination:</strong> States unreachable from any route entry point are removed. Effects attached to dead transitions are stripped.</li>
+    <li><strong>Data fusion:</strong> Multiple DataNodes fetching from the same origin are merged into a single batched request. Co-dependent data flows are resolved into an optimal fetch graph.</li>
+    <li><strong>Layout pre-computation:</strong> Containers whose dimensions don't depend on runtime data are resolved to static coordinates at compile time. Only runtime-dependent layouts emit constraint-solving code.</li>
+    <li><strong>Animation scheduling:</strong> Transitions are analyzed for GPU composability. Compositor-safe properties (transform, opacity) are separated from layout-triggering properties and scheduled on the GPU thread.</li>
+    <li><strong>Shader compilation:</strong> ShaderNodes are compiled to the target's shader language (WGSL for WebGPU, GLSL for WebGL fallback, Metal for iOS). Unused shader variants are stripped.</li>
+    <li><strong>Asset optimization:</strong> Images are resized and format-negotiated for the target display (AVIF for capable browsers, WebP fallback). 3D assets are LOD-selected based on GPU capability. Fonts are subset to used glyphs only.</li>
+    <li><strong>Tree shaking:</strong> Nodes referenced only by dead routes or eliminated personalization variants are removed from the output.</li>
+    <li><strong>A11y enforcement:</strong> Final pass verifies every interactive node has a semantic counterpart, every animation has a reduced-motion alternative, and keyboard navigation covers all interactive paths. Failure is a compile error.</li>
+  </ul>
+
+  <h3>Output comparison</h3>
+  <div class="compare">
+    <div class="compare-col before">
+      <h5>Next.js / React today</h5>
+      <p>~80KB React runtime (gzipped)</p>
+      <p>Virtual DOM reconciler</p>
+      <p>CSS parser + CSSOM construction</p>
+      <p>Hydration pass on page load</p>
+      <p>Framework-level event delegation</p>
+      <p>Runtime CSS-in-JS evaluation</p>
+      <p>~200-400ms TTI (typical)</p>
+    </div>
+    <div class="compare-col after">
+      <h5>Voce compiled (DOM target)</h5>
+      <p>0KB framework runtime</p>
+      <p>Surgical DOM mutations (no VDOM)</p>
+      <p>Inline styles, pre-computed</p>
+      <p>No hydration (SSR state is IR state)</p>
+      <p>Direct event binding per node</p>
+      <p>Build-time style resolution</p>
+      <p>&lt;50ms TTI (target)</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- SECTION 7: EXPERIENCE QUALITY -->
+<!-- ============================================ -->
+<section>
+  <div class="section-label coral">07 &mdash; Experience Primitives</div>
+  <h2>Extraordinary output is a specification requirement</h2>
+  <p>Most frameworks treat 3D, complex animation, and environmental effects as external concerns &mdash; "add Three.js," "use GSAP," "install a particle library." Voce IR makes these first-class because <strong>the experiences humans love most are the ones current frameworks make hardest to build.</strong></p>
+
+  <h3>What the IR enables natively</h3>
+  <ul>
+    <li><strong>3D product viewers</strong> with orbit controls, environment lighting, and material switching &mdash; as a single <code>Scene3D</code> node, not a React-Three-Fiber dependency tree</li>
+    <li><strong>Choreographed page transitions</strong> where shared elements morph across routes, background layers parallax, and content staggers in with spring physics &mdash; as a <code>RouteTransition</code> + <code>Sequence</code>, not 200 lines of GSAP</li>
+    <li><strong>Scroll-driven storytelling</strong> where sections reveal, graphics animate, and data visualizations build as the user scrolls &mdash; as <code>ScrollBinding</code> nodes, not Intersection Observer boilerplate</li>
+    <li><strong>Ambient particle effects</strong> that react to cursor position and device orientation &mdash; as a <code>ParticleSystem</code> with input bindings, not a custom WebGL pipeline</li>
+    <li><strong>Physics-driven UI</strong> where dragged elements have momentum, snapping has spring dynamics, and dismissed cards fly off-screen with realistic velocity &mdash; as <code>PhysicsBody</code> nodes, not manual requestAnimationFrame loops</li>
+    <li><strong>Personalized theming</strong> where colors, typography, layout density, and content adapt to user preferences, locale, and device &mdash; as <code>PersonalizationSlot</code> + <code>ThemeNode</code>, not a tangle of context providers and media queries</li>
+  </ul>
+
+  <div class="callout coral">
+    <p><strong>The key difference:</strong> In today's ecosystem, adding 3D or complex animation means adding dependencies, increasing bundle size, and hoping the libraries play well together. In Voce, these are <em>compiler-optimized primitives</em>. The compiler knows how to schedule a particle system on the GPU, how to batch mesh draw calls, and how to degrade gracefully when the target device can't handle it &mdash; all without the developer (or the AI) managing the plumbing.</p>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- SECTION 8: CONVERSATIONAL BUILDING -->
+<!-- ============================================ -->
+<section>
+  <div class="section-label purple">08 &mdash; Conversational Building</div>
+  <h2>The input is a conversation, the output is an experience</h2>
+  <p>The AI generation layer is not a code-completion tool. It is the <strong>primary authoring interface</strong>. The quality of conversational building determines whether Voce IR can match the iterative flexibility of working in React with hot reload.</p>
+
+  <h3>Intent resolution protocol</h3>
+  <p>When a human describes an interface, the AI follows a structured resolution process before generating IR:</p>
+  <ol>
+    <li><strong>Clarify scope:</strong> Is this a new view, a modification to an existing view, or a global change (theme, routing, data source)?</li>
+    <li><strong>Resolve ambiguity:</strong> "Make it feel premium" maps to specific IR properties &mdash; spring-physics easing, generous spacing, serif typography, subtle parallax. The AI proposes concrete interpretations and confirms.</li>
+    <li><strong>Check constraints:</strong> Does the request conflict with existing state machines, accessibility requirements, or performance budgets? If so, surface the conflict and propose alternatives.</li>
+    <li><strong>Generate incrementally:</strong> Emit only the IR nodes that changed. The compiler's incremental mode recompiles only affected subtrees.</li>
+    <li><strong>Preview and iterate:</strong> The compiled output renders instantly in a live preview. The human describes adjustments; the AI patches the IR. No save, no build, no refresh.</li>
+  </ol>
+
+  <h3>Example conversation flow</h3>
+  <pre>
+Human: "I want a landing page for a sneaker brand. Dark, bold,
+        the shoe should float in 3D and react to mouse movement.
+        Big typography. Add-to-cart should feel satisfying."
+
+AI:    Generating ViewRoot with dark ThemeNode...
+       Creating Scene3D with orbit-locked camera, mouse-reactive
+       rotation via GestureHandler → continuous property update...
+       TextNode with display typeface at 72px, spring-entrance
+       Sequence on scroll...
+       Add-to-cart button with haptic EffectNode on press,
+       particle burst ParticleSystem on success transition,
+       cart count LiveRegion for screen reader announcement...
+
+       [Live preview renders]
+Human: "The shoe rotation feels too fast, and I want the
+        add-to-cart particle burst to be gold, not white."
+
+AI:    Patching GestureHandler rotation sensitivity from 1.0 to 0.4...
+       Updating ParticleSystem color_over_lifetime to gold ramp...
+       [Preview updates in ~200ms]
+  </pre>
+
+  <div class="callout">
+    <p><strong>The conversational loop replaces the code-save-reload loop.</strong> The human never leaves the conversation to edit a file. The AI never generates code the human needs to read. The preview is the source of truth &mdash; if it looks right and passes validation, it is right.</p>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- SECTION 9: VISUAL INSPECTOR -->
+<!-- ============================================ -->
+<section>
+  <div class="section-label blue">09 &mdash; Visual Inspector</div>
+  <h2>Debugging without code</h2>
+  <p>If humans never see the IR, how do they debug? The answer is a <strong>visual inspector</strong> that exposes the runtime behavior of the compiled application in human-comprehensible terms &mdash; without showing a single line of source code.</p>
+
+  <h3>Inspector panels</h3>
+  <ul>
+    <li><strong>Scene graph overlay:</strong> Click any element in the live preview to see its IR node type, current properties, data bindings, and position in the layout graph. Similar to browser DevTools element inspector, but showing IR-level information instead of HTML/CSS.</li>
+    <li><strong>State machine visualizer:</strong> Live diagram of every active state machine, current state highlighted, available transitions shown as edges. Click a transition to see its guard conditions and effects. Trace history to see how the application reached its current state.</li>
+    <li><strong>Data flow monitor:</strong> Shows all active DataNodes, their fetch status (loading, cached, stale, error), response timing, and which visual nodes depend on them. Highlights data waterfalls and suggests fusion opportunities.</li>
+    <li><strong>Animation timeline:</strong> Scrubable timeline of all active Sequences and Transitions. Pause, step frame-by-frame, adjust easing curves live. Shows GPU vs main thread scheduling.</li>
+    <li><strong>Accessibility audit:</strong> Live a11y tree alongside the visual tree. Tab through focus order, see screen reader announcements in real time, verify contrast ratios, test reduced-motion alternatives.</li>
+    <li><strong>Performance profiler:</strong> Frame-by-frame breakdown. GPU utilization, layout computation time, memory allocation. Flags any frame that exceeds the performance budget defined in the device profile.</li>
+  </ul>
+
+  <div class="callout purple">
+    <p><strong>The inspector is conversational too.</strong> Instead of manually tracing through inspector panels, the human can describe the bug: "The modal isn't dismissing when I tap outside it." The AI traces the relevant state machine, identifies that the GestureHandler's tap-outside detection region doesn't extend to the overlay area, and patches the IR. The inspector is a fallback for when you want to explore &mdash; the conversation is the primary debugging interface.</p>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- SECTION 10: ROADMAP -->
+<!-- ============================================ -->
+<section>
+  <div class="section-label amber">10 &mdash; Implementation Roadmap</div>
+  <h2>From specification to system</h2>
+
+  <div class="layer-stack">
+    <div class="layer">
+      <div class="layer-label coral">Phase 1</div>
+      <div class="layer-content"><strong>IR specification &amp; validator.</strong> Formal binary format definition using FlatBuffers or similar. Schema for all node types. Reference validator that accepts/rejects IR blobs with typed error messages. Accessibility and stability constraints enforced. Target: 8-12 weeks.</div>
+    </div>
+    <div class="layer">
+      <div class="layer-label coral">Phase 2</div>
+      <div class="layer-content"><strong>DOM compiler (MVP target).</strong> Takes validated IR and emits minimal HTML + JS. No framework runtime. Surgical DOM mutations. Inline styles. Direct event binding. Proves the concept compiles and runs. Target: 12-16 weeks.</div>
+    </div>
+    <div class="layer">
+      <div class="layer-label teal">Phase 3</div>
+      <div class="layer-content"><strong>AI generation layer.</strong> Prompt-engineered or fine-tuned model that emits valid IR from natural language. Iterative: discover missing primitives, expand IR spec, retrain. Conversational loop with live preview. Target: 16-24 weeks (ongoing iteration).</div>
+    </div>
+    <div class="layer">
+      <div class="layer-label teal">Phase 4</div>
+      <div class="layer-content"><strong>WebGPU + WASM compile targets.</strong> 3D scenes compile to WebGPU draw calls. Compute-heavy state machines compile to WASM. Hybrid mode where the compiler mixes DOM and WebGPU per-component. Target: 12-16 weeks.</div>
+    </div>
+    <div class="layer">
+      <div class="layer-label purple">Phase 5</div>
+      <div class="layer-content"><strong>Visual inspector + feedback tooling.</strong> Scene graph overlay, state machine visualizer, animation timeline, a11y auditor, performance profiler. Conversational debugging integration. Target: 12-16 weeks.</div>
+    </div>
+    <div class="layer">
+      <div class="layer-label blue">Phase 6</div>
+      <div class="layer-content"><strong>Native compile targets + ecosystem.</strong> iOS (SwiftUI/Metal), Android (Compose/Vulkan), desktop, and purpose-built runtimes (kiosk, TouchDesigner bridge). Plugin ecosystem for custom node types. Open-source IR spec for community adoption. Target: ongoing.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- SECTION 11: OPEN QUESTIONS -->
+<!-- ============================================ -->
+<section>
+  <div class="section-label coral">11 &mdash; Open Questions</div>
+  <h2>Unresolved design decisions</h2>
+  <ul>
+    <li><strong>IR versioning:</strong> How does the format evolve without breaking existing compiled artifacts? Semantic versioning at the schema level? Forward-compatible field additions?</li>
+    <li><strong>Escape hatches:</strong> When the IR cannot express a requirement, what is the fallback? Inline raw target code (loses portability)? An extension node type? A plugin system?</li>
+    <li><strong>Collaboration model:</strong> How do multiple humans (or multiple AI agents) work on the same IR graph concurrently? CRDT-based merging? Intent-level conflict resolution?</li>
+    <li><strong>Testing:</strong> How do you write tests for an interface with no source code? State machine assertions? Visual regression against reference renders? AI-generated test scenarios from the intent history?</li>
+    <li><strong>Source control:</strong> Binary IR is not diffable in Git. Do we maintain a parallel human-readable serialization for version control, or build custom diff tooling?</li>
+    <li><strong>Intellectual property:</strong> If the IR is generated by an AI and compiled by a toolchain, who owns the output? How does licensing work for the IR format itself?</li>
+    <li><strong>Progressive enhancement:</strong> How does a Voce-compiled site degrade for a browser with JavaScript disabled? Is there a static HTML fallback layer in the IR?</li>
+  </ul>
+</section>
+
+</div>
+
+<div class="footer">
+  <p>Voce IR Specification v0.1 &mdash; Draft RFC<br>
+  <a href="#">Fire Burns Up</a> &mdash; March 2026<br>
+  <span style="color: var(--text-tertiary); font-style: italic;">The code is gone. The experience remains.</span></p>
+</div>
+
+</body>
+</html>

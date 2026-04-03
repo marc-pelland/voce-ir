@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voce IR Playground</title>
+  <meta name="description" content="Try Voce IR in the browser — paste IR JSON, see compiled output live.">
+  <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+  <header class="header">
+    <h1 class="logo">Voce IR <span class="badge">Playground</span></h1>
+    <div class="toolbar">
+      <select id="target-select" aria-label="Compile target">
+        <option value="dom" selected>DOM (HTML)</option>
+        <option value="email">Email HTML</option>
+        <option value="webgpu" disabled>WebGPU (coming soon)</option>
+        <option value="ios" disabled>iOS (coming soon)</option>
+        <option value="android" disabled>Android (coming soon)</option>
+      </select>
+      <button id="share-btn" title="Copy shareable URL">Share</button>
+      <button id="format-btn" title="Format JSON">Format</button>
+    </div>
+  </header>
+
+  <main class="panels">
+    <!-- Input Panel -->
+    <section class="panel panel-input" aria-label="Input">
+      <div class="panel-tabs">
+        <button class="tab active" data-tab="ir">IR JSON</button>
+        <button class="tab" data-tab="prompt">Prompt</button>
+      </div>
+      <div class="tab-content active" id="tab-ir">
+        <textarea id="ir-editor" spellcheck="false" placeholder="Paste your Voce IR JSON here..."></textarea>
+      </div>
+      <div class="tab-content" id="tab-prompt">
+        <textarea id="prompt-editor" placeholder="Describe what you want to build..."></textarea>
+        <p class="hint">AI generation requires an API key. Use the SDK or MCP server for full generation.</p>
+      </div>
+    </section>
+
+    <!-- Preview Panel -->
+    <section class="panel panel-preview" aria-label="Preview">
+      <div class="panel-header">
+        <span>Preview</span>
+        <span id="size-badge" class="size-badge"></span>
+      </div>
+      <iframe id="preview-frame" sandbox="allow-scripts" title="Compiled output preview"></iframe>
+    </section>
+
+    <!-- Details Panel -->
+    <section class="panel panel-details" aria-label="Details">
+      <div class="panel-tabs">
+        <button class="tab active" data-tab="validation">Validation</button>
+        <button class="tab" data-tab="html-output">HTML</button>
+        <button class="tab" data-tab="inspector">Inspector</button>
+      </div>
+      <div class="tab-content active" id="tab-validation">
+        <div id="validation-results"></div>
+      </div>
+      <div class="tab-content" id="tab-html-output">
+        <pre id="html-output"><code></code></pre>
+      </div>
+      <div class="tab-content" id="tab-inspector">
+        <div id="inspector-tree"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Example Gallery -->
+  <footer class="examples">
+    <span class="examples-label">Examples:</span>
+    <button class="example-btn" data-example="landing-page">Landing Page</button>
+    <button class="example-btn" data-example="card">Card</button>
+    <button class="example-btn" data-example="form">Contact Form</button>
+    <button class="example-btn" data-example="nav">Navigation</button>
+    <button class="example-btn" data-example="dashboard">Dashboard Widget</button>
+  </footer>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "@voce-ir/sdk",
+  "version": "0.3.0",
+  "description": "Voce IR SDK — programmatic access to IR generation, validation, and compilation",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.7.0"
+  }
+}

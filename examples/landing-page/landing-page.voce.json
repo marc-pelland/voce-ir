@@ -1,0 +1,327 @@
+{
+  "schema_version_major": 0,
+  "schema_version_minor": 1,
+  "theme": {
+    "node_id": "theme-dark",
+    "name": "dark",
+    "colors": {
+      "background": { "r": 12, "g": 12, "b": 14, "a": 255 },
+      "foreground": { "r": 232, "g": 230, "b": 225, "a": 255 },
+      "primary": { "r": 232, "g": 89, "b": 60, "a": 255 },
+      "surface": { "r": 20, "g": 20, "b": 23, "a": 255 },
+      "muted_foreground": { "r": 155, "g": 154, "b": 148, "a": 255 }
+    }
+  },
+  "root": {
+    "node_id": "root",
+    "document_language": "en",
+    "text_direction": "Ltr",
+    "metadata": {
+      "title": "Voce IR — The code is gone. The experience remains.",
+      "description": "An AI-native intermediate representation for user interfaces. Conversation in, extraordinary output out.",
+      "canonical_url": "https://voce-ir.xyz",
+      "open_graph": {
+        "title": "Voce IR",
+        "description": "AI-native UI intermediate representation",
+        "image": "https://voce-ir.xyz/og-image.png",
+        "og_type": "Website"
+      }
+    },
+    "semantic_nodes": [
+      { "node_id": "sem-main", "role": "main", "label": "Main content" },
+      { "node_id": "sem-nav", "role": "navigation", "label": "Primary navigation" },
+      { "node_id": "sem-cta-hero", "role": "button", "label": "Get started with Voce IR", "tab_index": 0 },
+      { "node_id": "sem-cta-bottom", "role": "button", "label": "Start building", "tab_index": 0 },
+      { "node_id": "sem-newsletter", "role": "form", "label": "Newsletter signup" },
+      { "node_id": "sem-footer", "role": "contentinfo", "label": "Footer" }
+    ],
+    "children": [
+      {
+        "value_type": "Container",
+        "value": {
+          "node_id": "header",
+          "layout": "Flex",
+          "direction": "Row",
+          "main_align": "SpaceBetween",
+          "cross_align": "Center",
+          "padding": {
+            "top": { "value": 16.0, "unit": "Px" },
+            "right": { "value": 24.0, "unit": "Px" },
+            "bottom": { "value": 16.0, "unit": "Px" },
+            "left": { "value": 24.0, "unit": "Px" }
+          },
+          "semantic_node_id": "sem-nav",
+          "children": [
+            { "value_type": "TextNode", "value": { "node_id": "logo", "content": "Voce IR", "font_size": { "value": 18.0, "unit": "Px" }, "font_weight": "Bold", "color": { "r": 232, "g": 230, "b": 225, "a": 255 } } },
+            { "value_type": "TextNode", "value": { "node_id": "nav-docs", "content": "Docs", "font_size": { "value": 14.0, "unit": "Px" }, "color": { "r": 155, "g": 154, "b": 148, "a": 255 } } },
+            { "value_type": "TextNode", "value": { "node_id": "nav-github", "content": "GitHub", "font_size": { "value": 14.0, "unit": "Px" }, "color": { "r": 155, "g": 154, "b": 148, "a": 255 } } }
+          ]
+        }
+      },
+      {
+        "value_type": "Container",
+        "value": {
+          "node_id": "hero",
+          "layout": "Stack",
+          "direction": "Column",
+          "main_align": "Center",
+          "cross_align": "Center",
+          "padding": {
+            "top": { "value": 96.0, "unit": "Px" },
+            "right": { "value": 24.0, "unit": "Px" },
+            "bottom": { "value": 96.0, "unit": "Px" },
+            "left": { "value": 24.0, "unit": "Px" }
+          },
+          "semantic_node_id": "sem-main",
+          "children": [
+            {
+              "value_type": "TextNode",
+              "value": {
+                "node_id": "hero-title",
+                "content": "The code is gone. The experience remains.",
+                "font_size": { "value": 56.0, "unit": "Px" },
+                "font_weight": "Bold",
+                "heading_level": 1,
+                "text_align": "Center",
+                "color": { "r": 232, "g": 230, "b": 225, "a": 255 }
+              }
+            },
+            {
+              "value_type": "TextNode",
+              "value": {
+                "node_id": "hero-subtitle",
+                "content": "AI generates typed binary IR. A compiler emits optimized output. No human-readable code in the pipeline.",
+                "font_size": { "value": 18.0, "unit": "Px" },
+                "text_align": "Center",
+                "color": { "r": 155, "g": 154, "b": 148, "a": 255 }
+              }
+            },
+            {
+              "value_type": "Surface",
+              "value": {
+                "node_id": "hero-cta",
+                "fill": { "r": 232, "g": 89, "b": 60, "a": 255 },
+                "corner_radius": {
+                  "top_left": { "value": 8.0, "unit": "Px" },
+                  "top_right": { "value": 8.0, "unit": "Px" },
+                  "bottom_right": { "value": 8.0, "unit": "Px" },
+                  "bottom_left": { "value": 8.0, "unit": "Px" }
+                },
+                "padding": {
+                  "top": { "value": 12.0, "unit": "Px" },
+                  "right": { "value": 32.0, "unit": "Px" },
+                  "bottom": { "value": 12.0, "unit": "Px" },
+                  "left": { "value": 32.0, "unit": "Px" }
+                },
+                "semantic_node_id": "sem-cta-hero",
+                "children": [
+                  { "value_type": "TextNode", "value": { "node_id": "cta-text", "content": "Get Started", "font_size": { "value": 16.0, "unit": "Px" }, "font_weight": "SemiBold", "color": { "r": 255, "g": 255, "b": 255, "a": 255 } } }
+                ]
+              }
+            },
+            {
+              "value_type": "GestureHandler",
+              "value": {
+                "node_id": "hero-cta-tap",
+                "target_node_id": "hero-cta",
+                "gesture_type": "Tap",
+                "trigger_event": "click",
+                "trigger_state_machine": "cta-state",
+                "keyboard_key": "Enter"
+              }
+            },
+            {
+              "value_type": "StateMachine",
+              "value": {
+                "node_id": "cta-state",
+                "name": "CTA Button",
+                "states": [
+                  { "name": "idle", "initial": true },
+                  { "name": "hover" },
+                  { "name": "pressed" }
+                ],
+                "transitions": [
+                  { "event": "hover", "from": "idle", "to": "hover" },
+                  { "event": "leave", "from": "hover", "to": "idle" },
+                  { "event": "click", "from": "idle", "to": "pressed" },
+                  { "event": "click", "from": "hover", "to": "pressed" },
+                  { "event": "release", "from": "pressed", "to": "idle" }
+                ]
+              }
+            },
+            {
+              "value_type": "AnimationTransition",
+              "value": {
+                "node_id": "hero-entrance",
+                "target_node_id": "hero-title",
+                "properties": [
+                  { "property": "opacity", "from": "0", "to": "1" },
+                  { "property": "transform.translateY", "from": "24px", "to": "0" }
+                ],
+                "duration": { "ms": 400.0 },
+                "easing": { "easing_type": "Spring", "stiffness": 300.0, "damping": 25.0, "mass": 1.0 },
+                "reduced_motion": { "strategy": "Remove" }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "value_type": "Container",
+        "value": {
+          "node_id": "features",
+          "layout": "Grid",
+          "gap": { "value": 24.0, "unit": "Px" },
+          "grid_columns": [
+            { "value": 1.0, "unit": "Fr" },
+            { "value": 1.0, "unit": "Fr" },
+            { "value": 1.0, "unit": "Fr" }
+          ],
+          "padding": {
+            "top": { "value": 64.0, "unit": "Px" },
+            "right": { "value": 24.0, "unit": "Px" },
+            "bottom": { "value": 64.0, "unit": "Px" },
+            "left": { "value": 24.0, "unit": "Px" }
+          },
+          "children": [
+            {
+              "value_type": "Surface",
+              "value": {
+                "node_id": "feature-stability",
+                "fill": { "r": 20, "g": 20, "b": 23, "a": 255 },
+                "corner_radius": { "top_left": { "value": 12.0, "unit": "Px" }, "top_right": { "value": 12.0, "unit": "Px" }, "bottom_right": { "value": 12.0, "unit": "Px" }, "bottom_left": { "value": 12.0, "unit": "Px" } },
+                "padding": { "top": { "value": 24.0, "unit": "Px" }, "right": { "value": 24.0, "unit": "Px" }, "bottom": { "value": 24.0, "unit": "Px" }, "left": { "value": 24.0, "unit": "Px" } },
+                "decorative": true,
+                "children": [
+                  { "value_type": "TextNode", "value": { "node_id": "feat1-title", "content": "Stability", "font_size": { "value": 20.0, "unit": "Px" }, "font_weight": "SemiBold", "heading_level": 2, "color": { "r": 232, "g": 230, "b": 225, "a": 255 } } },
+                  { "value_type": "TextNode", "value": { "node_id": "feat1-desc", "content": "If it compiles, it runs. The type system makes entire categories of runtime errors structurally impossible.", "font_size": { "value": 14.0, "unit": "Px" }, "color": { "r": 155, "g": 154, "b": 148, "a": 255 } } }
+                ]
+              }
+            },
+            {
+              "value_type": "Surface",
+              "value": {
+                "node_id": "feature-experience",
+                "fill": { "r": 20, "g": 20, "b": 23, "a": 255 },
+                "corner_radius": { "top_left": { "value": 12.0, "unit": "Px" }, "top_right": { "value": 12.0, "unit": "Px" }, "bottom_right": { "value": 12.0, "unit": "Px" }, "bottom_left": { "value": 12.0, "unit": "Px" } },
+                "padding": { "top": { "value": 24.0, "unit": "Px" }, "right": { "value": 24.0, "unit": "Px" }, "bottom": { "value": 24.0, "unit": "Px" }, "left": { "value": 24.0, "unit": "Px" } },
+                "decorative": true,
+                "children": [
+                  { "value_type": "TextNode", "value": { "node_id": "feat2-title", "content": "Experience", "font_size": { "value": 20.0, "unit": "Px" }, "font_weight": "SemiBold", "heading_level": 2, "color": { "r": 232, "g": 230, "b": 225, "a": 255 } } },
+                  { "value_type": "TextNode", "value": { "node_id": "feat2-desc", "content": "3D scenes, choreographed animations, particle systems, and personalized theming are first-class IR primitives.", "font_size": { "value": 14.0, "unit": "Px" }, "color": { "r": 155, "g": 154, "b": 148, "a": 255 } } }
+                ]
+              }
+            },
+            {
+              "value_type": "Surface",
+              "value": {
+                "node_id": "feature-a11y",
+                "fill": { "r": 20, "g": 20, "b": 23, "a": 255 },
+                "corner_radius": { "top_left": { "value": 12.0, "unit": "Px" }, "top_right": { "value": 12.0, "unit": "Px" }, "bottom_right": { "value": 12.0, "unit": "Px" }, "bottom_left": { "value": 12.0, "unit": "Px" } },
+                "padding": { "top": { "value": 24.0, "unit": "Px" }, "right": { "value": 24.0, "unit": "Px" }, "bottom": { "value": 24.0, "unit": "Px" }, "left": { "value": 24.0, "unit": "Px" } },
+                "decorative": true,
+                "children": [
+                  { "value_type": "TextNode", "value": { "node_id": "feat3-title", "content": "Accessibility", "font_size": { "value": 20.0, "unit": "Px" }, "font_weight": "SemiBold", "heading_level": 2, "color": { "r": 232, "g": 230, "b": 225, "a": 255 } } },
+                  { "value_type": "TextNode", "value": { "node_id": "feat3-desc", "content": "Every interactive node carries a parallel semantic node. Accessibility is a compile error, not a lint warning.", "font_size": { "value": 14.0, "unit": "Px" }, "color": { "r": 155, "g": 154, "b": 148, "a": 255 } } }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "value_type": "Container",
+        "value": {
+          "node_id": "newsletter",
+          "layout": "Stack",
+          "direction": "Column",
+          "cross_align": "Center",
+          "padding": {
+            "top": { "value": 48.0, "unit": "Px" },
+            "right": { "value": 24.0, "unit": "Px" },
+            "bottom": { "value": 48.0, "unit": "Px" },
+            "left": { "value": 24.0, "unit": "Px" }
+          },
+          "children": [
+            { "value_type": "TextNode", "value": { "node_id": "newsletter-heading", "content": "Stay updated", "font_size": { "value": 24.0, "unit": "Px" }, "font_weight": "SemiBold", "heading_level": 2, "text_align": "Center", "color": { "r": 232, "g": 230, "b": 225, "a": 255 } } },
+            {
+              "value_type": "FormNode",
+              "value": {
+                "node_id": "newsletter-form",
+                "semantic_node_id": "sem-newsletter",
+                "fields": [
+                  {
+                    "name": "email",
+                    "field_type": "Email",
+                    "label": "Email address",
+                    "placeholder": "you@example.com",
+                    "validations": [
+                      { "rule_type": "Required", "message": "Email is required" },
+                      { "rule_type": "Email", "message": "Please enter a valid email" }
+                    ],
+                    "autocomplete": "Email"
+                  }
+                ],
+                "validation_mode": "OnBlurThenChange",
+                "submission": {
+                  "action_node_id": "newsletter-submit",
+                  "encoding": "Json",
+                  "progressive": true
+                }
+              }
+            },
+            {
+              "value_type": "ActionNode",
+              "value": {
+                "node_id": "newsletter-submit",
+                "source": { "endpoint": "https://api.voce-ir.xyz/newsletter", "provider": "Rest" },
+                "method": "POST",
+                "csrf_protected": true
+              }
+            }
+          ]
+        }
+      },
+      {
+        "value_type": "Container",
+        "value": {
+          "node_id": "footer",
+          "layout": "Flex",
+          "direction": "Row",
+          "main_align": "SpaceBetween",
+          "padding": {
+            "top": { "value": 32.0, "unit": "Px" },
+            "right": { "value": 24.0, "unit": "Px" },
+            "bottom": { "value": 32.0, "unit": "Px" },
+            "left": { "value": 24.0, "unit": "Px" }
+          },
+          "semantic_node_id": "sem-footer",
+          "children": [
+            { "value_type": "TextNode", "value": { "node_id": "copyright", "content": "© 2026 Fire Burns Up. Apache 2.0.", "font_size": { "value": 13.0, "unit": "Px" }, "color": { "r": 107, "g": 106, "b": 101, "a": 255 } } },
+            { "value_type": "TextNode", "value": { "node_id": "footer-tagline", "content": "sotto voce — quiet input, extraordinary output", "font_size": { "value": 13.0, "unit": "Px" }, "color": { "r": 107, "g": 106, "b": 101, "a": 255 } } }
+          ]
+        }
+      },
+      {
+        "value_type": "ResponsiveRule",
+        "value": {
+          "node_id": "responsive-main",
+          "breakpoints": [
+            { "name": "mobile", "min_width": { "value": 0.0, "unit": "Px" } },
+            { "name": "tablet", "min_width": { "value": 768.0, "unit": "Px" } },
+            { "name": "desktop", "min_width": { "value": 1024.0, "unit": "Px" } }
+          ],
+          "responsive_overrides": [
+            {
+              "breakpoint_name": "mobile",
+              "overrides": [
+                { "target_node_id": "features", "property": "grid_columns", "value": "1fr" },
+                { "target_node_id": "hero-title", "property": "font_size", "value": "36px" }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

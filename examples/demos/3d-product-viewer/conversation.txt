@@ -1,0 +1,49 @@
+# Demo: 3D Product Viewer — Conversation Transcript
+# Style Pack: ecommerce
+# Compile Target: Hybrid (DOM + WebGPU)
+
+AI: What are you building?
+
+User: A product page for a premium wireless headphone called "AuraSound Pro" — I want a 3D model viewer where customers can orbit around the headphone and see it from all angles.
+
+AI: Who's the target audience?
+
+User: Tech-savvy consumers, 25-45, shopping for premium audio equipment. They expect Apple-level product presentation.
+
+AI: What sections should the page have?
+
+User: The 3D viewer should take up the top half. Below that: product name and tagline, three color options (midnight black, pearl white, ocean blue), key specs, price, and an add-to-cart button.
+
+AI: What visual style?
+
+User: Dark and premium, like Apple's AirPods Max page. The 3D viewer on a dark background, clean typography below.
+
+AI: Here's the plan:
+
+AuraSound Pro — premium headphone product page.
+
+Layout (hybrid DOM + WebGPU):
+  1. Scene3D viewer (orbit camera, product showcase lighting, dark background)
+  2. Product title + tagline (DOM)
+  3. Color selector — 3 options with live material update (DOM + WebGPU bridge)
+  4. Specs grid — 4 key specifications (DOM)
+  5. Price + Add to Cart CTA (DOM)
+  6. Footer (DOM)
+
+3D Scene:
+  - Camera: orbit with auto-rotate
+  - Lighting: product showcase (3-point)
+  - Material: matte plastic (default midnight black)
+  - Fallback: Canvas 2D wireframe → static product image
+
+Does this sound right?
+
+User: Perfect.
+
+AI: Building with hybrid compilation...
+  ✓ DOM layout: 8 nodes (title, colors, specs, CTA, footer)
+  ✓ WebGPU scene: 1 mesh, 4 lights, orbit camera
+  ✓ Fallback: Canvas 2D wireframe + static placeholder
+  ✓ Compiled: 12,842 bytes (DOM: 6.2KB, WebGPU: 5.8KB, fallback: 0.8KB)
+  ✓ Validation: 0 errors
+  ✓ Accessibility: keyboard orbit, alt text, reduced motion

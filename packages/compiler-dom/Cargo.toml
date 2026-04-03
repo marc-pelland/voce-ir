@@ -1,0 +1,25 @@
+[package]
+name = "voce-compiler-dom"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Voce IR DOM compiler — compiles validated IR to optimized HTML"
+
+[features]
+default = ["image-pipeline"]
+image-pipeline = ["dep:image", "dep:fast_image_resize", "dep:webp", "dep:blurhash"]
+
+[dependencies]
+voce-schema = { path = "../schema" }
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+image = { version = "0.25", optional = true }
+fast_image_resize = { version = "5", features = ["image"], optional = true }
+webp = { version = "0.3", optional = true }
+blurhash = { version = "0.2", optional = true }
+
+[dev-dependencies]
+insta.workspace = true

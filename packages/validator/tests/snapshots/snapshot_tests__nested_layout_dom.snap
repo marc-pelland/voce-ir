@@ -1,0 +1,33 @@
+---
+source: packages/validator/tests/snapshot_tests.rs
+expression: html
+---
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="X-Frame-Options" content="DENY">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Nested Layout</title>
+<meta name="description" content="Nested container layout.">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5}
+img{max-width:100%;height:auto;display:block}
+</style>
+</head>
+<body>
+  <div style="display:flex;flex-direction:column;">
+    <div style="padding:16px 24px 16px 24px;display:flex;flex-direction:row;">
+      <p style="font-size:20px;font-weight:700;">Brand</p>
+    </div>
+    <div style="padding:40px 24px 40px 24px;display:flex;flex-direction:column;">
+      <h1 style="font-size:36px;font-weight:700;">Welcome</h1>
+      <p style="font-size:16px;">This is the main content area.</p>
+    </div>
+  </div>
+</body>
+</html>

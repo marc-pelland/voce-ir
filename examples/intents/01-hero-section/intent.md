@@ -1,0 +1,1 @@
+A hero section with a large headline, subtitle text below it, and a primary call-to-action button. The button should have a hover animation and be keyboard accessible. Dark background, light text, coral accent for the button.

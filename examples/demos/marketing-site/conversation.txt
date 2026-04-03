@@ -1,0 +1,52 @@
+# Demo 3: Marketing Site — Conversation Transcript
+# Style Pack: editorial
+# Generated via: voce design + voce talk (voice turns marked [voice])
+
+AI: What are you building?
+
+User: A marketing site for an architecture studio called "Forma Studio" — we do residential and commercial projects.
+
+AI: Who is the target audience?
+
+User: Potential clients — homeowners looking for architects and commercial property developers.
+
+AI: What sections should the page have?
+
+[voice] User: We need a hero with a big image, an about section telling our story, a projects showcase grid, our services listed out, some statistics like how many projects we've completed, a team section with photos, and a contact CTA at the bottom. Oh and a footer obviously.
+
+AI: Got it — 8 sections. That's a substantial page. What should the main call-to-action be?
+
+User: "Start Your Project" — we want to drive consultation bookings.
+
+AI: What visual style?
+
+[voice] User: Elegant, architectural. Think lots of whitespace, serif headings, black and white with warm accents. Like a high-end design magazine.
+
+AI: Here's the plan:
+
+Forma Studio — Architecture firm marketing site.
+
+Sections:
+  1. Navigation bar with logo
+  2. Hero with full-width project image and studio name
+  3. About — our story and philosophy
+  4. Projects showcase — image grid with project names
+  5. Services — residential, commercial, interior design
+  6. Statistics — projects completed, years experience, awards
+  7. Team — 4 team members with photos and titles
+  8. Contact CTA — "Start Your Project" with brief form
+  9. Footer
+
+Style: Editorial pack — serif headings, warm cream, amber accents
+This is a complex page (8+ sections). I'll generate the skeleton first, then fill each section — faster for pages this size.
+
+Does this sound right?
+
+User: Perfect, go for it.
+
+AI: Building with hierarchical generation...
+  ✓ Phase 1: Skeleton (9 sections) — 2.1s
+  ✓ Phase 2: Filling sections (parallel) — 4.8s
+  ✓ Validation: 0 errors
+  ✓ Compiled: 9,847 bytes (9.6 KB)
+  Total: 6.9 seconds, 38K tokens

@@ -1,0 +1,15 @@
+{
+  "root": {
+    "node_id": "root",
+    "children": [
+      {
+        "value_type": "FormNode",
+        "value": {
+          "node_id": "empty-form",
+          "fields": [],
+          "submission": { "action_node_id": "submit-action" }
+        }
+      }
+    ]
+  }
+}

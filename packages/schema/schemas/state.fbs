@@ -1,0 +1,189 @@
+// Voce IR — State & Logic Nodes
+//
+// All state is modeled as explicit, typed finite state machines.
+// No implicit closures, no dependency arrays, no hook ordering.
+// The compiler can statically analyze every possible state transition.
+
+include "types.fbs";
+
+namespace voce;
+
+// ─── StateMachine ───────────────────────────────────────────────
+//
+// Named machine with typed states, transitions, guards, and effects.
+// Every component's behavior is a state machine. The validator checks
+// reachability (no dead states) and deadlock freedom.
+
+table State {
+  name: string (required);
+  /// If true, this is the initial state of the machine.
+  initial: bool = false;
+  /// If true, this is a terminal/final state (no outgoing transitions expected).
+  terminal: bool = false;
+}
+
+table Transition {
+  /// Event name that triggers this transition (e.g., "click", "hover", "submit").
+  event: string (required);
+  /// Source state name.
+  from: string (required);
+  /// Target state name.
+  to: string (required);
+  /// Optional guard condition — reference to a ComputeNode that returns bool.
+  guard: string;
+  /// Optional effect — reference to an EffectNode to execute on transition.
+  effect: string;
+}
+
+table StateMachine {
+  node_id: string (required);
+  /// Human-readable name for this machine (e.g., "button-state", "auth-flow").
+  name: string;
+  states: [State] (required);
+  transitions: [Transition] (required);
+}
+
+// ─── DataNode ───────────────────────────────────────────────────
+//
+// Declares an external data dependency. The compiler emits fetch code
+// with caching, error handling, and loading states.
+
+enum DataSourceProvider : byte {
+  Rest = 0,
+  GraphQL,
+  Supabase,
+  Firebase,
+  Convex,
+  Custom
+}
+
+enum HttpMethod : byte {
+  GET = 0,
+  POST,
+  PUT,
+  PATCH,
+  DELETE
+}
+
+enum CacheStrategy : byte {
+  /// No caching — fetch every time.
+  None = 0,
+  /// Cache for a duration, serve stale while revalidating.
+  StaleWhileRevalidate,
+  /// Cache until explicitly invalidated.
+  CacheUntilInvalidated,
+  /// Fetch once at build time, bake into output.
+  Static
+}
+
+table DataSource {
+  provider: DataSourceProvider = Rest;
+  endpoint: string;
+  resource: string;
+  method: HttpMethod = GET;
+  headers: [KeyValue];
+}
+
+table KeyValue {
+  key: string (required);
+  value: string (required);
+}
+
+table DataNode {
+  node_id: string (required);
+  name: string;
+  source: DataSource (required);
+
+  /// Cache behavior.
+  cache_strategy: CacheStrategy = StaleWhileRevalidate;
+  /// How long data is considered fresh (ms).
+  stale_time: uint32 = 30000;
+  /// How long to keep unused data in cache (ms).
+  cache_time: uint32 = 300000;
+  /// Tags for invalidation (ActionNode references these).
+  cache_tags: [string];
+
+  /// Whether this data requires authentication.
+  auth_required: bool = false;
+
+  /// Reference to a StateMachine that tracks loading/error/success state.
+  loading_state_machine: string;
+
+  /// Query parameters — filters, sort, pagination.
+  query_params: [KeyValue];
+}
+
+// ─── ComputeNode ────────────────────────────────────────────────
+//
+// A pure function: inputs → output. Referentially transparent.
+// The compiler can memoize or pre-compute at build time.
+
+table ComputeInput {
+  name: string (required);
+  /// Source node ID (DataNode, ContextNode, or another ComputeNode).
+  source_node_id: string (required);
+  field_path: string;
+}
+
+table ComputeNode {
+  node_id: string (required);
+  name: string;
+  inputs: [ComputeInput] (required);
+  /// Expression to evaluate. Simple expressions only — complex logic
+  /// belongs in ActionNode/EffectNode. Examples:
+  /// "price * quantity", "items.length > 0", "firstName + ' ' + lastName"
+  expression: string (required);
+  /// Output type hint for the compiler.
+  output_type: string;
+}
+
+// ─── EffectNode ─────────────────────────────────────────────────
+//
+// A side effect triggered by a state transition. Effects are always
+// attached to transitions, never to states — eliminating "effect on
+// mount/unmount" ambiguity.
+
+enum EffectType : byte {
+  /// Send an analytics event.
+  Analytics = 0,
+  /// Call an API endpoint (mutation).
+  ApiCall,
+  /// Write to local/session storage.
+  Storage,
+  /// Trigger haptic feedback.
+  Haptic,
+  /// Log to console (development only).
+  Log,
+  /// Navigate to a route.
+  Navigate,
+  /// Custom effect (escape hatch).
+  Custom
+}
+
+table EffectNode {
+  node_id: string (required);
+  name: string;
+  effect_type: EffectType;
+  /// Configuration payload (JSON-like key-value pairs).
+  config: [KeyValue];
+  /// For ApiCall effects — the endpoint and method.
+  api_source: DataSource;
+  /// Whether this effect is idempotent (safe to retry).
+  idempotent: bool = false;
+}
+
+// ─── ContextNode ────────────────────────────────────────────────
+//
+// Shared state scoped to a subtree. Replaces React Context, Redux,
+// and prop drilling. Typed with explicit read/write boundaries.
+
+table ContextNode {
+  node_id: string (required);
+  name: string (required);
+  /// Initial value as a JSON string (parsed by the compiler).
+  initial_value: string;
+  /// Node IDs that can write to this context (empty = any descendant can write).
+  writers: [string];
+  /// If true, this context is globally accessible (not scoped to subtree).
+  global: bool = false;
+}

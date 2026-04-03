@@ -1,0 +1,27 @@
+{
+  "schema_version_major": 1,
+  "schema_version_minor": 0,
+  "root": {
+    "node_id": "root",
+    "viewport_width": { "value": 800, "unit": "Px" },
+    "children": [
+      {
+        "value_type": "ThemeNode",
+        "value": {
+          "node_id": "dark-theme",
+          "color_palette": {
+            "primary": { "r": 99, "g": 102, "b": 241, "a": 255 },
+            "background": { "r": 15, "g": 17, "b": 23, "a": 255 },
+            "text": { "r": 228, "g": 228, "b": 231, "a": 255 }
+          }
+        }
+      },
+      {
+        "value_type": "TextNode",
+        "value": { "node_id": "themed-text", "content": "Themed content", "font_size": { "value": 16, "unit": "Px" } }
+      }
+    ],
+    "metadata": { "title": "Theme Test", "description": "Dark theme node." }
+  },
+  "metadata": { "title": "Theme Test", "description": "Dark theme node.", "language": "en" }
+}

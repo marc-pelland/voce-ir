@@ -1,0 +1,22 @@
+{
+  "root": {
+    "node_id": "root",
+    "children": [
+      {
+        "value_type": "StateMachine",
+        "value": {
+          "node_id": "sm-1",
+          "states": [
+            { "name": "idle", "initial": true },
+            { "name": "active" },
+            { "name": "orphan" }
+          ],
+          "transitions": [
+            { "event": "click", "from": "idle", "to": "active" },
+            { "event": "reset", "from": "active", "to": "idle" }
+          ]
+        }
+      }
+    ]
+  }
+}

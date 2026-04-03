@@ -1,0 +1,9 @@
+{
+  "root": {
+    "node_id": "root",
+    "children": [
+      { "value_type": "TextNode", "value": { "node_id": "same-id", "content": "First" } },
+      { "value_type": "TextNode", "value": { "node_id": "same-id", "content": "Second" } }
+    ]
+  }
+}

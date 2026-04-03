@@ -1,0 +1,153 @@
+// Voce IR — Accessibility & Semantics
+//
+// Every visual node in the IR carries a parallel semantic node.
+// Accessibility is not opt-in — it is structurally required by
+// the format. The validator rejects IR where any interactive
+// visual node lacks a SemanticNode.
+
+include "types.fbs";
+
+namespace voce;
+
+// ─── ARIA Roles ─────────────────────────────────────────────────
+//
+// Subset of WAI-ARIA 1.2 roles. Using a string field instead of
+// enum for extensibility — the validator checks against the
+// known role list.
+
+// ─── SemanticNode ───────────────────────────────────────────────
+//
+// Parallel tree mirroring every interactive visual node. Carries
+// role, label, relationships, and keyboard focus configuration.
+// Referenced by visual nodes via semantic_node_id field.
+
+table SemanticNode {
+  node_id: string (required);
+
+  /// ARIA role (e.g., "button", "heading", "navigation", "main").
+  /// Validated against WAI-ARIA 1.2 role list by the validator.
+  role: string (required);
+
+  /// Human-readable accessible label.
+  /// For buttons/links: the text announced by screen readers.
+  /// For images: the alt text equivalent.
+  /// For headings: usually matches the visible text.
+  label: string;
+
+  /// Reference to another node whose content labels this node (aria-labelledby).
+  labelled_by: string;
+  /// Reference to a node providing extended description (aria-describedby).
+  described_by: string;
+  /// Reference to a node this element controls (aria-controls).
+  controls: string;
+  /// Reference to a node that owns this element (aria-owns).
+  owned_by: string;
+
+  /// Heading level (1-6). Only valid when role = "heading".
+  heading_level: int8 = 0;
+
+  /// Tab index for keyboard focus order.
+  /// -1 = focusable but not in tab order (programmatic focus only).
+  /// 0 = focusable in natural tab order.
+  /// >0 = explicit order (discouraged but supported).
+  tab_index: int32 = -2;  // -2 = not set (inherits from role)
+
+  /// Whether this element is currently hidden from the a11y tree.
+  hidden: bool = false;
+
+  /// ARIA states (set dynamically by state machines).
+  aria_expanded: int8 = -1;    // -1 = not set, 0 = false, 1 = true
+  aria_selected: int8 = -1;
+  aria_checked: int8 = -1;     // -1 = not set, 0 = false, 1 = true, 2 = mixed
+  aria_disabled: bool = false;
+  aria_required: bool = false;
+  aria_invalid: bool = false;
+
+  /// For range widgets (slider, progressbar, spinbutton).
+  aria_value_min: float32;
+  aria_value_max: float32;
+  aria_value_now: float32;
+  aria_value_text: string;
+
+  /// Custom ARIA attributes (escape hatch for uncommon attributes).
+  custom_aria: [KeyValue];
+}
+
+// ─── LiveRegion ─────────────────────────────────────────────────
+//
+// Declares a region whose content changes should be announced
+// by screen readers. Used for: toast notifications, form errors,
+// cart updates, status messages.
+
+enum LiveRegionPoliteness : byte {
+  /// Wait for user to be idle before announcing.
+  Polite = 0,
+  /// Interrupt current speech to announce immediately.
+  Assertive,
+  /// Do not announce (region is silent).
+  Off
+}
+
+enum LiveRegionRelevant : byte {
+  /// Announce added content.
+  Additions = 0,
+  /// Announce removed content.
+  Removals,
+  /// Announce text changes.
+  Text,
+  /// Announce everything.
+  All
+}
+
+table LiveRegion {
+  node_id: string (required);
+
+  /// Which visual node this live region is attached to.
+  target_node_id: string (required);
+
+  politeness: LiveRegionPoliteness = Polite;
+
+  /// If true, announce the entire region on change (not just the diff).
+  atomic: bool = false;
+
+  relevant: LiveRegionRelevant = Additions;
+
+  /// Human-readable role description (e.g., "Shopping cart updates").
+  role_description: string;
+}
+
+// ─── FocusTrap ──────────────────────────────────────────────────
+//
+// Constrains keyboard focus to a subtree (for modals, drawers,
+// dialogs). The compiler emits focus management JavaScript.
+
+enum FocusTrapEscape : byte {
+  /// Pressing Escape closes the trap (standard for modals).
+  CloseOnEscape = 0,
+  /// Escape does nothing (trap must be closed programmatically).
+  NoEscape,
+  /// Pressing Escape fires a state machine event.
+  FireEvent
+}
+
+table FocusTrap {
+  node_id: string (required);
+
+  /// The container node whose subtree receives trapped focus.
+  container_node_id: string (required);
+
+  /// Node to focus when the trap activates. If not set, focuses
+  /// the first focusable element in the container.
+  initial_focus_node_id: string;
+
+  /// What happens when Escape is pressed.
+  escape_behavior: FocusTrapEscape = CloseOnEscape;
+
+  /// For FireEvent escape: which state machine and event to fire.
+  escape_state_machine: string;
+  escape_event: string;
+
+  /// Whether to restore focus to the previously focused element
+  /// when the trap deactivates.
+  restore_focus: bool = true;
+}

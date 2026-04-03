@@ -1,0 +1,21 @@
+{
+  "name": "@voce-ir/mcp-server",
+  "version": "0.3.0",
+  "description": "Voce IR MCP server — exposes IR tools for Claude Code and MCP clients",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "voce-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.7.0"
+  }
+}

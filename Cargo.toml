@@ -1,0 +1,37 @@
+[workspace]
+resolver = "2"
+members = [
+    "packages/schema",
+    "packages/validator",
+    "packages/compiler-dom",
+    "packages/compiler-webgpu",
+    "packages/compiler-wasm",
+    "packages/compiler-hybrid",
+    "packages/compiler-ios",
+    "packages/compiler-android",
+    "packages/compiler-email",
+    "packages/adapter-core",
+    "packages/adapter-static",
+    "packages/adapter-vercel",
+    "packages/adapter-cloudflare",
+    "packages/adapter-netlify",
+    "packages/playground-wasm",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+repository = "https://github.com/fireburnup/voce-ir"
+rust-version = "1.85"
+
+[workspace.dependencies]
+flatbuffers = "24.12"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+thiserror = "2.0"
+anyhow = "1.0"
+clap = { version = "4.5", features = ["derive"] }
+insta = { version = "1.40", features = ["yaml"] }
+toml = "0.8"

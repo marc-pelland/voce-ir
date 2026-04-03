@@ -1,0 +1,46 @@
+# Demo 2: Contact Form Page — Conversation Transcript
+# Style Pack: ecommerce
+# Generated via: voce design
+
+AI: What are you building?
+
+User: A contact page for a local bakery called "Golden Crust" — customers need a way to place custom cake orders and ask questions.
+
+AI: Who is the target audience?
+
+User: Local customers, mostly on mobile, not very tech-savvy.
+
+AI: What sections should the page have?
+
+User: A big contact form with name, email, phone, order details, and message. Also our business hours and location.
+
+AI: What should the main call-to-action be?
+
+User: "Send Your Order Request"
+
+AI: What visual style?
+
+User: Warm and inviting, professional but friendly. Earthy colors.
+
+AI: Here's what I'm planning:
+
+A contact/order page for Golden Crust Bakery.
+
+Sections:
+  1. Header with bakery name and tagline
+  2. Contact form (name, email, phone, order type, message, submit)
+  3. Business hours table
+  4. Footer with address and phone
+
+Style: Warm earth tones, friendly feel, mobile-first
+Does this sound right?
+
+User: Yes
+
+AI: Building...
+✓ Generated (28 nodes, 9 types)
+✓ Compiled (5,892 bytes)
+
+# Edit session:
+User: voce edit "Change the submit button to say Send Order Request instead of Submit"
+AI: Changed 1 node. Button text updated.

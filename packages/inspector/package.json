@@ -1,0 +1,16 @@
+{
+  "name": "@voce-ir/inspector",
+  "version": "0.5.0",
+  "description": "Voce IR Visual Inspector — debug compiled output without reading code",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.7.0"
+  }
+}

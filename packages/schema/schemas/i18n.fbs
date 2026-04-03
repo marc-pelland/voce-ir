@@ -1,0 +1,122 @@
+// Voce IR — Internationalization
+//
+// Static i18n (default): the compiler resolves all LocalizedStrings
+// against the target locale's MessageCatalog and emits fully resolved
+// HTML per locale. Zero runtime i18n code.
+//
+// Runtime i18n: single output with locale switching. Translations
+// loaded on demand. ~1KB i18n runtime.
+//
+// See docs/research/FORMS_SEO_I18N.md for full design rationale.
+
+include "types.fbs";
+
+namespace voce;
+
+// ─── Message Parameter Types ────────────────────────────────────
+
+enum MessageParamType : byte {
+  StringParam = 0,
+  NumberParam,
+  DateParam,
+  CurrencyParam,
+  PluralParam,
+  SelectParam
+}
+
+enum NumberStyle : byte {
+  Decimal = 0,
+  Currency,
+  Percent,
+  Unit
+}
+
+enum DateStyle : byte {
+  Short = 0,
+  Medium,
+  Long,
+  Full,
+  Custom
+}
+
+table FormatOptions {
+  number_style: NumberStyle = Decimal;
+  /// Currency code (e.g., "USD", "EUR"). Only for Currency number_style.
+  currency_code: string;
+  date_style: DateStyle = Medium;
+  /// ICU date pattern (only for Custom date_style, e.g., "yyyy-MM-dd").
+  custom_date_pattern: string;
+  /// Minimum fraction digits for numbers.
+  min_fraction_digits: int32;
+  /// Maximum fraction digits for numbers.
+  max_fraction_digits: int32;
+}
+
+// ─── Message Parameter ──────────────────────────────────────────
+
+table MessageParameter {
+  /// Parameter name (e.g., "count", "name", "date").
+  name: string (required);
+  param_type: MessageParamType = StringParam;
+  format_options: FormatOptions;
+}
+
+// ─── Localized String ───────────────────────────────────────────
+//
+// Used in TextNode content, FormField labels/messages, PageMetadata,
+// and anywhere user-visible text appears. The validator checks that
+// every message_key exists in all declared locale catalogs.
+
+table LocalizedString {
+  /// Message key (e.g., "hero.title", "form.email.label").
+  message_key: string (required);
+  /// Default value (in the primary language). Used as fallback if
+  /// the translation is missing.
+  default_value: string;
+  /// Typed parameters for interpolation.
+  parameters: [MessageParameter];
+  /// Context description for translators (e.g., "Button label for adding item to cart").
+  description: string;
+}
+
+// ─── Message (in a catalog) ─────────────────────────────────────
+
+table Message {
+  key: string (required);
+  /// ICU MessageFormat string.
+  /// Examples:
+  ///   "Hello {name}"
+  ///   "{count, plural, one {# item} other {# items}}"
+  ///   "{gender, select, female {She} male {He} other {They}} commented"
+  value: string (required);
+}
+
+// ─── Message Catalog ────────────────────────────────────────────
+//
+// One per locale. Companion file to the IR — not embedded in the
+// main IR blob. Stored as JSON or FlatBuffer alongside the IR.
+
+table MessageCatalog {
+  /// BCP 47 locale tag (e.g., "en-US", "fr-FR", "ar-SA").
+  locale: string (required);
+  /// All messages for this locale.
+  messages: [Message] (required);
+  /// Fallback locale (e.g., "en" as fallback for "en-US").
+  fallback_locale: string;
+}
+
+// ─── i18n Configuration ─────────────────────────────────────────
+//
+// Added to VoceDocument to declare supported locales and
+// default locale.
+
+table I18nConfig {
+  /// Default/primary locale.
+  default_locale: string (required);
+  /// All supported locales.
+  supported_locales: [string] (required);
+  /// Compilation mode.
+  /// "static" = one output per locale (zero runtime, default).
+  /// "runtime" = one output with locale switching (~1KB runtime).
+  mode: string;
+}

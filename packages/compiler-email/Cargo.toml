@@ -1,0 +1,14 @@
+[package]
+name = "voce-compiler-email"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Voce IR Email compiler — compiles IR to email-safe HTML with table layouts and inline CSS"
+
+[dependencies]
+voce-schema = { path = "../schema" }
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true

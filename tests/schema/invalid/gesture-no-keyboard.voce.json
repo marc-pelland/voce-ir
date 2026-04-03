@@ -1,0 +1,16 @@
+{
+  "root": {
+    "node_id": "root",
+    "children": [
+      {
+        "value_type": "GestureHandler",
+        "value": {
+          "node_id": "tap-handler",
+          "target_node_id": "root",
+          "gesture_type": "Tap",
+          "trigger_event": "click"
+        }
+      }
+    ]
+  }
+}

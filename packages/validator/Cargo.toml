@@ -1,0 +1,38 @@
+[package]
+name = "voce-validator"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Voce IR reference validator and CLI toolchain"
+
+[[bin]]
+name = "voce"
+path = "src/main.rs"
+
+[dependencies]
+voce-schema = { path = "../schema" }
+voce-compiler-dom = { path = "../compiler-dom", default-features = false }
+voce-adapter-core = { path = "../adapter-core" }
+voce-adapter-static = { path = "../adapter-static" }
+voce-adapter-vercel = { path = "../adapter-vercel" }
+voce-adapter-cloudflare = { path = "../adapter-cloudflare" }
+voce-adapter-netlify = { path = "../adapter-netlify" }
+thiserror.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+colored = "3"
+
+[dev-dependencies]
+insta.workspace = true
+assert_cmd = "2"
+predicates = "3"
+voce-compiler-email = { path = "../compiler-email" }
+voce-compiler-ios = { path = "../compiler-ios" }
+voce-compiler-android = { path = "../compiler-android" }
+voce-compiler-webgpu = { path = "../compiler-webgpu" }
+voce-compiler-wasm = { path = "../compiler-wasm" }
+voce-compiler-hybrid = { path = "../compiler-hybrid" }

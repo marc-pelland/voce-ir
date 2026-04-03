@@ -1,0 +1,48 @@
+/* Voce IR docs — custom theme overrides */
+
+:root {
+  --voce-accent: #6366f1;
+  --voce-accent-light: #818cf8;
+}
+
+/* Accent color for links and headings */
+.coal .sidebar .sidebar-scrollbox a:hover,
+.coal .content a {
+  color: var(--voce-accent-light);
+}
+
+/* Code blocks */
+.coal pre {
+  border-left: 3px solid var(--voce-accent);
+}
+
+/* Table styling */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+}
+
+th {
+  background: rgba(99, 102, 241, 0.1);
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 2px solid var(--voce-accent);
+}
+
+td {
+  padding: 6px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Node type badges */
+code {
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+/* Mermaid diagram sizing */
+.mermaid {
+  text-align: center;
+  margin: 1.5em 0;
+}

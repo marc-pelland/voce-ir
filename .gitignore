@@ -1,0 +1,33 @@
+# Rust
+target/
+
+# Node
+node_modules/
+dist/
+
+# WASM build output
+packages/playground-wasm/pkg/
+packages/playground/wasm/
+
+# mdBook build output
+docs/site/book/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Voce local state
+.voce/sessions/
+.voce/snapshots/

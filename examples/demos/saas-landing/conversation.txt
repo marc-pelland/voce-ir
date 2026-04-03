@@ -1,0 +1,46 @@
+# Demo 1: SaaS Landing Page — Conversation Transcript
+# Style Pack: minimal-saas
+# Generated via: voce design
+
+AI: What are you building? Tell me about the product or service.
+
+User: A project management tool for small teams called "TaskFlow" — it helps teams organize work with kanban boards, time tracking, and team chat.
+
+AI: Who is the target audience?
+
+User: Small team leads and project managers at companies with 5-50 people. They're currently using a mix of spreadsheets and Slack.
+
+AI: What sections should the page have?
+
+User: Hero section, feature highlights, pricing with a free tier, customer testimonials, and a footer with links.
+
+AI: What should the main call-to-action be?
+
+User: "Start Free Trial" — we want people to sign up for the free plan.
+
+AI: What visual style are you going for? Is there a website whose look you admire?
+
+User: Clean and modern, like Linear's website. Light background, good use of whitespace.
+
+AI: Here's what I'm planning to build:
+
+A landing page for TaskFlow — a project management tool for small teams.
+
+Sections:
+  1. Hero (headline, subtitle, "Start Free Trial" CTA)
+  2. Features (kanban boards, time tracking, team chat — 3-column grid)
+  3. Pricing (Free, Pro $12/mo, Team $29/mo)
+  4. Testimonials (3 customer quotes)
+  5. Footer (links, copyright)
+
+Style: Minimal SaaS pack — clean, light, blue accents
+Estimated: ~40 nodes, 12 node types
+
+Does this sound right?
+
+User: Yes, looks great!
+
+AI: Building your page now...
+✓ Generated valid IR (42 nodes, 12 types)
+✓ Compiled to HTML (7,234 bytes — 7.1 KB)
+✓ Validation: 0 errors, 0 warnings

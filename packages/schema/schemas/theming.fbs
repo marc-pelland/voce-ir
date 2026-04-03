@@ -1,0 +1,182 @@
+// Voce IR — Theming & Personalization
+//
+// Design tokens, multi-theme support, responsive breakpoints,
+// and personalization slots. Theme selection is a state machine
+// transition (e.g., light → dark).
+
+include "types.fbs";
+
+namespace voce;
+
+// ─── Color Palette ──────────────────────────────────────────────
+
+table ColorPalette {
+  primary: Color;
+  primary_foreground: Color;
+  secondary: Color;
+  secondary_foreground: Color;
+  accent: Color;
+  accent_foreground: Color;
+  background: Color;
+  foreground: Color;
+  surface: Color;
+  surface_foreground: Color;
+  muted: Color;
+  muted_foreground: Color;
+  border_color: Color;
+  error: Color;
+  error_foreground: Color;
+  success: Color;
+  success_foreground: Color;
+  warning: Color;
+  warning_foreground: Color;
+  info: Color;
+  info_foreground: Color;
+}
+
+// ─── Typography Scale ───────────────────────────────────────────
+
+table FontDefinition {
+  family: string (required);
+  /// URL to font file (for compiler to subset and optimize).
+  src: string;
+  /// Weight range for variable fonts (e.g., "100 900").
+  weight_range: string;
+  /// Whether this is a variable font.
+  variable: bool = false;
+}
+
+table TypographyScale {
+  font_body: FontDefinition;
+  font_display: FontDefinition;
+  font_mono: FontDefinition;
+
+  /// Size scale (indexes: 0=xs, 1=sm, 2=base, 3=lg, 4=xl, 5=2xl, 6=3xl, 7=4xl).
+  size_scale: [Length];
+  /// Line height scale (matching size_scale indexes).
+  line_height_scale: [float32];
+  /// Default letter spacing.
+  letter_spacing: Length;
+}
+
+// ─── Spacing Scale ──────────────────────────────────────────────
+
+table SpacingScale {
+  /// Base spacing unit (e.g., 4px or 0.25rem).
+  base: Length;
+  /// Multiplier scale (e.g., [0, 1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64]).
+  /// Actual spacing = base.value * multiplier[i].
+  multipliers: [float32];
+}
+
+// ─── Shadow & Radius Scales ─────────────────────────────────────
+
+table ShadowScale {
+  /// Named shadows: sm, md, lg, xl, 2xl (indexed).
+  shadows: [Shadow];
+}
+
+table RadiusScale {
+  /// Named radii: none, sm, md, lg, xl, full (indexed).
+  radii: [Length];
+}
+
+// ─── ThemeNode ──────────────────────────────────────────────────
+//
+// A named set of design tokens. Multiple themes can coexist
+// (light, dark, high-contrast). Theme switching is a state
+// machine transition.
+
+table ThemeNode {
+  node_id: string (required);
+
+  /// Theme name (e.g., "light", "dark", "high-contrast").
+  name: string (required);
+
+  colors: ColorPalette;
+  typography: TypographyScale;
+  spacing: SpacingScale;
+  shadows: ShadowScale;
+  radii: RadiusScale;
+
+  /// Transition animation when switching to this theme.
+  transition_duration: Duration;
+  transition_easing: Easing;
+}
+
+// ─── PersonalizationSlot ────────────────────────────────────────
+//
+// A point in the IR that adapts based on user context: locale,
+// device, preferences, A/B test cohort.
+
+enum PersonalizationConditionType : byte {
+  Locale = 0,
+  DeviceType,
+  ColorScheme,
+  ReducedMotion,
+  HighContrast,
+  Viewport,
+  Custom
+}
+
+table PersonalizationCondition {
+  condition_type: PersonalizationConditionType;
+  /// Operator: "eq", "neq", "gt", "lt", "gte", "lte", "contains".
+  operator: string;
+  /// Value to compare against (e.g., "dark", "mobile", "en-US").
+  value: string;
+}
+
+table PersonalizationVariant {
+  /// Conditions that must all be true for this variant to activate.
+  conditions: [PersonalizationCondition] (required);
+  /// Node IDs to show when this variant is active.
+  show_nodes: [string];
+  /// Node IDs to hide when this variant is active.
+  hide_nodes: [string];
+  /// Property overrides to apply (node_id + property + value).
+  overrides: [PropertyOverride];
+}
+
+table PropertyOverride {
+  target_node_id: string (required);
+  property: string (required);
+  value: string (required);
+}
+
+table PersonalizationSlot {
+  node_id: string (required);
+  name: string;
+  variants: [PersonalizationVariant] (required);
+  /// Fallback: what to show if no variant matches.
+  default_variant_index: int32 = 0;
+}
+
+// ─── ResponsiveRule ─────────────────────────────────────────────
+//
+// Adapts layout based on viewport dimensions. Explicit breakpoints
+// with property overrides — not CSS media queries with cascading.
+
+table Breakpoint {
+  /// Breakpoint name (e.g., "sm", "md", "lg", "xl", "2xl").
+  name: string (required);
+  /// Minimum viewport width for this breakpoint.
+  min_width: Length (required);
+}
+
+table ResponsiveOverride {
+  /// Which breakpoint this override applies at.
+  breakpoint_name: string (required);
+  /// Property overrides at this breakpoint.
+  overrides: [PropertyOverride] (required);
+}
+
+table ResponsiveRule {
+  node_id: string (required);
+
+  /// Breakpoint definitions (shared across the rule).
+  breakpoints: [Breakpoint] (required);
+
+  /// Per-breakpoint property overrides.
+  responsive_overrides: [ResponsiveOverride] (required);
+}

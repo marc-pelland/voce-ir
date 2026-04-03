@@ -1,0 +1,14 @@
+[package]
+name = "voce-adapter-vercel"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Voce IR Vercel deployment adapter — Build Output API v3"
+
+[dependencies]
+voce-adapter-core = { path = "../adapter-core" }
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true

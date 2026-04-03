@@ -1,0 +1,250 @@
+//! Vercel deployment adapter — produces Vercel Build Output API v3 structure.
+//!
+//! Output structure:
+//! ```text
+//! .vercel/output/
+//! ├── config.json          # Build output config
+//! ├── static/              # Static assets
+//! │   ├── index.html
+//! │   └── assets/
+//! └── functions/           # Serverless functions from ActionNodes
+//!     └── api/
+//!         └── <route>.func/
+//!             └── index.js
+//! ```
+
+use std::collections::HashMap;
+use std::path::PathBuf;
+
+use anyhow::Result;
+use voce_adapter_core::{Adapter, Bundle, CompiledOutput, DeployConfig, DeployResult};
+
+/// Vercel Build Output API v3 adapter.
+pub struct VercelAdapter {
+    output_dir: PathBuf,
+}
+
+impl VercelAdapter {
+    /// Create a new Vercel adapter.
+    pub fn new(output_dir: PathBuf) -> Self {
+        Self { output_dir }
+    }
+}
+
+impl Default for VercelAdapter {
+    fn default() -> Self {
+        Self::new(PathBuf::from(".vercel/output"))
+    }
+}
+
+impl Adapter for VercelAdapter {
+    fn name(&self) -> &str {
+        "vercel"
+    }
+
+    fn prepare(&self, compiled: &CompiledOutput, config: &DeployConfig) -> Result<Bundle> {
+        let mut files: HashMap<PathBuf, Vec<u8>> = HashMap::new();
+
+        // Build output config.json
+        let build_config = serde_json::json!({
+            "version": 3,
+            "routes": compiled.actions.iter().map(|a| {
+                serde_json::json!({
+                    "src": &a.route,
+                    "dest": format!("/api{}", a.route)
+                })
+            }).collect::<Vec<_>>()
+        });
+        files.insert(
+            PathBuf::from("config.json"),
+            serde_json::to_string_pretty(&build_config)?.into_bytes(),
+        );
+
+        // Static files
+        files.insert(
+            PathBuf::from("static/index.html"),
+            compiled.html.as_bytes().to_vec(),
+        );
+        for (name, data) in &compiled.assets {
+            files.insert(PathBuf::from(format!("static/assets/{name}")), data.clone());
+        }
+
+        // Serverless functions from ActionNodes
+        for action in &compiled.actions {
+            let route_name = action
+                .route
+                .trim_start_matches('/')
+                .replace('/', "-");
+            let func_dir = format!("functions/api/{route_name}.func");
+
+            // Function handler
+            let handler = generate_vercel_function(action, config);
+            files.insert(
+                PathBuf::from(format!("{func_dir}/index.js")),
+                handler.into_bytes(),
+            );
+
+            // .vc-config.json
+            let vc_config = serde_json::json!({
+                "runtime": "nodejs20.x",
+                "handler": "index.handler",
+                "launcherType": "Nodejs"
+            });
+            files.insert(
+                PathBuf::from(format!("{func_dir}/.vc-config.json")),
+                serde_json::to_string_pretty(&vc_config)?.into_bytes(),
+            );
+        }
+
+        let func_count = compiled.actions.len();
+        let summary = format!(
+            "Vercel Build Output v3: {} static files, {func_count} serverless functions",
+            compiled.assets.len() + 1
+        );
+
+        Ok(Bundle {
+            output_dir: self.output_dir.clone(),
+            files,
+            summary,
+        })
+    }
+
+    fn deploy(&self, bundle: &Bundle, _config: &DeployConfig) -> Result<DeployResult> {
+        bundle.write_to_disk()?;
+
+        // Check if vercel CLI is available
+        let vercel_available = std::process::Command::new("vercel")
+            .arg("--version")
+            .output()
+            .is_ok();
+
+        if vercel_available {
+            let output = std::process::Command::new("vercel")
+                .arg("--prebuilt")
+                .current_dir(bundle.output_dir.parent().unwrap_or(&bundle.output_dir))
+                .output()?;
+
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            Ok(DeployResult {
+                url: stdout.lines().last().map(|s| s.trim().to_string()),
+                deployment_id: None,
+                message: format!("Deployed to Vercel: {stdout}"),
+            })
+        } else {
+            Ok(DeployResult {
+                url: None,
+                deployment_id: None,
+                message: format!(
+                    "Vercel build output written to {}/ — run `vercel --prebuilt` to deploy",
+                    bundle.output_dir.display()
+                ),
+            })
+        }
+    }
+}
+
+/// Generate a Vercel serverless function from an ActionHandler.
+fn generate_vercel_function(
+    action: &voce_adapter_core::ActionHandler,
+    config: &DeployConfig,
+) -> String {
+    let env_setup: String = config
+        .env
+        .iter()
+        .map(|(k, v)| format!("  // env: {k} = \"{v}\"\n"))
+        .collect();
+
+    format!(
+        r#"// Auto-generated by Voce IR compiler
+// ActionNode: {node_id} ({method} {route})
+{env_setup}
+export default function handler(req, res) {{
+  if (req.method !== '{method}') {{
+    return res.status(405).json({{ error: 'Method not allowed' }});
+  }}
+
+  // TODO: Implement handler logic
+  {handler_code}
+
+  return res.status(200).json({{ ok: true }});
+}}
+"#,
+        node_id = action.node_id,
+        method = action.method,
+        route = action.route,
+        handler_code = action.handler_code,
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use voce_adapter_core::{ActionHandler, ProjectMeta};
+
+    fn sample_with_action() -> CompiledOutput {
+        CompiledOutput {
+            html: "<html><body>Hello</body></html>".to_string(),
+            assets: HashMap::new(),
+            actions: vec![ActionHandler {
+                route: "/contact".to_string(),
+                method: "POST".to_string(),
+                node_id: "contact-form-submit".to_string(),
+                handler_code: "// handle form submission".to_string(),
+            }],
+            meta: ProjectMeta {
+                name: "test".to_string(),
+                ..Default::default()
+            },
+        }
+    }
+
+    #[test]
+    fn prepare_creates_build_output_structure() {
+        let adapter = VercelAdapter::default();
+        let bundle = adapter
+            .prepare(&sample_with_action(), &DeployConfig::default())
+            .unwrap();
+
+        assert!(bundle.files.contains_key(&PathBuf::from("config.json")));
+        assert!(bundle
+            .files
+            .contains_key(&PathBuf::from("static/index.html")));
+        assert!(bundle
+            .files
+            .contains_key(&PathBuf::from("functions/api/contact.func/index.js")));
+        assert!(bundle.files.contains_key(&PathBuf::from(
+            "functions/api/contact.func/.vc-config.json"
+        )));
+    }
+
+    #[test]
+    fn function_handler_includes_method_check() {
+        let adapter = VercelAdapter::default();
+        let bundle = adapter
+            .prepare(&sample_with_action(), &DeployConfig::default())
+            .unwrap();
+
+        let func = bundle
+            .files
+            .get(&PathBuf::from("functions/api/contact.func/index.js"))
+            .unwrap();
+        let code = String::from_utf8_lossy(func);
+        assert!(code.contains("req.method !== 'POST'"));
+        assert!(code.contains("contact-form-submit"));
+    }
+
+    #[test]
+    fn config_json_has_version_3() {
+        let adapter = VercelAdapter::default();
+        let bundle = adapter
+            .prepare(&sample_with_action(), &DeployConfig::default())
+            .unwrap();
+
+        let config_bytes = bundle
+            .files
+            .get(&PathBuf::from("config.json"))
+            .unwrap();
+        let config: serde_json::Value = serde_json::from_slice(config_bytes).unwrap();
+        assert_eq!(config["version"], 3);
+    }
+}

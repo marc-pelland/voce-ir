@@ -1,0 +1,96 @@
+// Voce IR — Master Schema
+//
+// Single compilation target that includes all schema domains and
+// defines the cross-cutting types: ChildUnion, ChildNode, VoceDocument.
+//
+// This is what flatc compiles to generate Rust bindings.
+// Individual .fbs files define their domain types; this file
+// ties them together.
+
+include "types.fbs";
+include "layout.fbs";
+include "state.fbs";
+include "motion.fbs";
+include "navigation.fbs";
+include "a11y.fbs";
+include "theming.fbs";
+include "data.fbs";
+include "forms.fbs";
+include "seo.fbs";
+include "i18n.fbs";
+
+namespace voce;
+
+// ─── Node Union ─────────────────────────────────────────────────
+//
+// The universal union of all node types that can appear in the IR
+// tree. Wrapped in ChildNode because FlatBuffers Rust codegen
+// doesn't support vectors of unions directly.
+//
+// Phase 1 complete — 27 node types across 11 domains.
+
+union ChildUnion {
+  // Layout (Sprint 02)
+  Container,
+  Surface,
+  TextNode,
+  MediaNode,
+  // State (Sprint 03)
+  StateMachine,
+  DataNode,
+  ComputeNode,
+  EffectNode,
+  ContextNode,
+  // Motion (Sprint 03)
+  AnimationTransition,
+  Sequence,
+  GestureHandler,
+  ScrollBinding,
+  PhysicsBody,
+  // Navigation (Sprint 03)
+  RouteMap,
+  // Accessibility (Sprint 04)
+  SemanticNode,
+  LiveRegion,
+  FocusTrap,
+  // Theming (Sprint 04)
+  ThemeNode,
+  PersonalizationSlot,
+  ResponsiveRule,
+  // Data & Backend (Sprint 05)
+  ActionNode,
+  SubscriptionNode,
+  AuthContextNode,
+  ContentSlot,
+  RichTextNode,
+  // Forms (Sprint 05)
+  FormNode
+}
+
+table ChildNode {
+  value: ChildUnion;
+}
+
+// ─── Document Root ──────────────────────────────────────────────
+
+table VoceDocument {
+  schema_version_major: int32 = 0;
+  schema_version_minor: int32 = 1;
+  root: ViewRoot (required);
+
+  /// Application-level route map (for multi-route apps).
+  routes: RouteMap;
+
+  /// Theming.
+  theme: ThemeNode;
+  alternate_themes: [ThemeNode];
+
+  /// Auth configuration.
+  auth: AuthContextNode;
+
+  /// Internationalization configuration.
+  i18n: I18nConfig;
+}
+
+root_type VoceDocument;
+file_identifier "VOCE";

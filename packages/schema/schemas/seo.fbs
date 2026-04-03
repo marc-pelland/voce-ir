@@ -1,0 +1,130 @@
+// Voce IR — SEO
+//
+// Search engine optimization metadata. Added as fields on ViewRoot
+// (per-page metadata) and RouteMap (sitemap generation).
+// The compiler emits <head> meta tags, JSON-LD structured data,
+// and generates sitemap.xml + robots.txt.
+//
+// See docs/research/FORMS_SEO_I18N.md for full design rationale.
+
+include "types.fbs";
+
+namespace voce;
+
+// ─── Open Graph ─────────────────────────────────────────────────
+
+enum OGType : byte {
+  Website = 0,
+  Article,
+  Product,
+  Profile
+}
+
+table OpenGraphData {
+  title: string;
+  description: string;
+  /// Image URL or MediaNode reference.
+  image: string;
+  image_alt: string;
+  image_width: int32;
+  image_height: int32;
+  og_type: OGType = Website;
+  url: string;
+  site_name: string;
+  locale: string;
+}
+
+// ─── Twitter Card ───────────────────────────────────────────────
+
+enum TwitterCardType : byte {
+  Summary = 0,
+  SummaryLargeImage,
+  App,
+  Player
+}
+
+table TwitterCardData {
+  card_type: TwitterCardType = SummaryLargeImage;
+  title: string;
+  description: string;
+  image: string;
+  image_alt: string;
+  site: string;
+  creator: string;
+}
+
+// ─── Robots ─────────────────────────────────────────────────────
+
+enum ImagePreviewSize : byte {
+  None = 0,
+  Standard,
+  Large
+}
+
+table RobotsDirective {
+  index: bool = true;
+  follow: bool = true;
+  max_snippet: int32 = -1;
+  max_image_preview: ImagePreviewSize = Large;
+  max_video_preview: int32 = -1;
+  no_archive: bool = false;
+  no_translate: bool = false;
+}
+
+// ─── Structured Data (JSON-LD) ──────────────────────────────────
+
+table StructuredData {
+  /// Schema.org type (e.g., "Article", "Product", "FAQ", "BreadcrumbList").
+  schema_type: string (required);
+  /// JSON-LD properties as a JSON string. The validator checks basic
+  /// conformance to the declared schema_type.
+  properties_json: string (required);
+}
+
+// ─── Alternate Link (hreflang) ──────────────────────────────────
+
+table AlternateLink {
+  /// BCP 47 language tag (e.g., "en-US", "fr-FR", "x-default").
+  hreflang: string (required);
+  /// URL of the alternate page.
+  href: string (required);
+}
+
+// ─── Custom Meta Tag ────────────────────────────────────────────
+
+table MetaTag {
+  /// name or property attribute.
+  name: string (required);
+  /// content attribute value.
+  content: string (required);
+  /// If true, use property= instead of name= (for OG-like tags).
+  is_property: bool = false;
+}
+
+// ─── Page Metadata ──────────────────────────────────────────────
+//
+// Added as a field on ViewRoot. One per page/route.
+
+table PageMetadata {
+  /// Page title. The validator warns if > 60 characters.
+  title: string (required);
+  /// Title template (e.g., "%s | My Site"). %s is replaced with title.
+  title_template: string;
+  /// Meta description. Validator warns if > 160 characters.
+  description: string;
+  /// Canonical URL for this page.
+  canonical_url: string;
+
+  robots: RobotsDirective;
+  open_graph: OpenGraphData;
+  twitter_card: TwitterCardData;
+
+  /// Hreflang alternate links (for i18n).
+  alternates: [AlternateLink];
+
+  /// Structured data blocks (JSON-LD).
+  structured_data: [StructuredData];
+
+  /// Custom meta tags (escape hatch).
+  custom_meta: [MetaTag];
+}

@@ -1,0 +1,26 @@
+{
+  "schema_version_major": 1,
+  "schema_version_minor": 0,
+  "root": {
+    "node_id": "root",
+    "viewport_width": { "value": 1200, "unit": "Px" },
+    "children": [
+      {
+        "value_type": "Container",
+        "value": {
+          "node_id": "grid",
+          "direction": "Column",
+          "grid_columns": [{"value": 1, "unit": "Fr"}, {"value": 1, "unit": "Fr"}, {"value": 1, "unit": "Fr"}],
+          "gap": { "value": 24, "unit": "Px" },
+          "children": [
+            { "value_type": "TextNode", "value": { "node_id": "cell1", "content": "Cell 1", "font_size": { "value": 16, "unit": "Px" } } },
+            { "value_type": "TextNode", "value": { "node_id": "cell2", "content": "Cell 2", "font_size": { "value": 16, "unit": "Px" } } },
+            { "value_type": "TextNode", "value": { "node_id": "cell3", "content": "Cell 3", "font_size": { "value": 16, "unit": "Px" } } }
+          ]
+        }
+      }
+    ],
+    "metadata": { "title": "Grid Test", "description": "Grid container." }
+  },
+  "metadata": { "title": "Grid Test", "description": "Grid container.", "language": "en" }
+}

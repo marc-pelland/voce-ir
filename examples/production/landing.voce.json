@@ -1,0 +1,383 @@
+{
+  "schema_version_major": 1,
+  "schema_version_minor": 0,
+  "theme": {
+    "node_id": "theme-dark",
+    "name": "dark",
+    "colors": {
+      "background": { "r": 9, "g": 9, "b": 11, "a": 255 },
+      "foreground": { "r": 250, "g": 250, "b": 250, "a": 255 },
+      "primary": { "r": 99, "g": 102, "b": 241, "a": 255 },
+      "surface": { "r": 24, "g": 24, "b": 27, "a": 255 },
+      "muted_foreground": { "r": 113, "g": 113, "b": 122, "a": 255 }
+    }
+  },
+  "root": {
+    "node_id": "root",
+    "document_language": "en",
+    "text_direction": "Ltr",
+    "viewport_width": { "value": 1440, "unit": "Px" },
+    "metadata": {
+      "title": "Voce IR — AI-native UI intermediate representation",
+      "description": "Binary IR for user interfaces. AI generates typed IR from conversation, a compiler emits optimized output across 7 targets. Zero runtime. Zero framework.",
+      "canonical_url": "https://voce-ir.xyz",
+      "open_graph": {
+        "title": "Voce IR — The code is gone. The experience remains.",
+        "description": "AI-native intermediate representation for user interfaces",
+        "og_type": "Website"
+      }
+    },
+    "semantic_nodes": [
+      { "node_id": "sem-nav", "role": "navigation", "label": "Main navigation" },
+      { "node_id": "sem-main", "role": "main", "label": "Main content" },
+      { "node_id": "sem-footer", "role": "contentinfo", "label": "Footer" }
+    ],
+    "children": [
+      {
+        "value_type": "Container",
+        "value": {
+          "node_id": "nav",
+          "direction": "Row",
+          "alignment": "Center",
+          "semantic_node_id": "sem-nav",
+          "padding": {
+            "top": { "value": 16, "unit": "Px" },
+            "bottom": { "value": 16, "unit": "Px" },
+            "left": { "value": 24, "unit": "Px" },
+            "right": { "value": 24, "unit": "Px" }
+          },
+          "children": [
+            {
+              "value_type": "TextNode",
+              "value": {
+                "node_id": "nav-logo",
+                "content": "Voce IR",
+                "font_size": { "value": 18, "unit": "Px" },
+                "font_weight": "Bold",
+                "color": { "r": 250, "g": 250, "b": 250, "a": 255 }
+              }
+            },
+            {
+              "value_type": "TextNode",
+              "value": {
+                "node_id": "nav-docs",
+                "content": "Docs",
+                "font_size": { "value": 14, "unit": "Px" },
+                "color": { "r": 161, "g": 161, "b": 170, "a": 255 }
+              }
+            },
+            {
+              "value_type": "TextNode",
+              "value": {
+                "node_id": "nav-playground",
+                "content": "Playground",
+                "font_size": { "value": 14, "unit": "Px" },
+                "color": { "r": 161, "g": 161, "b": 170, "a": 255 }
+              }
+            },
+            {
+              "value_type": "TextNode",
+              "value": {
+                "node_id": "nav-github",
+                "content": "GitHub",
+                "font_size": { "value": 14, "unit": "Px" },
+                "color": { "r": 161, "g": 161, "b": 170, "a": 255 }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "value_type": "Container",
+        "value": {
+          "node_id": "hero",
+          "direction": "Column",
+          "alignment": "Center",
+          "semantic_node_id": "sem-main",
+          "padding": {
+            "top": { "value": 120, "unit": "Px" },
+            "bottom": { "value": 80, "unit": "Px" },
+            "left": { "value": 24, "unit": "Px" },
+            "right": { "value": 24, "unit": "Px" }
+          },
+          "children": [
+            {
+              "value_type": "TextNode",
+              "value": {
+                "node_id": "hero-title",
+                "content": "The code is gone. The experience remains.",
+                "heading_level": 1,
+                "font_size": { "value": 56, "unit": "Px" },
+                "font_weight": "Bold",
+                "color": { "r": 250, "g": 250, "b": 250, "a": 255 }
+              }
+            },
+            {
+              "value_type": "TextNode",
+              "value": {
+                "node_id": "hero-subtitle",
+                "content": "Voce IR is a binary intermediate representation for user interfaces. AI generates typed IR from natural language. A compiler emits optimized output across 7 targets. No framework. No runtime. Just the experience.",
+                "font_size": { "value": 20, "unit": "Px" },
+                "color": { "r": 161, "g": 161, "b": 170, "a": 255 }
+              }
+            },
+            {
+              "value_type": "Container",
+              "value": {
+                "node_id": "hero-ctas",
+                "direction": "Row",
+                "gap": { "value": 16, "unit": "Px" },
+                "padding": { "top": { "value": 32, "unit": "Px" }, "bottom": { "value": 0, "unit": "Px" }, "left": { "value": 0, "unit": "Px" }, "right": { "value": 0, "unit": "Px" } },
+                "children": [
+                  {
+                    "value_type": "Surface",
+                    "value": {
+                      "node_id": "cta-primary",
+                      "fill": { "r": 99, "g": 102, "b": 241, "a": 255 },
+                      "corner_radius": { "top_left": { "value": 8, "unit": "Px" }, "top_right": { "value": 8, "unit": "Px" }, "bottom_left": { "value": 8, "unit": "Px" }, "bottom_right": { "value": 8, "unit": "Px" } },
+                      "padding": { "top": { "value": 12, "unit": "Px" }, "bottom": { "value": 12, "unit": "Px" }, "left": { "value": 24, "unit": "Px" }, "right": { "value": 24, "unit": "Px" } },
+                      "children": [
+                        {
+                          "value_type": "TextNode",
+                          "value": {
+                            "node_id": "cta-primary-text",
+                            "content": "Get Started",
+                            "font_size": { "value": 16, "unit": "Px" },
+                            "font_weight": "SemiBold",
+                            "color": { "r": 255, "g": 255, "b": 255, "a": 255 }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "value_type": "Surface",
+                    "value": {
+                      "node_id": "cta-secondary",
+                      "corner_radius": { "top_left": { "value": 8, "unit": "Px" }, "top_right": { "value": 8, "unit": "Px" }, "bottom_left": { "value": 8, "unit": "Px" }, "bottom_right": { "value": 8, "unit": "Px" } },
+                      "padding": { "top": { "value": 12, "unit": "Px" }, "bottom": { "value": 12, "unit": "Px" }, "left": { "value": 24, "unit": "Px" }, "right": { "value": 24, "unit": "Px" } },
+                      "children": [
+                        {
+                          "value_type": "TextNode",
+                          "value": {
+                            "node_id": "cta-secondary-text",
+                            "content": "View on GitHub",
+                            "font_size": { "value": 16, "unit": "Px" },
+                            "font_weight": "Medium",
+                            "color": { "r": 161, "g": 161, "b": 170, "a": 255 }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "value_type": "Container",
+        "value": {
+          "node_id": "pipeline",
+          "direction": "Row",
+          "gap": { "value": 32, "unit": "Px" },
+          "alignment": "Center",
+          "padding": {
+            "top": { "value": 80, "unit": "Px" },
+            "bottom": { "value": 80, "unit": "Px" },
+            "left": { "value": 24, "unit": "Px" },
+            "right": { "value": 24, "unit": "Px" }
+          },
+          "children": [
+            {
+              "value_type": "Container",
+              "value": {
+                "node_id": "step-1",
+                "direction": "Column",
+                "children": [
+                  { "value_type": "TextNode", "value": { "node_id": "step-1-num", "content": "01", "font_size": { "value": 32, "unit": "Px" }, "font_weight": "Bold", "color": { "r": 99, "g": 102, "b": 241, "a": 255 } } },
+                  { "value_type": "TextNode", "value": { "node_id": "step-1-title", "content": "Conversation", "font_size": { "value": 18, "unit": "Px" }, "font_weight": "SemiBold", "color": { "r": 250, "g": 250, "b": 250, "a": 255 } } },
+                  { "value_type": "TextNode", "value": { "node_id": "step-1-desc", "content": "Describe what you want in natural language. The AI asks questions, builds context, and pushes back on anti-patterns.", "font_size": { "value": 14, "unit": "Px" }, "color": { "r": 113, "g": 113, "b": 122, "a": 255 } } }
+                ]
+              }
+            },
+            {
+              "value_type": "Container",
+              "value": {
+                "node_id": "step-2",
+                "direction": "Column",
+                "children": [
+                  { "value_type": "TextNode", "value": { "node_id": "step-2-num", "content": "02", "font_size": { "value": 32, "unit": "Px" }, "font_weight": "Bold", "color": { "r": 99, "g": 102, "b": 241, "a": 255 } } },
+                  { "value_type": "TextNode", "value": { "node_id": "step-2-title", "content": "Generate IR", "font_size": { "value": 18, "unit": "Px" }, "font_weight": "SemiBold", "color": { "r": 250, "g": 250, "b": 250, "a": 255 } } },
+                  { "value_type": "TextNode", "value": { "node_id": "step-2-desc", "content": "AI emits typed binary IR — 27 node types covering layout, state, animation, accessibility, SEO, and forms.", "font_size": { "value": 14, "unit": "Px" }, "color": { "r": 113, "g": 113, "b": 122, "a": 255 } } }
+                ]
+              }
+            },
+            {
+              "value_type": "Container",
+              "value": {
+                "node_id": "step-3",
+                "direction": "Column",
+                "children": [
+                  { "value_type": "TextNode", "value": { "node_id": "step-3-num", "content": "03", "font_size": { "value": 32, "unit": "Px" }, "font_weight": "Bold", "color": { "r": 99, "g": 102, "b": 241, "a": 255 } } },
+                  { "value_type": "TextNode", "value": { "node_id": "step-3-title", "content": "Validate", "font_size": { "value": 18, "unit": "Px" }, "font_weight": "SemiBold", "color": { "r": 250, "g": 250, "b": 250, "a": 255 } } },
+                  { "value_type": "TextNode", "value": { "node_id": "step-3-desc", "content": "9 validation passes enforce 46 quality rules. Accessibility, security, and SEO are compile errors, not warnings.", "font_size": { "value": 14, "unit": "Px" }, "color": { "r": 113, "g": 113, "b": 122, "a": 255 } } }
+                ]
+              }
+            },
+            {
+              "value_type": "Container",
+              "value": {
+                "node_id": "step-4",
+                "direction": "Column",
+                "children": [
+                  { "value_type": "TextNode", "value": { "node_id": "step-4-num", "content": "04", "font_size": { "value": 32, "unit": "Px" }, "font_weight": "Bold", "color": { "r": 99, "g": 102, "b": 241, "a": 255 } } },
+                  { "value_type": "TextNode", "value": { "node_id": "step-4-title", "content": "Compile & Deploy", "font_size": { "value": 18, "unit": "Px" }, "font_weight": "SemiBold", "color": { "r": 250, "g": 250, "b": 250, "a": 255 } } },
+                  { "value_type": "TextNode", "value": { "node_id": "step-4-desc", "content": "Compile to 7 targets: DOM, WebGPU, WASM, iOS, Android, Email, or Hybrid. Deploy to Vercel, Cloudflare, or Netlify.", "font_size": { "value": 14, "unit": "Px" }, "color": { "r": 113, "g": 113, "b": 122, "a": 255 } } }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "value_type": "Container",
+        "value": {
+          "node_id": "features",
+          "direction": "Column",
+          "grid_columns": [{ "value": 1, "unit": "Fr" }, { "value": 1, "unit": "Fr" }, { "value": 1, "unit": "Fr" }],
+          "gap": { "value": 24, "unit": "Px" },
+          "padding": {
+            "top": { "value": 40, "unit": "Px" },
+            "bottom": { "value": 80, "unit": "Px" },
+            "left": { "value": 24, "unit": "Px" },
+            "right": { "value": 24, "unit": "Px" }
+          },
+          "children": [
+            {
+              "value_type": "TextNode",
+              "value": {
+                "node_id": "features-heading",
+                "content": "Why Voce IR",
+                "heading_level": 2,
+                "font_size": { "value": 32, "unit": "Px" },
+                "font_weight": "Bold",
+                "color": { "r": 250, "g": 250, "b": 250, "a": 255 }
+              }
+            },
+            {
+              "value_type": "Surface",
+              "value": {
+                "node_id": "feat-runtime",
+                "fill": { "r": 24, "g": 24, "b": 27, "a": 255 },
+                "corner_radius": { "top_left": { "value": 8, "unit": "Px" }, "top_right": { "value": 8, "unit": "Px" }, "bottom_left": { "value": 8, "unit": "Px" }, "bottom_right": { "value": 8, "unit": "Px" } },
+                "padding": { "top": { "value": 24, "unit": "Px" }, "bottom": { "value": 24, "unit": "Px" }, "left": { "value": 24, "unit": "Px" }, "right": { "value": 24, "unit": "Px" } },
+                "children": [
+                  { "value_type": "TextNode", "value": { "node_id": "feat-runtime-title", "content": "Zero Runtime", "heading_level": 3, "font_size": { "value": 18, "unit": "Px" }, "font_weight": "SemiBold", "color": { "r": 250, "g": 250, "b": 250, "a": 255 } } },
+                  { "value_type": "TextNode", "value": { "node_id": "feat-runtime-desc", "content": "No framework JS shipped. Spring physics solved at compile time. Every byte serves the user.", "font_size": { "value": 14, "unit": "Px" }, "color": { "r": 113, "g": 113, "b": 122, "a": 255 } } }
+                ]
+              }
+            },
+            {
+              "value_type": "Surface",
+              "value": {
+                "node_id": "feat-targets",
+                "fill": { "r": 24, "g": 24, "b": 27, "a": 255 },
+                "corner_radius": { "top_left": { "value": 8, "unit": "Px" }, "top_right": { "value": 8, "unit": "Px" }, "bottom_left": { "value": 8, "unit": "Px" }, "bottom_right": { "value": 8, "unit": "Px" } },
+                "padding": { "top": { "value": 24, "unit": "Px" }, "bottom": { "value": 24, "unit": "Px" }, "left": { "value": 24, "unit": "Px" }, "right": { "value": 24, "unit": "Px" } },
+                "children": [
+                  { "value_type": "TextNode", "value": { "node_id": "feat-targets-title", "content": "7 Compile Targets", "heading_level": 3, "font_size": { "value": 18, "unit": "Px" }, "font_weight": "SemiBold", "color": { "r": 250, "g": 250, "b": 250, "a": 255 } } },
+                  { "value_type": "TextNode", "value": { "node_id": "feat-targets-desc", "content": "DOM, WebGPU, WASM, Hybrid, iOS SwiftUI, Android Compose, Email HTML. One IR, every platform.", "font_size": { "value": 14, "unit": "Px" }, "color": { "r": 113, "g": 113, "b": 122, "a": 255 } } }
+                ]
+              }
+            },
+            {
+              "value_type": "Surface",
+              "value": {
+                "node_id": "feat-validation",
+                "fill": { "r": 24, "g": 24, "b": 27, "a": 255 },
+                "corner_radius": { "top_left": { "value": 8, "unit": "Px" }, "top_right": { "value": 8, "unit": "Px" }, "bottom_left": { "value": 8, "unit": "Px" }, "bottom_right": { "value": 8, "unit": "Px" } },
+                "padding": { "top": { "value": 24, "unit": "Px" }, "bottom": { "value": 24, "unit": "Px" }, "left": { "value": 24, "unit": "Px" }, "right": { "value": 24, "unit": "Px" } },
+                "children": [
+                  { "value_type": "TextNode", "value": { "node_id": "feat-validation-title", "content": "46 Validation Rules", "heading_level": 3, "font_size": { "value": 18, "unit": "Px" }, "font_weight": "SemiBold", "color": { "r": 250, "g": 250, "b": 250, "a": 255 } } },
+                  { "value_type": "TextNode", "value": { "node_id": "feat-validation-desc", "content": "9 passes covering structure, references, state machines, accessibility, security, SEO, forms, i18n, and motion safety.", "font_size": { "value": 14, "unit": "Px" }, "color": { "r": 113, "g": 113, "b": 122, "a": 255 } } }
+                ]
+              }
+            },
+            {
+              "value_type": "Surface",
+              "value": {
+                "node_id": "feat-a11y",
+                "fill": { "r": 24, "g": 24, "b": 27, "a": 255 },
+                "corner_radius": { "top_left": { "value": 8, "unit": "Px" }, "top_right": { "value": 8, "unit": "Px" }, "bottom_left": { "value": 8, "unit": "Px" }, "bottom_right": { "value": 8, "unit": "Px" } },
+                "padding": { "top": { "value": 24, "unit": "Px" }, "bottom": { "value": 24, "unit": "Px" }, "left": { "value": 24, "unit": "Px" }, "right": { "value": 24, "unit": "Px" } },
+                "children": [
+                  { "value_type": "TextNode", "value": { "node_id": "feat-a11y-title", "content": "Accessible by Default", "heading_level": 3, "font_size": { "value": 18, "unit": "Px" }, "font_weight": "SemiBold", "color": { "r": 250, "g": 250, "b": 250, "a": 255 } } },
+                  { "value_type": "TextNode", "value": { "node_id": "feat-a11y-desc", "content": "Missing SemanticNode is a compile error. Keyboard equivalents required. Heading hierarchy enforced. ReducedMotion mandatory.", "font_size": { "value": 14, "unit": "Px" }, "color": { "r": 113, "g": 113, "b": 122, "a": 255 } } }
+                ]
+              }
+            },
+            {
+              "value_type": "Surface",
+              "value": {
+                "node_id": "feat-ai",
+                "fill": { "r": 24, "g": 24, "b": 27, "a": 255 },
+                "corner_radius": { "top_left": { "value": 8, "unit": "Px" }, "top_right": { "value": 8, "unit": "Px" }, "bottom_left": { "value": 8, "unit": "Px" }, "bottom_right": { "value": 8, "unit": "Px" } },
+                "padding": { "top": { "value": 24, "unit": "Px" }, "bottom": { "value": 24, "unit": "Px" }, "left": { "value": 24, "unit": "Px" }, "right": { "value": 24, "unit": "Px" } },
+                "children": [
+                  { "value_type": "TextNode", "value": { "node_id": "feat-ai-title", "content": "AI-Native", "heading_level": 3, "font_size": { "value": 18, "unit": "Px" }, "font_weight": "SemiBold", "color": { "r": 250, "g": 250, "b": 250, "a": 255 } } },
+                  { "value_type": "TextNode", "value": { "node_id": "feat-ai-desc", "content": "Not AI writing framework code faster. A system designed from scratch for AI authorship. Conversation in, production UI out.", "font_size": { "value": 14, "unit": "Px" }, "color": { "r": 113, "g": 113, "b": 122, "a": 255 } } }
+                ]
+              }
+            },
+            {
+              "value_type": "Surface",
+              "value": {
+                "node_id": "feat-prod",
+                "fill": { "r": 24, "g": 24, "b": 27, "a": 255 },
+                "corner_radius": { "top_left": { "value": 8, "unit": "Px" }, "top_right": { "value": 8, "unit": "Px" }, "bottom_left": { "value": 8, "unit": "Px" }, "bottom_right": { "value": 8, "unit": "Px" } },
+                "padding": { "top": { "value": 24, "unit": "Px" }, "bottom": { "value": 24, "unit": "Px" }, "left": { "value": 24, "unit": "Px" }, "right": { "value": 24, "unit": "Px" } },
+                "children": [
+                  { "value_type": "TextNode", "value": { "node_id": "feat-prod-title", "content": "Production Ready", "heading_level": 3, "font_size": { "value": 18, "unit": "Px" }, "font_weight": "SemiBold", "color": { "r": 250, "g": 250, "b": 250, "a": 255 } } },
+                  { "value_type": "TextNode", "value": { "node_id": "feat-prod-desc", "content": "Deploy to Vercel, Cloudflare, or Netlify. Real image pipeline. Font subsetting. Content-hashed assets. CSP headers.", "font_size": { "value": 14, "unit": "Px" }, "color": { "r": 113, "g": 113, "b": 122, "a": 255 } } }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "value_type": "Surface",
+        "value": {
+          "node_id": "install-section",
+          "fill": { "r": 24, "g": 24, "b": 27, "a": 255 },
+          "corner_radius": { "top_left": { "value": 12, "unit": "Px" }, "top_right": { "value": 12, "unit": "Px" }, "bottom_left": { "value": 12, "unit": "Px" }, "bottom_right": { "value": 12, "unit": "Px" } },
+          "padding": { "top": { "value": 48, "unit": "Px" }, "bottom": { "value": 48, "unit": "Px" }, "left": { "value": 48, "unit": "Px" }, "right": { "value": 48, "unit": "Px" } },
+          "children": [
+            { "value_type": "TextNode", "value": { "node_id": "install-title", "content": "Ready to build?", "heading_level": 2, "font_size": { "value": 32, "unit": "Px" }, "font_weight": "Bold", "color": { "r": 250, "g": 250, "b": 250, "a": 255 } } },
+            { "value_type": "TextNode", "value": { "node_id": "install-cmd", "content": "cargo install voce-validator", "font_size": { "value": 16, "unit": "Px" }, "color": { "r": 99, "g": 102, "b": 241, "a": 255 } } }
+          ]
+        }
+      },
+      {
+        "value_type": "Container",
+        "value": {
+          "node_id": "footer",
+          "direction": "Row",
+          "alignment": "Center",
+          "semantic_node_id": "sem-footer",
+          "padding": {
+            "top": { "value": 32, "unit": "Px" },
+            "bottom": { "value": 32, "unit": "Px" },
+            "left": { "value": 24, "unit": "Px" },
+            "right": { "value": 24, "unit": "Px" }
+          },
+          "children": [
+            { "value_type": "TextNode", "value": { "node_id": "footer-copy", "content": "Voce IR. Apache-2.0 License. Built by Fire Burns Up.", "font_size": { "value": 13, "unit": "Px" }, "color": { "r": 113, "g": 113, "b": 122, "a": 255 } } }
+          ]
+        }
+      }
+    ]
+  }
+}

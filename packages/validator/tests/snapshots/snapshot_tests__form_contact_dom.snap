@@ -1,0 +1,46 @@
+---
+source: packages/validator/tests/snapshot_tests.rs
+expression: html
+---
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="X-Frame-Options" content="DENY">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Form Test</title>
+<meta name="description" content="Contact form with validation.">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5}
+img{max-width:100%;height:auto;display:block}
+</style>
+</head>
+<body>
+  <form id="contact-form" method="POST" action="#" novalidate>
+    <label for="contact-form-email">Email</label>
+    <input id="contact-form-email" name="email" type="email" autocomplete="email">
+    <span id="contact-form-email-error" role="alert" aria-live="polite" hidden></span>
+    <label for="contact-form-message">Message</label>
+    <textarea id="contact-form-message" name="message"></textarea>
+    <span id="contact-form-message-error" role="alert" aria-live="polite" hidden></span>
+    <button type="submit">Submit</button>
+  </form>
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+  const contact_form_form=document.getElementById('contact-form');
+  if(contact_form_form){contact_form_form.addEventListener('submit',(e)=>{
+    let valid=true;
+    const email=document.getElementById('contact-form-email');
+    const email_err=document.getElementById('contact-form-email-error');
+    const message=document.getElementById('contact-form-message');
+    const message_err=document.getElementById('contact-form-message-error');
+    if(!valid){e.preventDefault();}
+  })}
+});
+</script>
+</body>
+</html>

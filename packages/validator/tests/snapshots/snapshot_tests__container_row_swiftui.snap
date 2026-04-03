@@ -1,0 +1,23 @@
+---
+source: packages/validator/tests/snapshot_tests.rs
+expression: swift
+---
+import SwiftUI
+
+struct VoceView: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 16) {
+                Text("Left")
+                    .font(.system(size: 16, weight: .regular))
+                Text("Right")
+                    .font(.system(size: 16, weight: .regular))
+            }
+            .padding(EdgeInsets(top: 16, leading: 16, bottom: 16, trailing: 16))
+        }
+    }
+}
+
+#Preview {
+    VoceView()
+}

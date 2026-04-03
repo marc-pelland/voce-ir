@@ -1,0 +1,55 @@
+# Voce IR Project Brief
+#
+# Copy this to brief.yaml and fill in your project details.
+# The AI uses this as the "north star" for all decisions.
+# Changes to the brief require explicit confirmation.
+#
+# See docs/research/MEMORY_AND_DECISIONS.md for full documentation.
+
+project:
+  name: ""
+  version: 1
+  last_updated: ""
+
+vision: ""
+# Example: "A wholesale ordering platform for specialty coffee roasters"
+
+target_audience:
+  primary: ""
+  secondary: ""
+
+success_criteria: []
+# Example:
+# - "Buyers can browse, add to cart, and place orders"
+# - "WCAG AA accessible"
+# - "< 50ms TTI on landing page"
+
+non_negotiables: []
+# Example:
+# - "Accessibility — every interactive element must be keyboard navigable"
+# - "Mobile-first — buyers will primarily use phones"
+
+out_of_scope: []
+# Example:
+# - "Payment processing (handled externally via Stripe)"
+
+style_direction:
+  references: []
+  # Example: ["stripe.com", "linear.app"]
+  feel: ""
+  # Example: "Clean, professional, data-dense. Dark sidebar, light content."
+
+technical_decisions:
+  backend: ""
+  # Example: "Supabase"
+  auth: ""
+  # Example: "Supabase Auth with email/password"
+  hosting: ""
+  # Example: "Cloudflare Pages + Workers"
+
+features: []
+# Example:
+# - id: "F001"
+#   name: "Product catalog"
+#   status: "planned"    # planned | in-progress | completed
+#   priority: "must-have" # must-have | nice-to-have | future

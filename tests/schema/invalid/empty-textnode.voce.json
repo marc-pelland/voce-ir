@@ -1,0 +1,8 @@
+{
+  "root": {
+    "node_id": "root",
+    "children": [
+      { "value_type": "TextNode", "value": { "node_id": "empty", "content": "" } }
+    ]
+  }
+}

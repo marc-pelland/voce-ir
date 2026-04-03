@@ -1,0 +1,23 @@
+{
+  "schema_version_major": 1,
+  "schema_version_minor": 0,
+  "root": {
+    "node_id": "root",
+    "viewport_width": { "value": 1024, "unit": "Px" },
+    "children": [
+      {
+        "value_type": "TextNode",
+        "value": {
+          "node_id": "h1",
+          "content": "Hello World",
+          "heading_level": 1,
+          "font_size": { "value": 48, "unit": "Px" },
+          "font_weight": "Bold",
+          "color": { "r": 0, "g": 0, "b": 0, "a": 255 }
+        }
+      }
+    ],
+    "metadata": { "title": "Text Test", "description": "Tests heading text node." }
+  },
+  "metadata": { "title": "Text Test", "description": "Tests heading text node.", "language": "en" }
+}

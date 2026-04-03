@@ -1,0 +1,81 @@
+{
+  "schema_version_major": 0,
+  "schema_version_minor": 1,
+  "root": {
+    "node_id": "root",
+    "document_language": "en",
+    "text_direction": "Ltr",
+    "children": [
+      {
+        "value_type": "Container",
+        "value": {
+          "node_id": "main",
+          "layout": "Stack",
+          "direction": "Column",
+          "main_align": "Center",
+          "cross_align": "Center",
+          "padding": {
+            "top": { "value": 64.0, "unit": "Px" },
+            "right": { "value": 24.0, "unit": "Px" },
+            "bottom": { "value": 64.0, "unit": "Px" },
+            "left": { "value": 24.0, "unit": "Px" }
+          },
+          "children": [
+            {
+              "value_type": "TextNode",
+              "value": {
+                "node_id": "heading",
+                "content": "Hello, Voce",
+                "font_size": { "value": 48.0, "unit": "Px" },
+                "font_weight": "Bold",
+                "heading_level": 1,
+                "color": { "r": 232, "g": 230, "b": 225, "a": 255 }
+              }
+            },
+            {
+              "value_type": "TextNode",
+              "value": {
+                "node_id": "subtitle",
+                "content": "The code is gone. The experience remains.",
+                "font_size": { "value": 18.0, "unit": "Px" },
+                "color": { "r": 155, "g": 154, "b": 148, "a": 255 }
+              }
+            },
+            {
+              "value_type": "Surface",
+              "value": {
+                "node_id": "card",
+                "fill": { "r": 20, "g": 20, "b": 23, "a": 255 },
+                "corner_radius": {
+                  "top_left": { "value": 12.0, "unit": "Px" },
+                  "top_right": { "value": 12.0, "unit": "Px" },
+                  "bottom_right": { "value": 12.0, "unit": "Px" },
+                  "bottom_left": { "value": 12.0, "unit": "Px" }
+                },
+                "padding": {
+                  "top": { "value": 24.0, "unit": "Px" },
+                  "right": { "value": 24.0, "unit": "Px" },
+                  "bottom": { "value": 24.0, "unit": "Px" },
+                  "left": { "value": 24.0, "unit": "Px" }
+                },
+                "width": { "value": 100.0, "unit": "Percent" },
+                "max_width": { "value": 640.0, "unit": "Px" },
+                "children": [
+                  {
+                    "value_type": "TextNode",
+                    "value": {
+                      "node_id": "card-text",
+                      "content": "AI generates typed binary IR. A compiler emits optimized output. No human-readable code in the pipeline.",
+                      "font_size": { "value": 15.0, "unit": "Px" },
+                      "color": { "r": 155, "g": 154, "b": 148, "a": 255 }
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

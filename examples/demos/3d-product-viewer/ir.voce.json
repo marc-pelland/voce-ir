@@ -1,0 +1,114 @@
+{
+  "schema_version_major": 0,
+  "schema_version_minor": 1,
+  "theme": {
+    "node_id": "theme-product",
+    "name": "dark-product",
+    "colors": {
+      "background": { "r": 10, "g": 10, "b": 15, "a": 255 },
+      "foreground": { "r": 240, "g": 240, "b": 240, "a": 255 },
+      "primary": { "r": 0, "g": 122, "b": 255, "a": 255 },
+      "surface": { "r": 25, "g": 25, "b": 30, "a": 255 },
+      "muted_foreground": { "r": 140, "g": 140, "b": 150, "a": 255 }
+    }
+  },
+  "root": {
+    "node_id": "root",
+    "document_language": "en",
+    "metadata": {
+      "title": "AuraSound Pro — Premium Wireless Headphones",
+      "description": "Experience extraordinary sound with AuraSound Pro. 3D spatial audio, 40-hour battery, active noise cancellation.",
+      "open_graph": {
+        "title": "AuraSound Pro",
+        "description": "Premium wireless headphones with 3D spatial audio",
+        "image": "https://aurasound.example/og-product.jpg"
+      }
+    },
+    "semantic_nodes": [
+      { "node_id": "sem-main", "role": "main", "label": "Product page" },
+      { "node_id": "sem-3d", "role": "img", "label": "3D view of AuraSound Pro headphones — drag to rotate" },
+      { "node_id": "sem-cta", "role": "button", "label": "Add to cart", "tab_index": 0 }
+    ],
+    "children": [
+      {
+        "value_type": "Scene3D",
+        "value": {
+          "node_id": "product-viewer",
+          "camera": {
+            "position": { "x": 0, "y": 1.5, "z": 4 },
+            "target": { "x": 0, "y": 0.5, "z": 0 },
+            "fov": 40,
+            "orbit": true
+          },
+          "background": { "r": 10, "g": 10, "b": 15, "a": 255 },
+          "children": [
+            {
+              "value_type": "MeshNode",
+              "value": {
+                "node_id": "headphone-model",
+                "primitive": "cube",
+                "position": { "x": 0, "y": 0.5, "z": 0 },
+                "scale": { "x": 1.2, "y": 0.8, "z": 1.0 },
+                "color": { "r": 30, "g": 30, "b": 35, "a": 255 }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "value_type": "Container",
+        "value": {
+          "node_id": "product-info",
+          "layout": "Stack",
+          "direction": "Column",
+          "cross_align": "Center",
+          "padding": {
+            "top": { "value": 48.0, "unit": "Px" },
+            "right": { "value": 24.0, "unit": "Px" },
+            "bottom": { "value": 48.0, "unit": "Px" },
+            "left": { "value": 24.0, "unit": "Px" }
+          },
+          "semantic_node_id": "sem-main",
+          "children": [
+            { "value_type": "TextNode", "value": { "node_id": "product-name", "content": "AuraSound Pro", "font_size": { "value": 42.0, "unit": "Px" }, "font_weight": "Bold", "heading_level": 1, "text_align": "Center", "color": { "r": 240, "g": 240, "b": 240, "a": 255 } } },
+            { "value_type": "TextNode", "value": { "node_id": "tagline", "content": "Extraordinary sound. Effortless silence.", "font_size": { "value": 18.0, "unit": "Px" }, "text_align": "Center", "color": { "r": 140, "g": 140, "b": 150, "a": 255 } } },
+            {
+              "value_type": "Container",
+              "value": {
+                "node_id": "specs-grid",
+                "layout": "Grid",
+                "gap": { "value": 16.0, "unit": "Px" },
+                "grid_columns": [ { "value": 1.0, "unit": "Fr" }, { "value": 1.0, "unit": "Fr" } ],
+                "padding": { "top": { "value": 32.0, "unit": "Px" }, "right": { "value": 0, "unit": "Px" }, "bottom": { "value": 32.0, "unit": "Px" }, "left": { "value": 0, "unit": "Px" } },
+                "children": [
+                  { "value_type": "TextNode", "value": { "node_id": "spec-1", "content": "40-hour battery life", "font_size": { "value": 14.0, "unit": "Px" }, "color": { "r": 140, "g": 140, "b": 150, "a": 255 } } },
+                  { "value_type": "TextNode", "value": { "node_id": "spec-2", "content": "Active noise cancellation", "font_size": { "value": 14.0, "unit": "Px" }, "color": { "r": 140, "g": 140, "b": 150, "a": 255 } } },
+                  { "value_type": "TextNode", "value": { "node_id": "spec-3", "content": "3D spatial audio", "font_size": { "value": 14.0, "unit": "Px" }, "color": { "r": 140, "g": 140, "b": 150, "a": 255 } } },
+                  { "value_type": "TextNode", "value": { "node_id": "spec-4", "content": "USB-C fast charge", "font_size": { "value": 14.0, "unit": "Px" }, "color": { "r": 140, "g": 140, "b": 150, "a": 255 } } }
+                ]
+              }
+            },
+            { "value_type": "TextNode", "value": { "node_id": "price", "content": "$449", "font_size": { "value": 32.0, "unit": "Px" }, "font_weight": "Bold", "text_align": "Center", "color": { "r": 240, "g": 240, "b": 240, "a": 255 } } },
+            {
+              "value_type": "Surface",
+              "value": {
+                "node_id": "cta-button",
+                "fill": { "r": 0, "g": 122, "b": 255, "a": 255 },
+                "corner_radius": { "top_left": { "value": 12.0, "unit": "Px" }, "top_right": { "value": 12.0, "unit": "Px" }, "bottom_right": { "value": 12.0, "unit": "Px" }, "bottom_left": { "value": 12.0, "unit": "Px" } },
+                "padding": { "top": { "value": 16.0, "unit": "Px" }, "right": { "value": 48.0, "unit": "Px" }, "bottom": { "value": 16.0, "unit": "Px" }, "left": { "value": 48.0, "unit": "Px" } },
+                "semantic_node_id": "sem-cta",
+                "children": [
+                  { "value_type": "TextNode", "value": { "node_id": "cta-text", "content": "Add to Cart", "font_size": { "value": 16.0, "unit": "Px" }, "font_weight": "SemiBold", "color": { "r": 255, "g": 255, "b": 255, "a": 255 } } }
+                ]
+              }
+            },
+            {
+              "value_type": "GestureHandler",
+              "value": { "node_id": "cta-tap", "target_node_id": "cta-button", "gesture_type": "Tap", "trigger_event": "add_to_cart", "keyboard_key": "Enter" }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
