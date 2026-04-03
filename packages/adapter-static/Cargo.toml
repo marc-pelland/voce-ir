@@ -6,6 +6,9 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 description = "Voce IR static deployment adapter — plain dist/ folder output"
+keywords.workspace = true
+categories.workspace = true
+readme = "../../README.md"
 
 [dependencies]
 voce-adapter-core = { path = "../adapter-core" }

@@ -6,6 +6,9 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 description = "Voce IR reference validator and CLI toolchain"
+keywords.workspace = true
+categories.workspace = true
+readme = "../../README.md"
 
 [[bin]]
 name = "voce"
@@ -30,9 +33,14 @@ colored = "3"
 insta.workspace = true
 assert_cmd = "2"
 predicates = "3"
+criterion.workspace = true
 voce-compiler-email = { path = "../compiler-email" }
 voce-compiler-ios = { path = "../compiler-ios" }
 voce-compiler-android = { path = "../compiler-android" }
 voce-compiler-webgpu = { path = "../compiler-webgpu" }
 voce-compiler-wasm = { path = "../compiler-wasm" }
 voce-compiler-hybrid = { path = "../compiler-hybrid" }
+
+[[bench]]
+name = "validate_bench"
+harness = false

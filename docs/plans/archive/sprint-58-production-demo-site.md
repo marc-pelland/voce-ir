@@ -2,7 +2,7 @@
 
 **Phase:** 7 — Production Readiness
 **Status:** Planned
-**Goal:** Build a real production website using Voce IR end-to-end. Use the full pipeline (conversation to generation to compilation to deployment) to ship an actual site — either the Voce IR project homepage or the Fire Burns Up landing page. Document every friction point and bug found.
+**Goal:** Build a real production website using Voce IR end-to-end. Use the full pipeline (conversation to generation to compilation to deployment) to ship an actual site — either the Voce IR project homepage or a real production landing page. Document every friction point and bug found.
 
 **Depends on:** Sprint 51 (images), Sprint 52 (deployment), Sprint 56 (fonts), Sprint 57 (error handling)
 

@@ -6,6 +6,9 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 description = "Voce IR Email compiler — compiles IR to email-safe HTML with table layouts and inline CSS"
+keywords.workspace = true
+categories.workspace = true
+readme = "../../README.md"
 
 [dependencies]
 voce-schema = { path = "../schema" }

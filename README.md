@@ -1,174 +1,363 @@
 # Voce IR
 
+[![CI](https://github.com/marcpelland/voce-ir/actions/workflows/ci.yml/badge.svg)](https://github.com/marcpelland/voce-ir/actions/workflows/ci.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
 **The code is gone. The experience remains.**
 
-Voce IR is an open-source intermediate representation for AI-generated user interfaces. It replaces human-readable frameworks (React, Vue, Svelte) with a binary, typed, machine-optimized format that AI generates and a compiler consumes.
+Voce IR is an open-source, AI-native intermediate representation for user interfaces. Instead of AI writing framework code that humans then maintain, Voce IR is a binary, typed, machine-optimized format that AI generates directly and a compiler consumes -- like [SPIR-V](https://www.khronos.org/spir/) for UI instead of shaders.
 
-Named from *sotto voce* — quiet input, extraordinary output.
+Named from *sotto voce* -- quiet input, extraordinary output.
 
-**This is not vibe coding.** The AI asks questions, builds context, pushes back on bad ideas, and ensures every feature is fully implemented — frontend, backend, validation, accessibility, security. The goal is to get it right the first time through genuine collaboration, not to generate fast and iterate endlessly.
+---
 
-## The Thesis
+## Why Voce IR?
 
-Every AI coding tool today — v0, bolt.new, Cursor, Copilot — uses AI to write code faster in systems designed for humans. That's putting a car engine on a horse carriage.
+Every AI coding tool today (v0, bolt.new, Cursor, Copilot) uses AI to write code faster in systems designed for humans. Voce IR asks a different question:
 
-Voce IR asks: **if AI is the only author and the end-user experience is the only output that matters, what does the optimal system look like?**
+> If AI is the only author and the end-user experience is the only output that matters, what does the optimal system look like?
 
-- **Input:** Natural language conversation
-- **Processing:** AI generates typed binary IR
-- **Output:** Optimized, compiled interfaces (DOM, WebGPU, WASM, Native)
+The answer: remove the human-readable layer entirely.
 
-No human-readable code exists anywhere in the pipeline. The architecture follows the **SPIR-V model** — binary IR + formal schema + validator + multi-target compiler — applied to UI instead of shaders.
+```
+Natural Language -> [AI Bridge] -> Binary IR -> [Validator] -> [Compiler] -> Output
+```
+
+No React. No CSS cascade. No dependency tree. Just a typed IR that compiles to optimized output across 7 targets.
+
+### Comparison
+
+| | Traditional Stack | Voce IR |
+|--|-------------------|---------|
+| **Layout** | CSS cascade, specificity wars | Constraint graph, compile-time resolved |
+| **State** | Hooks, closures, re-renders | Typed finite state machines |
+| **Accessibility** | Opt-in lint warnings | Compile error if missing |
+| **Security** | Manual CSP, CSRF, HTTPS config | Automatic -- compiler defaults |
+| **Output size** | ~200KB+ (framework runtime) | <10KB (zero runtime) |
+| **TTI** | 200-400ms | <50ms |
+| **Supply chain** | npm install = trust chain | Zero runtime dependencies |
+
+## Features
+
+### 7 Compile Targets
+
+| Target | Output | Use Case |
+|--------|--------|----------|
+| **DOM** | Single-file HTML, inline CSS, surgical JS | Websites, landing pages |
+| **WebGPU** | WGSL shaders, PBR materials, particle systems | 3D product viewers, data viz |
+| **WASM** | State machines and compute as WebAssembly | Performance-critical logic |
+| **Hybrid** | DOM + WebGPU + WASM, device-aware | Complex apps needing all three |
+| **iOS** | SwiftUI views with VoiceOver | Native iOS apps |
+| **Android** | Jetpack Compose with TalkBack | Native Android apps |
+| **Email** | Table layouts, inline CSS, Outlook compat | Marketing emails |
+
+### 9 Validation Passes (46 Rules)
+
+Every IR document is validated before compilation:
+
+| Pass | Rules | What It Catches |
+|------|-------|-----------------|
+| Structural | STR001-005 | Missing root, duplicate IDs, empty content |
+| References | REF001-009 | Broken node references, missing targets |
+| State Machine | STA001-004 | Invalid transitions, unreachable states |
+| Accessibility | A11Y001-005 | Missing labels, heading skips, no keyboard equiv |
+| Security | SEC001-004 | Missing CSRF, no auth redirect, HTTP URLs |
+| SEO | SEO001-007 | Missing title, description length, OG completeness |
+| Forms | FRM001-009 | Unlabeled fields, missing validation |
+| Internationalization | I18N001-003 | Empty localized keys, missing defaults |
+| Motion | MOT001-005 | No ReducedMotion, excessive duration |
+
+### 27 Node Types
+
+Layout, state machines, animations, gestures, navigation, routing, accessibility semantics, theming, data binding, forms, SEO metadata, internationalization -- all as first-class IR primitives defined across 12 FlatBuffers schema files.
+
+### Anti-Vibe-Coding
+
+This is not "generate fast and iterate." The AI bridge implements a conversational design system:
+
+- Asks one question at a time to build context
+- Maintains a readiness score (0-100) before generating
+- Pushes back on anti-patterns
+- Enforces the project brief across sessions
+- No TODOs, no half-implementations, no placeholders
+
+### Production Pipeline
+
+```
+voce validate page.voce.json    # 9 validation passes
+voce compile page.voce.json     # Compile to HTML (7.6KB output)
+voce deploy page.voce.json      # Deploy to Vercel/Cloudflare/Netlify
+```
+
+## Quick Start
+
+### Prerequisites
+
+- [Rust](https://rustup.rs/) 1.85 or later
+
+### Install
+
+```bash
+cargo install voce-validator
+```
+
+Or build from source:
+
+```bash
+git clone https://github.com/marcpelland/voce-ir.git
+cd voce-ir
+cargo build --release --workspace
+```
+
+### Your First IR File
+
+Create `hello.voce.json`:
+
+```json
+{
+  "schema_version_major": 1,
+  "schema_version_minor": 0,
+  "root": {
+    "node_id": "root",
+    "viewport_width": { "value": 1024, "unit": "Px" },
+    "metadata": {
+      "title": "Hello World",
+      "description": "My first Voce IR page."
+    },
+    "children": [
+      {
+        "value_type": "TextNode",
+        "value": {
+          "node_id": "greeting",
+          "content": "Hello, World!",
+          "heading_level": 1,
+          "font_size": { "value": 48, "unit": "Px" },
+          "font_weight": "Bold"
+        }
+      }
+    ]
+  }
+}
+```
+
+### Validate, Compile, Preview
+
+```bash
+# Validate against all 46 quality rules
+voce validate hello.voce.json
+
+# Compile to a single HTML file (output: dist/hello.html)
+voce compile hello.voce.json
+
+# Open in browser
+voce preview hello.voce.json
+
+# Deploy
+voce deploy hello.voce.json --adapter static
+voce deploy hello.voce.json --adapter cloudflare --dry-run
+```
+
+## CLI Reference
+
+```
+voce validate <file>     Validate IR (9 passes, 46 rules)
+voce compile <file>      Compile to HTML [--minify] [--skip-fonts] [--no-cache] [--debug]
+voce deploy <file>       Deploy [--adapter static|vercel|cloudflare|netlify] [--dry-run]
+voce inspect <file>      IR summary (node counts, types, features)
+voce preview <file>      Compile and open in browser
+voce report <file>       Quality report (a11y, security, performance)
+voce manifest <file>     Application manifest
+voce json2bin <file>     JSON to FlatBuffers binary
+voce bin2json <file>     FlatBuffers binary to JSON
+```
+
+Global flags: `--verbose`, `--json-errors`
+
+## Architecture
+
+```
+                        ┌─────────────────────────┐
+                        │      FlatBuffers IR      │
+                        │   (12 .fbs, 27 types)    │
+                        └────────────┬────────────┘
+                                     │
+┌──────────────┐     ┌──────────┐    │    ┌───────────┐     ┌──────────┐
+│  Natural     │     │  JSON    │    │    │           │     │ DOM      │
+│  Language    │────>│  IR      │────┼───>│ Validator │────>│ WebGPU   │
+│  (AI Bridge) │     │ (.voce)  │    │    │ (9 passes)│     │ WASM     │
+└──────────────┘     └──────────┘    │    └───────────┘     │ iOS      │
+                                     │                      │ Android  │
+                                     │                      │ Email    │
+                                     │                      │ Hybrid   │
+                                     │                      └─────┬────┘
+                                     │                            │
+                                     │     ┌──────────────────────┘
+                                     │     │
+                                     │  ┌──┴───────┐
+                                     │  │ Deploy   │
+                                     │  │ Adapters │
+                                     │  └──────────┘
+                                     │  Vercel, Cloudflare,
+                                     │  Netlify, Static
+                                     │
+                              ┌──────┴──────┐
+                              │  Inspector  │
+                              │  Playground │
+                              └─────────────┘
+```
+
+The IR is defined as [FlatBuffers](https://flatbuffers.dev/) tables. The JSON canonical format (`.voce.json`) is the primary development format; binary `.voce` files use FlatBuffers zero-copy deserialization for production.
+
+See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full technical design.
 
 ## Three Pillars
 
-1. **Stability** — The type system and constraint validation make entire categories of runtime errors structurally impossible. Security is baked in — OWASP Top 10 protections are compiler defaults, not developer responsibilities. Zero runtime dependencies means zero supply chain risk. If it compiles, it runs securely.
-2. **Experience** — 3D scenes, choreographed animations, particle systems, shader effects, and personalized theming are first-class IR primitives, not third-party bolt-ons.
-3. **Accessibility** — Every interactive visual node must carry a parallel semantic node. Accessibility is a compile error, not a lint warning.
+Every decision in Voce IR is anchored to three non-negotiable principles:
 
-## What You Get Automatically
+1. **Stability** -- Security is a compile error, not configuration. CSRF required on mutations, HTTPS enforced, auth routes need redirects. Zero runtime dependencies = zero supply chain risk.
 
-Because the system controls the entire pipeline, these are automatic — not opt-in:
+2. **Experience** -- Zero framework overhead. Spring physics solved at compile time via ODE solver to CSS `linear()`. Every byte in the output serves the user.
 
-- **Security:** CSP headers, XSS prevention, CSRF protection, HTTPS-only fetches. No configuration needed.
-- **Testing:** State machine coverage, accessibility audit, security audit, performance metrics. Auto-generated from the IR.
-- **Documentation:** Application manifest describing what you built, architecture diagrams, intent history. Generated on every compile.
-- **Accessibility:** WCAG 2.2 AA structural conformance. Enforced at compile time.
-
-## Project Status
-
-**v1.0.0 — All 6 phases complete.** 50 sprints done in a single session.
-
-9 Rust crates, 7 compile targets, 73 tests. The full pipeline works end-to-end: natural language in, compiled output out.
-
-| Compile Target | Output | Status |
-|---------------|--------|--------|
-| **DOM** | Single-file HTML (6.6KB, <50ms TTI) | Production |
-| **WebGPU** | GPU-accelerated 3D scenes, particles, shaders | Production |
-| **WASM** | Compiled state machines, compute functions | Production |
-| **Hybrid** | DOM + WebGPU + WASM unified output, device-aware | Production |
-| **iOS** | SwiftUI views with VoiceOver accessibility | Production |
-| **Android** | Jetpack Compose with TalkBack integration | Production |
-| **Email** | Table layouts, inline CSS, cross-client compatible | Production |
-
-See [ROADMAP.md](docs/ROADMAP.md) for the full phased plan and achievement summaries.
-
-## Why Not Just Generate Better React?
-
-AI code generation tools (v0, bolt.new, Lovable) generate human-readable framework code. This means every generated UI inherits:
-- ~80KB+ framework runtime, 200-400ms TTI, virtual DOM reconciliation overhead
-- Framework version mismatches, dependency conflicts, CSS specificity wars
-- Accessibility as an afterthought (lint warnings developers ignore)
-
-Voce IR eliminates these entire categories of problems by removing the human-readable layer:
-
-| | Human-Authored Stack | Voce IR |
-|--|---------------------|---------|
-| Layout | CSS cascade | Constraint graph, compile-time resolved |
-| State | Hooks, closures | Typed finite state machines |
-| Accessibility | Opt-in lint warning | Compile error if missing |
-| Output size | ~200KB+ (framework) | <10KB target (zero runtime) |
-| TTI | 200-400ms | <50ms target |
+3. **Accessibility** -- Missing `SemanticNode` is a validation error, not a warning. Keyboard equivalents required on every gesture handler. Heading hierarchy enforced. `ReducedMotion` mandatory on all animations.
 
 ## Repository Structure
 
 ```
 voce-ir/
-├── docs/
-│   ├── PRD.md                 # Product requirements document
-│   ├── ROADMAP.md             # Phased roadmap with milestones
-│   ├── PROJECT_PLAN.md        # Detailed execution plan & task breakdown
-│   ├── ARCHITECTURE.md        # Technical architecture decisions
-│   ├── research/
-│   │   ├── DEEP_RESEARCH.md              # Landscape analysis & feasibility research
-│   │   ├── SECURITY_TESTING_TOOLING.md   # Security, testing, docs, AI strategy
-│   │   ├── DATA_INTEGRATION.md           # Data layer, CMS, auth, real-time
-│   │   ├── FORMS_SEO_I18N.md             # Forms, SEO, internationalization
-│   │   ├── ADOPTION_MIGRATION.md         # Adoption paths, schema evolution, business model
-│   │   ├── CONVERSATIONAL_DESIGN.md     # Anti-vibe-coding: inquisitive AI collaboration
-│   │   ├── VOICE_AND_AI_INTEGRATION.md  # Voice interface, AI-agnostic platform, MCP server
-│   │   ├── ANIMATION_ASSETS_DEPLOY.md   # Animation compilation, image optimization, deployment
-│   │   └── MEMORY_AND_DECISIONS.md      # Persistent memory, decision tracking, brief enforcement
-│   └── spec/
-│       └── voce-ir-spec.html  # Narrative specification (v0.1 RFC)
 ├── packages/
-│   ├── schema/                # FlatBuffers IR schema definitions (Rust)
-│   ├── validator/             # Reference IR validator (Rust)
-│   ├── compiler-dom/          # DOM compile target (Rust)
-│   ├── compiler-webgpu/       # WebGPU compile target (Rust)
-│   ├── compiler-wasm/         # WASM compile target (Rust)
-│   ├── compiler-hybrid/       # Hybrid DOM+WebGPU+WASM compiler (Rust)
-│   ├── compiler-ios/          # iOS SwiftUI compile target (Rust)
-│   ├── compiler-android/      # Android Compose compile target (Rust)
-│   ├── compiler-email/        # Email HTML compile target (Rust)
-│   ├── ai-bridge/             # AI generation layer (TypeScript)
-│   ├── mcp-server/            # MCP server with 6 tools (TypeScript)
-│   ├── sdk/                   # TypeScript SDK for programmatic access
-│   └── inspector/             # Visual inspector & debugging tools (TypeScript)
-├── examples/
-│   ├── landing-page/          # Vertical slice demo
-│   └── intents/               # Example intent → IR → output pairs
+│   ├── schema/              FlatBuffers IR schema (12 .fbs files, 27 node types)
+│   ├── validator/           Validator + voce CLI binary (9 passes, 46 rules)
+│   ├── compiler-dom/        DOM compiler (HTML/CSS/JS, image pipeline, font pipeline)
+│   ├── compiler-webgpu/     WebGPU compiler (WGSL, PBR, particles)
+│   ├── compiler-wasm/       WASM compiler (state machines -> WAT)
+│   ├── compiler-hybrid/     Hybrid compiler (DOM + WebGPU + WASM)
+│   ├── compiler-ios/        iOS compiler (SwiftUI)
+│   ├── compiler-android/    Android compiler (Jetpack Compose)
+│   ├── compiler-email/      Email compiler (table layouts, inline CSS)
+│   ├── adapter-core/        Deployment adapter trait and types
+│   ├── adapter-static/      Static file deployment
+│   ├── adapter-vercel/      Vercel Build Output API v3
+│   ├── adapter-cloudflare/  Cloudflare Pages + Workers
+│   ├── adapter-netlify/     Netlify + Functions
+│   ├── playground-wasm/     WASM bindings for browser playground
+│   ├── playground/          Browser-based "try it" playground (Vite + TS)
+│   ├── ai-bridge/           Multi-agent AI generation (TypeScript)
+│   ├── mcp-server/          MCP server for Claude/AI tool integration
+│   ├── sdk/                 Programmatic TypeScript SDK
+│   └── inspector/           Visual debugging tools (TypeScript)
 ├── tests/
-│   ├── schema/                # IR validation test cases
-│   ├── compiler/              # Compiler output correctness tests
-│   └── a11y/                  # Accessibility enforcement tests
-├── CLAUDE.md                  # Claude Code project instructions
-├── LICENSE                    # Apache 2.0
-└── README.md
+│   ├── schema/              Valid + invalid IR fixtures (12 invalid, 1 valid)
+│   └── fixtures/            Per-node-type test IR files (12 fixtures)
+├── examples/
+│   ├── landing-page/        Reference 37-node landing page
+│   ├── production/          Production voce-ir.xyz site (IR + compiled output)
+│   └── intents/             Natural language -> IR training pairs
+├── docs/
+│   ├── site/                mdBook documentation site (30 pages)
+│   ├── plans/               Sprint plans (S01-S60)
+│   ├── research/            9 deep research documents
+│   └── ARCHITECTURE.md      Technical architecture & key decisions
+└── scripts/
+    └── regenerate-schema.sh FlatBuffers codegen
 ```
 
-## Getting Started
+**15 Rust crates** | **4 TypeScript packages** | **172 tests** | **30 documentation pages**
+
+## Performance
+
+Measured with [criterion](https://github.com/bheisler/criterion.rs) on Apple Silicon:
+
+| Benchmark | Time |
+|-----------|------|
+| Compile reference landing page (37 nodes) | 209 us |
+| Compile production page (30+ nodes) | 330 us |
+| Compile minimal TextNode | 4.4 us |
+| Validate reference landing page | <100 us |
+
+Production landing page output: **7.6KB** (unminified), **7.3KB** (minified).
+
+## Development
 
 ```bash
-# Clone the repo
-git clone https://github.com/fireburnup/voce-ir.git
-cd voce-ir
+# Build everything
+cargo build --workspace
 
-# Build everything (requires Rust 1.93+)
-cargo build --release --workspace
+# Run all tests (172 tests)
+cargo test --workspace
 
-# Validate an IR blob
-voce validate examples/landing-page/output.voce
+# Lint (zero warnings policy)
+cargo clippy --workspace -- -D warnings
 
-# Inspect it (human-readable summary, not code)
-voce inspect examples/landing-page/output.voce
+# Format check
+cargo fmt --check
 
-# Convert between JSON and binary formats
-voce json2bin examples/landing-page/output.json -o output.voce
-voce bin2json examples/landing-page/output.voce -o output.json
+# Benchmarks
+cargo bench -p voce-compiler-dom --bench compile_bench
 
-# Compile to any target (dom, webgpu, wasm, hybrid, ios, android, email)
-voce compile examples/landing-page/output.voce --target dom -o dist/index.html
-voce compile examples/product-viewer/output.voce --target hybrid -o dist/
-voce compile examples/landing-page/output.voce --target ios -o dist/
-voce compile examples/landing-page/output.voce --target email -o dist/email.html
+# Build WASM playground
+cd packages/playground-wasm && wasm-pack build --target web
 
-# Run auto-generated tests
-voce test examples/landing-page/output.voce
-
-# Generate full report (perf, a11y, security, tests)
-voce report examples/landing-page/output.voce
-
-# See what you built
-voce manifest examples/landing-page/output.voce
-
-# Live preview with hot-reload
-voce preview examples/landing-page/output.voce
+# Build documentation site
+cd docs/site && mdbook build
 ```
 
-**9 CLI commands:** validate, inspect, json2bin, bin2json, compile, test, report, manifest, preview
-**7 compile targets:** dom, webgpu, wasm, hybrid, ios, android, email
+## Documentation
+
+- **[Documentation Site](https://voce-ir.xyz/docs)** -- Getting started, CLI reference, full schema reference, architecture guide
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** -- Technical architecture, crate dependency graph, key decisions
+- **[Schema Reference](docs/site/src/schema/overview.md)** -- Every node type with field tables and JSON examples
+- **[Playground](https://voce-ir.xyz/playground)** -- Try Voce IR in the browser (WASM-powered)
+
+Build docs locally:
+
+```bash
+cd docs/site && mdbook serve
+```
 
 ## Contributing
 
-Voce IR is open source under the Apache 2.0 license. We welcome contributions to the IR specification, compiler targets, and tooling.
+Contributions are welcome! Whether it's a bug fix, new compile target, validation rule, or documentation improvement.
 
-See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for guidelines.
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, code conventions, and the PR process.
+
+### Areas for Contribution
+
+- **New validation rules** -- add passes in `packages/validator/src/passes/`
+- **Compiler improvements** -- better HTML output, new CSS features
+- **New compile targets** -- Flutter, React Native, etc.
+- **Schema extensions** -- new node types for new UI patterns
+- **Test fixtures** -- more IR examples covering edge cases
+- **Documentation** -- tutorials, guides, API reference improvements
+- **Playground** -- CodeMirror/Monaco editor integration, more examples
+
+## Roadmap
+
+Voce IR is at v1.0.0 with all core functionality complete. The current focus (Phase 7) is production readiness:
+
+- [x] S51: Real image processing pipeline (WebP, JPEG, BlurHash)
+- [x] S52: Deployment adapters (Vercel, Cloudflare, Netlify, static)
+- [x] S53: Browser playground (WASM-powered)
+- [x] S54: Integration test suite (172 tests)
+- [x] S55: Documentation site (mdBook, 30 pages)
+- [x] S56: Font subsetting and optimization
+- [x] S57: Production error handling and structured errors
+- [x] S58: Production demo site (voce-ir.xyz)
+- [x] S59: Performance optimization and benchmarks
+- [ ] S60: Community launch and v1.1.0
+
+See [MASTER_PLAN.md](docs/plans/MASTER_PLAN.md) for the full 60-sprint breakdown.
 
 ## License
 
-Apache 2.0 — See [LICENSE](LICENSE) for details.
+[Apache-2.0](LICENSE)
+
+## Links
+
+- **Website:** [voce-ir.xyz](https://voce-ir.xyz)
+- **Docs:** [voce-ir.xyz/docs](https://voce-ir.xyz/docs)
+- **Playground:** [voce-ir.xyz/playground](https://voce-ir.xyz/playground)
+- **Issues:** [github.com/marcpelland/voce-ir/issues](https://github.com/marcpelland/voce-ir/issues)
 
 ---
 
-A [Fire Burns Up](https://fireburnup.com) project.
+Created by [Marc Pelland](https://github.com/marcpelland).

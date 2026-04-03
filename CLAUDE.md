@@ -21,9 +21,9 @@ Voce IR is an open-source AI-native UI intermediate representation — "SPIR-V f
 
 ## Current Phase
 
-**v1.0.0 — All 6 Phases COMPLETE**
+**v1.0.0+ — All 6 Phases COMPLETE, Phase 7 (Production Hardening) in progress**
 
-50 sprints. 9 Rust crates. 4 TypeScript packages. 7 compile targets (DOM, WebGPU, WASM, Hybrid, iOS/SwiftUI, Android/Compose, Email HTML). 73 tests. Schema → Validator → Compiler → AI Bridge → Inspector → Ecosystem.
+50 sprints. 15 Rust crates (including 5 adapter crates, playground-wasm). 4 TypeScript packages. 7 compile targets (DOM, WebGPU, WASM, Hybrid, iOS/SwiftUI, Android/Compose, Email HTML). 172 tests. Schema → Validator → Compiler → AI Bridge → Inspector → Ecosystem. Phase 7 additions: font pipeline, image pipeline, benchmark suite, compilation cache, unified error taxonomy, production demo site (voce-ir.xyz), documentation site (mdBook).
 
 Current task status — update this section as work progresses:
 - [x] Deep research & landscape analysis completed (`docs/research/DEEP_RESEARCH.md`)
@@ -40,8 +40,8 @@ Current task status — update this section as work progresses:
 - [x] FlatBuffers schema: seo.fbs (PageMetadata, OpenGraphData, StructuredData)
 - [x] FlatBuffers schema: i18n.fbs (LocalizedString, MessageCatalog, FormatOptions, I18nConfig)
 - [x] FlatBuffers schema: voce.fbs (master file — 27-type ChildUnion, VoceDocument with auth + i18n)
-- [ ] Generated Rust bindings
-- [ ] Generated TypeScript bindings
+- [x] Generated Rust bindings
+- [x] Generated TypeScript bindings
 - [x] Validator: structural completeness pass (STR001-STR005)
 - [x] Validator: reference resolution pass (REF001-REF009)
 - [x] Validator: state machine validation pass (STA001-STA004)
@@ -59,18 +59,35 @@ Current task status — update this section as work progresses:
 - [x] ARCHITECTURE.md written
 - [x] CHANGELOG.md v0.1.0 release notes
 - [x] Phase 1 complete — ready for Phase 2 (DOM Compiler)
+- [x] Real image processing pipeline (WebP/JPEG, BlurHash)
+- [x] Deployment adapters (Vercel, Cloudflare, Netlify, static)
+- [x] Web playground (WASM-powered browser IDE)
+- [x] Integration test suite (172 tests, cross-target)
+- [x] Documentation site (mdBook, 30 pages)
+- [x] Font subsetting and optimization pipeline
+- [x] Production error handling and unified error taxonomy
+- [x] Production demo site (voce-ir.xyz)
+- [x] Performance optimization and criterion benchmarks
+- [x] Open source infrastructure (CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, templates)
 
 ## Architecture
 
 ```
 voce-ir/
 ├── packages/
-│   ├── schema/          Rust lib — FlatBuffers schema + generated bindings
-│   ├── validator/       Rust bin — Reference IR validator
-│   ├── compiler-dom/    Rust bin — DOM compile target
-│   └── ai-bridge/       TypeScript — AI generation layer (Phase 3)
-├── tests/               Integration + golden file tests
-└── examples/            Reference IR blobs + compiled output
+│   ├── schema/              Rust lib — FlatBuffers schema + generated bindings
+│   ├── validator/           Rust bin — Reference IR validator
+│   ├── compiler-dom/        Rust bin — DOM compile target
+│   ├── adapter-core/        Rust lib — Shared adapter traits and types
+│   ├── adapter-static/      Rust bin — Static file deployment adapter
+│   ├── adapter-vercel/      Rust bin — Vercel deployment adapter
+│   ├── adapter-cloudflare/  Rust bin — Cloudflare deployment adapter
+│   ├── adapter-netlify/     Rust bin — Netlify deployment adapter
+│   ├── playground-wasm/     Rust lib — WASM build for browser playground
+│   ├── playground/          TypeScript — Web playground IDE
+│   └── ai-bridge/           TypeScript — AI generation layer (Phase 3)
+├── tests/                   Integration + golden file tests
+└── examples/                Reference IR blobs + compiled output
 ```
 
 ## Conventions
@@ -150,7 +167,7 @@ When implementing a new feature:
 
 ## Important Context
 
-- This is a Fire Burns Up project (not Resonia, not Deyan)
+- This is a personal open source project by Marc Pelland
 - Named from "sotto voce" — quiet input, extraordinary output
 - The three pillars are non-negotiable: Stability, Experience, Accessibility. Security is part of Stability
 - The IR will eventually support 3D (Scene3D, MeshNode, ShaderNode, ParticleSystem) but Phase 1 focuses on 2D layout primitives

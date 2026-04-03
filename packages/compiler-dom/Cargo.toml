@@ -6,6 +6,9 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 description = "Voce IR DOM compiler — compiles validated IR to optimized HTML"
+keywords.workspace = true
+categories.workspace = true
+readme = "../../README.md"
 
 [features]
 default = ["image-pipeline"]
@@ -23,3 +26,8 @@ blurhash = { version = "0.2", optional = true }
 
 [dev-dependencies]
 insta.workspace = true
+criterion.workspace = true
+
+[[bench]]
+name = "compile_bench"
+harness = false

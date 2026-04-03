@@ -1,8 +1,8 @@
 # Voce IR — Product Requirements Document
 
-**Version:** 0.2.0
-**Status:** Draft
-**Owner:** Fire Burns Up
+**Version:** 1.0.0
+**Status:** Stable
+**Owner:** Marc Pelland
 **Last updated:** 2026-04-02
 
 ---

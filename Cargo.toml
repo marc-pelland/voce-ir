@@ -22,8 +22,11 @@ members = [
 version = "0.1.0"
 edition = "2024"
 license = "Apache-2.0"
-repository = "https://github.com/fireburnup/voce-ir"
+repository = "https://github.com/marcpelland/voce-ir"
 rust-version = "1.85"
+keywords = ["ui", "ir", "compiler", "ai", "accessibility"]
+categories = ["compilers", "web-programming", "development-tools"]
+readme = "README.md"
 
 [workspace.dependencies]
 flatbuffers = "24.12"
@@ -35,3 +38,4 @@ anyhow = "1.0"
 clap = { version = "4.5", features = ["derive"] }
 insta = { version = "1.40", features = ["yaml"] }
 toml = "0.8"
+criterion = { version = "0.5", features = ["html_reports"] }

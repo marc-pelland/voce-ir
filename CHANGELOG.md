@@ -1,5 +1,31 @@
 # Changelog
 
+## [Unreleased] — Phase 7: Production Readiness
+
+### Added
+- Real image processing pipeline: WebP/JPEG responsive variants, BlurHash placeholders (S51)
+- Deployment adapters: Vercel, Cloudflare Pages, Netlify, static (S52)
+- `voce deploy` CLI command with --adapter and --dry-run
+- Browser playground with WASM-compiled validator and compiler (S53)
+- 83 new tests (172 total) including cross-target, snapshot, and integration tests (S54)
+- Documentation site with 30 pages via mdBook (S55)
+- Font optimization pipeline: glyph collection, @font-face, fallback stacks (S56)
+- Unified VoceError taxonomy with typed error codes (S57)
+- Compiler resilience: error placeholders instead of crashes (S57)
+- `--verbose`, `--json-errors`, `--skip-fonts`, `--minify`, `--no-cache` CLI flags
+- Criterion benchmark suite (S59)
+- Compilation cache in .voce/cache/ (S59)
+- Production demo: voce-ir.xyz landing page, 7.6KB, 0.4s compile (S58)
+- Open source infrastructure: CONTRIBUTING.md, CODE_OF_CONDUCT.md, SECURITY.md, issue/PR templates
+
+### Changed
+- 15 Rust crates (up from 9), 172 tests (up from 73)
+- Image pipeline feature-gated for WASM compatibility
+- Domain updated to voce-ir.xyz
+- Author updated to Marc Pelland
+
+---
+
 ## v1.0.0 — Phase 6: Ecosystem & Community (2026-04-02)
 
 Native compile targets and email HTML compiler — the full multi-platform story.
@@ -12,8 +38,8 @@ Native compile targets and email HTML compiler — the full multi-platform story
 - Table-based layout, inline CSS only, XHTML transitional, 600px max-width, email-client safe
 
 ### Stats at v1.0.0
-- 9 Rust crates, 4 TypeScript packages, 7 compile targets
-- 73 automated tests, 50 sprints across 6 phases
+- 15 Rust crates, 4 TypeScript packages, 7 compile targets
+- 172 automated tests, 50 sprints across 6 phases
 - Same IR → DOM, WebGPU, WASM, iOS, Android, Email
 
 ---

@@ -18,6 +18,7 @@
 
 pub mod animation;
 pub mod assets;
+pub mod cache;
 pub mod compiler_ir;
 pub mod emit;
 pub mod pipeline;

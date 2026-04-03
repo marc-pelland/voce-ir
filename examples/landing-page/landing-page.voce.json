@@ -297,7 +297,7 @@
           },
           "semantic_node_id": "sem-footer",
           "children": [
-            { "value_type": "TextNode", "value": { "node_id": "copyright", "content": "© 2026 Fire Burns Up. Apache 2.0.", "font_size": { "value": 13.0, "unit": "Px" }, "color": { "r": 107, "g": 106, "b": 101, "a": 255 } } },
+            { "value_type": "TextNode", "value": { "node_id": "copyright", "content": "© 2026 Marc Pelland. Apache 2.0.", "font_size": { "value": 13.0, "unit": "Px" }, "color": { "r": 107, "g": 106, "b": 101, "a": 255 } } },
             { "value_type": "TextNode", "value": { "node_id": "footer-tagline", "content": "sotto voce — quiet input, extraordinary output", "font_size": { "value": 13.0, "unit": "Px" }, "color": { "r": 107, "g": 106, "b": 101, "a": 255 } } }
           ]
         }

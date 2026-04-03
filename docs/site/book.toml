@@ -1,6 +1,6 @@
 [book]
 title = "Voce IR Documentation"
-authors = ["Fire Burns Up"]
+authors = ["Marc Pelland"]
 description = "AI-native intermediate representation for user interfaces"
 language = "en"
 src = "src"
@@ -11,7 +11,7 @@ build-dir = "book"
 [output.html]
 default-theme = "coal"
 preferred-dark-theme = "coal"
-git-repository-url = "https://github.com/fireburnup/voce-ir"
+git-repository-url = "https://github.com/marcpelland/voce-ir"
 additional-css = ["theme/voce.css"]
 no-section-label = false
 

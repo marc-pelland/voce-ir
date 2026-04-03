@@ -6,6 +6,9 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 description = "Voce IR hybrid compiler — per-component target selection across DOM, WebGPU, and WASM"
+keywords.workspace = true
+categories.workspace = true
+readme = "../../README.md"
 
 [dependencies]
 voce-schema = { path = "../schema" }

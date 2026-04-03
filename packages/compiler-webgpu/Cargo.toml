@@ -6,6 +6,9 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 description = "Voce IR WebGPU compiler — compiles 3D scene IR to WebGPU render pipelines"
+keywords.workspace = true
+categories.workspace = true
+readme = "../../README.md"
 
 [dependencies]
 voce-schema = { path = "../schema" }

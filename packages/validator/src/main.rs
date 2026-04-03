@@ -88,6 +88,14 @@ enum Commands {
         /// Skip font processing (no @font-face, no preloads)
         #[arg(long)]
         skip_fonts: bool,
+
+        /// Minify the HTML output
+        #[arg(long)]
+        minify: bool,
+
+        /// Disable compilation cache
+        #[arg(long)]
+        no_cache: bool,
     },
 
     /// Generate a compilation quality report
@@ -178,7 +186,9 @@ fn run(cli: Cli) -> Result<i32> {
             output,
             debug,
             skip_fonts,
-        } => cmd_compile(&file, output.as_deref(), debug, skip_fonts),
+            minify,
+            no_cache,
+        } => cmd_compile(&file, output.as_deref(), debug, skip_fonts, minify, no_cache),
         Commands::Report { file, format } => cmd_report(&file, &format),
         Commands::Manifest { file } => cmd_manifest(&file),
         Commands::Preview { file } => cmd_preview(&file),
@@ -290,7 +300,7 @@ fn cmd_bin2json(input: &PathBuf, output: Option<&std::path::Path>) -> Result<i32
     }
 }
 
-fn cmd_compile(file: &PathBuf, output: Option<&std::path::Path>, debug: bool, skip_fonts: bool) -> Result<i32> {
+fn cmd_compile(file: &PathBuf, output: Option<&std::path::Path>, debug: bool, skip_fonts: bool, minify: bool, no_cache: bool) -> Result<i32> {
     let json = std::fs::read_to_string(file)
         .with_context(|| format!("Failed to read {}", file.display()))?;
 
@@ -307,9 +317,32 @@ fn cmd_compile(file: &PathBuf, output: Option<&std::path::Path>, debug: bool, sk
     }
 
     // Compile
+    // Check cache first (unless --no-cache)
+    let project_dir = file.parent().unwrap_or(std::path::Path::new("."));
+    if !no_cache {
+        let cache = voce_compiler_dom::cache::CompilationCache::new(project_dir);
+        if let Some(cached_html) = cache.get(&json) {
+            let out_path = output.map(PathBuf::from).unwrap_or_else(|| {
+                let stem = file.file_stem().unwrap_or_default().to_string_lossy();
+                PathBuf::from(format!("dist/{stem}.html"))
+            });
+            if let Some(parent) = out_path.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            let size = cached_html.len();
+            std::fs::write(&out_path, &cached_html)?;
+            eprintln!(
+                "✓ Cache hit: {} → {} ({} bytes)",
+                file.display(), out_path.display(), size
+            );
+            return Ok(0);
+        }
+    }
+
     let options = voce_compiler_dom::CompileOptions {
         debug_attrs: debug,
         skip_fonts,
+        minify,
         ..Default::default()
     };
 
@@ -327,6 +360,12 @@ fn cmd_compile(file: &PathBuf, output: Option<&std::path::Path>, debug: bool, sk
     }
 
     std::fs::write(&out_path, &result.html)?;
+
+    // Cache the result
+    if !no_cache {
+        let cache = voce_compiler_dom::cache::CompilationCache::new(project_dir);
+        let _ = cache.put(&json, &result.html);
+    }
 
     eprintln!(
         "✓ Compiled {} → {} ({} bytes)",

@@ -1,4 +1,4 @@
-- [User Profile](user_profile.md) — Marc: solo builder/founder, Fire Burns Up, systems thinker focused on output quality
+- [User Profile](user_profile.md) — Marc Pelland: solo builder, personal open source project, systems thinker focused on output quality
 - [Research Decisions](project_research_decisions.md) — Architecture decisions confirmed by deep research (2026-04-02): FlatBuffers, Taffy, SPIR-V analogy, JSON canonical format
 - [Automatic Concerns](feedback_automatic_concerns.md) — Security/testing/docs must be automatic system concerns, not opt-in. Style packs for design patterns. Multi-agent AI architecture
 - [Conversational Philosophy](feedback_conversational_philosophy.md) — Anti-vibe-coding: AI must be inquisitive, push back, require context before generating, implement features fully, no TODOs

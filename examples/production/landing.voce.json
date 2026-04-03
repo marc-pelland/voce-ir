@@ -374,7 +374,7 @@
             "right": { "value": 24, "unit": "Px" }
           },
           "children": [
-            { "value_type": "TextNode", "value": { "node_id": "footer-copy", "content": "Voce IR. Apache-2.0 License. Built by Fire Burns Up.", "font_size": { "value": 13, "unit": "Px" }, "color": { "r": 113, "g": 113, "b": 122, "a": 255 } } }
+            { "value_type": "TextNode", "value": { "node_id": "footer-copy", "content": "Voce IR. Apache-2.0 License. Built by Marc Pelland.", "font_size": { "value": 13, "unit": "Px" }, "color": { "r": 113, "g": 113, "b": 122, "a": 255 } } }
           ]
         }
       }

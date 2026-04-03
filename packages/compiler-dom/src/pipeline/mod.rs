@@ -49,13 +49,55 @@ pub fn compile(json: &str, options: &CompileOptions) -> Result<CompileResult> {
     let html_output = lower_to_html(&ir, options);
 
     // Phase 4: Emit — serialize to HTML string
-    let html = html_output.to_string();
-    let size_bytes = html.len();
+    let mut html = html_output.to_string();
 
+    // Phase 5: Minify if requested
+    if options.minify {
+        html = minify_html(&html);
+    }
+
+    let size_bytes = html.len();
     Ok(CompileResult { html, size_bytes })
 }
 
 /// Lower compiler IR to an HTML document.
 fn lower_to_html(ir: &CompilerIr, options: &CompileOptions) -> HtmlOutput {
     crate::emit::html::emit(ir, options)
+}
+
+/// Minify HTML output — collapse whitespace, remove unnecessary formatting.
+fn minify_html(html: &str) -> String {
+    let mut result = String::with_capacity(html.len());
+    let mut in_pre = false;
+    let mut prev_was_space = false;
+
+    for line in html.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+
+        // Track <pre>/<script> blocks where whitespace matters
+        if trimmed.contains("<pre") || trimmed.contains("<script") {
+            in_pre = true;
+        }
+        if trimmed.contains("</pre>") || trimmed.contains("</script>") {
+            in_pre = false;
+        }
+
+        if in_pre {
+            result.push_str(line);
+            result.push('\n');
+            prev_was_space = false;
+        } else {
+            // Collapse leading whitespace
+            if !result.is_empty() && !prev_was_space {
+                result.push('\n');
+            }
+            result.push_str(trimmed);
+            prev_was_space = trimmed.is_empty();
+        }
+    }
+
+    result
 }

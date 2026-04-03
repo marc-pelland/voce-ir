@@ -1,7 +1,8 @@
 # Voce IR — Architecture
 
 **Version:** 1.0.0
-**Last updated:** 2026-04-02
+**Author:** Marc Pelland
+**Last updated:** 2026-04-03
 
 ---
 
@@ -33,6 +34,12 @@ voce-ir/
 │   ├── compiler-ios/        voce-compiler-ios — iOS SwiftUI compile target
 │   ├── compiler-android/    voce-compiler-android — Android Jetpack Compose compile target
 │   ├── compiler-email/      voce-compiler-email — Email HTML compile target (table layouts, inline CSS)
+│   ├── adapter-core/        voce-adapter-core — Shared deployment adapter trait + types
+│   ├── adapter-static/      voce-adapter-static — Static file deployment adapter
+│   ├── adapter-vercel/      voce-adapter-vercel — Vercel deployment adapter
+│   ├── adapter-cloudflare/  voce-adapter-cloudflare — Cloudflare Pages deployment adapter
+│   ├── adapter-netlify/     voce-adapter-netlify — Netlify deployment adapter
+│   ├── playground-wasm/     voce-playground-wasm — WASM bindings for web playground
 │   ├── ai-bridge/           TypeScript — Multi-agent AI generation layer
 │   ├── mcp-server/          TypeScript — MCP server (6 tools)
 │   ├── sdk/                 TypeScript — Programmatic SDK
@@ -44,11 +51,12 @@ voce-ir/
 │   ├── landing-page/        Reference landing page IR (37 nodes, 11 types)
 │   ├── product-viewer/      3D product viewer demo (WebGPU)
 │   └── intents/             Natural language → IR training pairs
+├── .voce/cache/             Compilation cache (content-addressed)
 └── scripts/
     └── regenerate-schema.sh FlatBuffers codegen script
 ```
 
-**Rust crate dependency graph (9 crates):**
+**Rust crate dependency graph (15 Rust crates):**
 ```
 voce-schema ← voce-validator ← voce-compiler-dom
                     ↑      ├── voce-compiler-webgpu
@@ -57,6 +65,14 @@ voce-schema ← voce-validator ← voce-compiler-dom
                            ├── voce-compiler-ios
                            ├── voce-compiler-android
                            └── voce-compiler-email
+
+voce-adapter-core ← voce-adapter-static
+                 ├── voce-adapter-vercel
+                 ├── voce-adapter-cloudflare
+                 └── voce-adapter-netlify
+
+voce-validator ← voce-playground-wasm (WASM target)
+voce-compiler-dom ↗
 ```
 
 **TypeScript packages:**
@@ -211,7 +227,7 @@ Output modes: `--format terminal` (colored, default) or `--format json` (machine
 - **Valid IR fixtures** (`tests/schema/valid/`): Minimal page and landing page. 1 file.
 - **Example validation**: Landing page and intent-IR pairs validate cleanly.
 
-Total: 37 tests across the workspace.
+Total: 172 tests across the workspace.
 
 ---
 
@@ -237,6 +253,101 @@ IR → Jetpack Compose Composable functions. SemanticNode → Compose semantics 
 
 ### Email (compiler-email)
 IR → email-safe HTML: table-based layouts, inline CSS, Outlook conditional comments, Gmail CSS resets. Cross-client preview rendering. Responsive via media query fallbacks.
+
+---
+
+## Deployment Adapters
+
+The adapter system uses a shared trait (`adapter-core`) with platform-specific implementations. Each adapter takes `CompiledOutput` from the compiler and produces a platform-ready `Bundle`.
+
+### Adapter Trait
+
+```rust
+pub trait Adapter {
+    fn name(&self) -> &str;
+    fn prepare(&self, compiled: &CompiledOutput, config: &DeployConfig) -> Result<Bundle>;
+    fn deploy(&self, bundle: &Bundle, config: &DeployConfig) -> Result<DeployResult>;
+}
+```
+
+### Platform Adapters
+
+| Crate | Target | Notes |
+|-------|--------|-------|
+| `adapter-static` | Static file hosting | Plain directory output, no serverless functions |
+| `adapter-vercel` | Vercel | `vercel.json` generation, serverless function stubs for ActionNodes |
+| `adapter-cloudflare` | Cloudflare Pages | `_routes.json`, Workers for server-side actions |
+| `adapter-netlify` | Netlify | `netlify.toml`, Netlify Functions for actions |
+
+All adapters share `CompiledOutput` (HTML, assets, server-side action handlers, project metadata) and `Bundle` (output directory, file map, summary).
+
+---
+
+## Web Playground
+
+The playground (`packages/playground/` + `packages/playground-wasm/`) is a browser-based editor for Voce IR. It runs validation and DOM compilation entirely client-side via WASM.
+
+### playground-wasm
+
+A Rust crate compiled to `wasm32-unknown-unknown` via `wasm-bindgen`. Exports two functions:
+
+- `validate(ir_json: &str) -> String` — runs all 9 validation passes, returns JSON result
+- `compile_dom(ir_json: &str) -> String` — compiles IR to HTML, returns JSON result
+
+### playground (frontend)
+
+Vite + TypeScript application. Loads the WASM module, provides a JSON editor with live validation feedback and a compiled HTML preview pane.
+
+---
+
+## Font Pipeline
+
+The font pipeline (`packages/compiler-dom/src/assets/font_pipeline.rs`) runs at compile time during DOM compilation:
+
+1. **Glyph collection:** Walks the IR tree to find all text content and font references
+2. **Codepoint analysis:** Determines the exact Unicode codepoints used per font family and weight
+3. **@font-face generation:** Emits optimized CSS with `unicode-range` subsetting and content-hashed WOFF2 filenames
+4. **Preload hints:** Fonts referenced above the fold get `<link rel="preload">` tags
+5. **Fallback stacks:** Generates metric-override fallback declarations to minimize layout shift
+
+## Image Pipeline
+
+The image pipeline (`packages/compiler-dom/src/assets/image_pipeline.rs`) generates responsive image variants at compile time:
+
+1. **Multi-format encoding:** Produces AVIF, WebP, and fallback variants from source images
+2. **Responsive widths:** Generates variants at standard breakpoints (320, 640, 1024, 1440, 1920px)
+3. **BlurHash placeholders:** Computes BlurHash strings for inline CSS placeholder backgrounds
+4. **Dominant color extraction:** Provides a CSS background color for the loading state
+5. **Content-hashed filenames:** All variants get hashed filenames for cache busting
+
+---
+
+## Compilation Cache
+
+The compilation cache (`packages/compiler-dom/src/cache.rs`) provides content-addressed caching of compiled output in `.voce/cache/`.
+
+- **Key:** Hash of the IR JSON input
+- **Value:** Compiled HTML output
+- **Hit path:** On cache hit, compilation is skipped entirely
+- **Storage:** Files named `{hash}.html` in the `.voce/cache/` directory
+- **Invalidation:** Content-addressed — any IR change produces a new hash, so stale entries are never served
+
+---
+
+## Unified Error Taxonomy
+
+All errors across the pipeline share a unified type system defined in `packages/schema/src/errors.rs`. The `VoceError` enum covers six domains:
+
+| Variant | Code Prefix | Domain |
+|---------|-------------|--------|
+| `Schema` | S001-S003 | Parsing, format, version mismatch |
+| `Validation` | STR/REF/STA/A11Y/SEC/SEO/FRM/I18N/MOT | Rule violations from validation passes |
+| `Compilation` | C001-C004 | Node compilation failures, timeouts, unsupported nodes, asset failures |
+| `Deployment` | D001-D004 | Adapter not found, bundle failures, upload failures, config errors |
+| `Pipeline` | P001-P002 | Orchestration timeouts and interruptions |
+| `AiBridge` | A001-A005 | API errors, rate limits, timeouts, incomplete output, invalid keys |
+
+Every error carries: an error code, human-readable message, and an actionable suggestion for fixing the problem. Validation errors additionally include `node_path` and `severity`. The `ErrorReport` struct provides JSON serialization for machine-readable output.
 
 ---
 
