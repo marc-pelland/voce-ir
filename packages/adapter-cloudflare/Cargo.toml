@@ -11,7 +11,7 @@ categories.workspace = true
 readme = "../../README.md"
 
 [dependencies]
-voce-adapter-core = { path = "../adapter-core" }
+voce-adapter-core = { path = "../adapter-core", version = "0.1.0" }
 anyhow.workspace = true
 serde.workspace = true
 toml.workspace = true

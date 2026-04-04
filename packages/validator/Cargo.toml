@@ -15,13 +15,13 @@ name = "voce"
 path = "src/main.rs"
 
 [dependencies]
-voce-schema = { path = "../schema" }
-voce-compiler-dom = { path = "../compiler-dom", default-features = false }
-voce-adapter-core = { path = "../adapter-core" }
-voce-adapter-static = { path = "../adapter-static" }
-voce-adapter-vercel = { path = "../adapter-vercel" }
-voce-adapter-cloudflare = { path = "../adapter-cloudflare" }
-voce-adapter-netlify = { path = "../adapter-netlify" }
+voce-schema = { path = "../schema", version = "0.1.0" }
+voce-compiler-dom = { path = "../compiler-dom", version = "0.1.0", default-features = false }
+voce-adapter-core = { path = "../adapter-core", version = "0.1.0" }
+voce-adapter-static = { path = "../adapter-static", version = "0.1.0" }
+voce-adapter-vercel = { path = "../adapter-vercel", version = "0.1.0" }
+voce-adapter-cloudflare = { path = "../adapter-cloudflare", version = "0.1.0" }
+voce-adapter-netlify = { path = "../adapter-netlify", version = "0.1.0" }
 thiserror.workspace = true
 anyhow.workspace = true
 clap.workspace = true
@@ -34,12 +34,12 @@ insta.workspace = true
 assert_cmd = "2"
 predicates = "3"
 criterion.workspace = true
-voce-compiler-email = { path = "../compiler-email" }
-voce-compiler-ios = { path = "../compiler-ios" }
-voce-compiler-android = { path = "../compiler-android" }
-voce-compiler-webgpu = { path = "../compiler-webgpu" }
-voce-compiler-wasm = { path = "../compiler-wasm" }
-voce-compiler-hybrid = { path = "../compiler-hybrid" }
+voce-compiler-email = { path = "../compiler-email", version = "0.1.0" }
+voce-compiler-ios = { path = "../compiler-ios", version = "0.1.0" }
+voce-compiler-android = { path = "../compiler-android", version = "0.1.0" }
+voce-compiler-webgpu = { path = "../compiler-webgpu", version = "0.1.0" }
+voce-compiler-wasm = { path = "../compiler-wasm", version = "0.1.0" }
+voce-compiler-hybrid = { path = "../compiler-hybrid", version = "0.1.0" }
 
 [[bench]]
 name = "validate_bench"

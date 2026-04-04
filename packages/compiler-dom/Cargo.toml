@@ -15,7 +15,7 @@ default = ["image-pipeline"]
 image-pipeline = ["dep:image", "dep:fast_image_resize", "dep:webp", "dep:blurhash"]
 
 [dependencies]
-voce-schema = { path = "../schema" }
+voce-schema = { path = "../schema", version = "0.1.0" }
 anyhow.workspace = true
 serde.workspace = true
 serde_json.workspace = true
