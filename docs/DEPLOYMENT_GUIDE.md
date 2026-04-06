@@ -172,67 +172,69 @@ gh release create v1.1.0 \
 
 ---
 
-## Step 5: Deploy voce-ir.xyz (Production Site)
+## Step 5: Deploy voce-ir.xyz (GitHub Pages)
 
-### 5a: Landing page
+Everything deploys as a single site via GitHub Pages. The workflow at
+`.github/workflows/pages.yml` builds three things into one `_site/` directory:
 
-```bash
-# Compile the production IR
-voce compile examples/production/landing.voce.json \
-  -o examples/production/dist/index.html \
-  --skip-fonts --minify
-
-# Deploy to Cloudflare Pages
-cd examples/production/dist
-npx wrangler pages deploy . --project-name voce-ir
+```
+voce-ir.xyz/              -> Landing page (compiled from production IR)
+voce-ir.xyz/docs/         -> mdBook documentation (30 pages)
+voce-ir.xyz/playground/   -> Browser-based IR playground (WASM-powered)
 ```
 
-Or set up continuous deployment:
-```bash
-# In Cloudflare dashboard:
-# Pages > Create project > Connect to Git
-# Repository: marcpelland/voce-ir
-# Build command: cargo run -p voce-validator -- compile examples/production/landing.voce.json -o dist/index.html --skip-fonts --minify
-# Build output directory: dist
-```
+### 5a: Enable GitHub Pages
 
-### 5b: Documentation site
+1. Go to your repo: **Settings > Pages**
+2. Under "Build and deployment", set **Source** to **GitHub Actions**
+3. That's it — the workflow handles the rest
 
-```bash
-# Build docs
-cd docs/site
-mdbook build
+### 5b: Set up custom domain
 
-# Deploy to Cloudflare Pages (as a separate project or subdirectory)
-npx wrangler pages deploy book --project-name voce-ir-docs
-```
-
-**DNS setup for docs.voce-ir.xyz:**
-1. Cloudflare dashboard > DNS > Add CNAME record:
-   - Name: `docs`
-   - Target: `voce-ir-docs.pages.dev`
-
-### 5c: Playground
+1. In **Settings > Pages > Custom domain**, enter `voce-ir.xyz`
+2. GitHub will show you DNS records to add. At your domain registrar, add:
+   - **A records** (for apex domain `voce-ir.xyz`):
+     ```
+     185.199.108.153
+     185.199.109.153
+     185.199.110.153
+     185.199.111.153
+     ```
+   - **CNAME record** (for `www`):
+     ```
+     www -> marcpelland.github.io
+     ```
+3. Check "Enforce HTTPS" once DNS propagates (may take a few minutes)
+4. Add a `CNAME` file to the site root so GitHub remembers the domain:
 
 ```bash
-# Build WASM
-cd packages/playground-wasm
-PATH="$HOME/.cargo/bin:$PATH" wasm-pack build --target web --release
-
-# Copy WASM to playground
-cp -r pkg/* ../playground/wasm/
-
-# Build playground
-cd ../playground
-npm install
-npm run build
-
-# Deploy
-npx wrangler pages deploy dist --project-name voce-ir-playground
+echo "voce-ir.xyz" > _site/CNAME
 ```
 
-**DNS setup for playground.voce-ir.xyz:**
-- CNAME: `playground` -> `voce-ir-playground.pages.dev`
+(This is already handled in the workflow.)
+
+### 5c: Trigger a deploy
+
+The workflow runs automatically on every push to `main`. You can also trigger
+it manually from **Actions > Deploy to GitHub Pages > Run workflow**.
+
+### 5d: Verify
+
+After the workflow completes (2-3 minutes):
+- `https://voce-ir.xyz` — landing page
+- `https://voce-ir.xyz/docs` — documentation
+- `https://voce-ir.xyz/playground` — playground
+
+### How it works
+
+The `pages.yml` workflow does:
+1. Compiles `examples/production/landing.voce.json` to `_site/index.html` using the Voce compiler
+2. Builds the mdBook docs into `_site/docs/`
+3. Builds the WASM playground into `_site/playground/`
+4. Uploads `_site/` as a GitHub Pages artifact
+5. Deploys to GitHub's CDN
+
+Everything rebuilds from source on every push — no manual deploys needed
 
 ---
 
@@ -298,21 +300,21 @@ brew install voce-ir
 - [ ] `cargo install voce-validator` works from crates.io
 - [ ] `npm install @voce-ir/sdk` works from npm
 - [ ] voce-ir.xyz is live and loads in < 1s
-- [ ] docs.voce-ir.xyz serves the mdBook site
-- [ ] playground.voce-ir.xyz loads and compiles IR in-browser
+- [ ] voce-ir.xyz/docs serves the mdBook site
+- [ ] voce-ir.xyz/playground loads and compiles IR in-browser
 - [ ] GitHub Discussions are enabled
 - [ ] First external issue gets a response within 24 hours
-- [ ] Analytics set up on voce-ir.xyz (Cloudflare Web Analytics — privacy-friendly)
 
 ---
 
-## Domain DNS Summary (Cloudflare)
+## Domain DNS Summary (GitHub Pages)
 
-| Record | Type | Name | Target |
-|--------|------|------|--------|
-| Landing page | CNAME | `@` | `voce-ir.pages.dev` |
-| Documentation | CNAME | `docs` | `voce-ir-docs.pages.dev` |
-| Playground | CNAME | `playground` | `voce-ir-playground.pages.dev` |
+| Record | Type | Name | Value |
+|--------|------|------|-------|
+| Apex domain | A | `@` | `185.199.108.153` (+ .109, .110, .111) |
+| www redirect | CNAME | `www` | `marcpelland.github.io` |
+
+All paths (landing, docs, playground) are served from one GitHub Pages deployment.
 
 ---
 
@@ -323,7 +325,8 @@ brew install voce-ir
 2. cargo publish (crates.io) — in dependency order
 3. npm publish (npm)
 4. git tag v1.1.0 && git push --tags (triggers binary builds)
-5. wrangler pages deploy (Cloudflare — landing, docs, playground)
-6. Homebrew tap (optional)
+5. Enable GitHub Pages (Settings > Pages > Source: GitHub Actions)
+6. Set custom domain voce-ir.xyz (Settings > Pages > Custom domain)
+7. Homebrew tap (optional)
 7. Launch content (HN, ProductHunt, Twitter)
 ```

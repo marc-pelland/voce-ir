@@ -1,0 +1,103 @@
+# Deploy the landing page, documentation, and playground to GitHub Pages.
+#
+# This builds three things into a single site:
+#   voce-ir.xyz/              → Production landing page (compiled from IR)
+#   voce-ir.xyz/docs/         → mdBook documentation site
+#   voce-ir.xyz/playground/   → Browser-based IR playground
+#
+# Triggers on push to main. You can also trigger manually from the Actions tab.
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # allows manual trigger from GitHub UI
+
+# Only allow one deployment at a time
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+# Grant the workflow permission to deploy to Pages
+permissions:
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    name: Build Site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- Rust toolchain (for compiling the landing page) ---
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      # --- Build the landing page from IR ---
+      - name: Compile landing page
+        run: |
+          mkdir -p _site
+          cargo run -p voce-validator -- compile \
+            examples/production/landing.voce.json \
+            -o _site/index.html \
+            --skip-fonts --minify
+          # Custom domain file (so GitHub Pages remembers the domain)
+          echo "voce-ir.xyz" > _site/CNAME
+
+      # --- Build the documentation site ---
+      - name: Install mdBook
+        run: cargo install mdbook --no-default-features
+      - name: Build docs
+        run: |
+          cd docs/site
+          mdbook build
+          # Move into _site/docs/
+          mv book ../../_site/docs
+
+      # --- Build the playground ---
+      - name: Install wasm-pack
+        run: cargo install wasm-pack
+      - name: Add wasm32 target
+        run: rustup target add wasm32-unknown-unknown
+      - name: Build WASM
+        run: |
+          cd packages/playground-wasm
+          wasm-pack build --target web --release
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build playground
+        run: |
+          cd packages/playground
+          # Copy WASM bindings
+          mkdir -p wasm
+          cp ../playground-wasm/pkg/voce_playground_wasm_bg.wasm wasm/
+          cp ../playground-wasm/pkg/voce_playground_wasm.js wasm/
+          cp ../playground-wasm/pkg/voce_playground_wasm.d.ts wasm/
+          cp ../playground-wasm/pkg/voce_playground_wasm_bg.wasm.d.ts wasm/
+          # Install and build
+          npm install
+          npm run build
+          # Move into _site/playground/
+          mv dist ../../_site/playground
+
+      # --- Upload the combined site ---
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
