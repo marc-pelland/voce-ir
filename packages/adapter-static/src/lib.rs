@@ -103,9 +103,11 @@ mod tests {
             .prepare(&sample_output(), &DeployConfig::default())
             .unwrap();
         assert!(bundle.files.contains_key(&PathBuf::from("index.html")));
-        assert!(bundle
-            .files
-            .contains_key(&PathBuf::from("assets/hero-640w.webp")));
+        assert!(
+            bundle
+                .files
+                .contains_key(&PathBuf::from("assets/hero-640w.webp"))
+        );
     }
 
     #[test]

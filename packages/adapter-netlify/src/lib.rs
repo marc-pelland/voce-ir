@@ -54,10 +54,7 @@ impl Adapter for NetlifyAdapter {
 
         // Netlify Functions from ActionNodes
         for action in &compiled.actions {
-            let func_name = action
-                .route
-                .trim_start_matches('/')
-                .replace('/', "-");
+            let func_name = action.route.trim_start_matches('/').replace('/', "-");
             let func = generate_netlify_function(action);
             files.insert(
                 PathBuf::from(format!("netlify/functions/{func_name}.js")),
@@ -68,10 +65,7 @@ impl Adapter for NetlifyAdapter {
         // netlify.toml
         let mut redirects = String::new();
         for action in &compiled.actions {
-            let func_name = action
-                .route
-                .trim_start_matches('/')
-                .replace('/', "-");
+            let func_name = action.route.trim_start_matches('/').replace('/', "-");
             redirects.push_str(&format!(
                 "\n[[redirects]]\n  from = \"{}\"\n  to = \"/.netlify/functions/{}\"\n  status = 200\n",
                 action.route, func_name
@@ -204,9 +198,11 @@ mod tests {
             .prepare(&sample_with_action(), &DeployConfig::default())
             .unwrap();
 
-        assert!(bundle
-            .files
-            .contains_key(&PathBuf::from("netlify/functions/api-contact.js")));
+        assert!(
+            bundle
+                .files
+                .contains_key(&PathBuf::from("netlify/functions/api-contact.js"))
+        );
         assert!(bundle.files.contains_key(&PathBuf::from("netlify.toml")));
     }
 
@@ -217,9 +213,8 @@ mod tests {
             .prepare(&sample_with_action(), &DeployConfig::default())
             .unwrap();
 
-        let toml = String::from_utf8_lossy(
-            bundle.files.get(&PathBuf::from("netlify.toml")).unwrap(),
-        );
+        let toml =
+            String::from_utf8_lossy(bundle.files.get(&PathBuf::from("netlify.toml")).unwrap());
         assert!(toml.contains("from = \"/api/contact\""));
         assert!(toml.contains("to = \"/.netlify/functions/api-contact\""));
     }

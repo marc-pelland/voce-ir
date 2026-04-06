@@ -16,17 +16,13 @@ fn workspace_root() -> PathBuf {
 }
 
 fn load_landing_page() -> String {
-    fs::read_to_string(
-        workspace_root().join("examples/landing-page/landing-page.voce.json"),
-    )
-    .expect("Failed to load landing page fixture")
+    fs::read_to_string(workspace_root().join("examples/landing-page/landing-page.voce.json"))
+        .expect("Failed to load landing page fixture")
 }
 
 fn load_production_page() -> String {
-    fs::read_to_string(
-        workspace_root().join("examples/production/landing.voce.json"),
-    )
-    .expect("Failed to load production landing page")
+    fs::read_to_string(workspace_root().join("examples/production/landing.voce.json"))
+        .expect("Failed to load production landing page")
 }
 
 fn minimal_ir() -> String {
@@ -60,9 +56,7 @@ fn bench_compile_landing_page(c: &mut Criterion) {
     };
 
     c.bench_function("compile_landing_page", |b| {
-        b.iter(|| {
-            voce_compiler_dom::compile(black_box(&json), black_box(&options)).unwrap()
-        })
+        b.iter(|| voce_compiler_dom::compile(black_box(&json), black_box(&options)).unwrap())
     });
 }
 
@@ -74,9 +68,7 @@ fn bench_compile_production_page(c: &mut Criterion) {
     };
 
     c.bench_function("compile_production_page", |b| {
-        b.iter(|| {
-            voce_compiler_dom::compile(black_box(&json), black_box(&options)).unwrap()
-        })
+        b.iter(|| voce_compiler_dom::compile(black_box(&json), black_box(&options)).unwrap())
     });
 }
 
@@ -85,9 +77,7 @@ fn bench_compile_minimal(c: &mut Criterion) {
     let options = voce_compiler_dom::CompileOptions::default();
 
     c.bench_function("compile_minimal_textnode", |b| {
-        b.iter(|| {
-            voce_compiler_dom::compile(black_box(&json), black_box(&options)).unwrap()
-        })
+        b.iter(|| voce_compiler_dom::compile(black_box(&json), black_box(&options)).unwrap())
     });
 }
 
@@ -98,7 +88,11 @@ fn bench_output_size(c: &mut Criterion) {
     c.bench_function("output_size_minimal", |b| {
         b.iter(|| {
             let result = voce_compiler_dom::compile(black_box(&json), black_box(&options)).unwrap();
-            assert!(result.size_bytes < 5000, "Minimal page should be under 5KB, got {}", result.size_bytes);
+            assert!(
+                result.size_bytes < 5000,
+                "Minimal page should be under 5KB, got {}",
+                result.size_bytes
+            );
             result.size_bytes
         })
     });

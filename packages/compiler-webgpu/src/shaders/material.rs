@@ -48,7 +48,8 @@ impl Default for Material {
 impl Material {
     /// Generate the WGSL uniform struct fields for this material.
     pub fn wgsl_uniforms(&self) -> String {
-        "  baseColor: vec4<f32>,\n  metallic: f32,\n  roughness: f32,\n  emissive: vec3<f32>,".to_string()
+        "  baseColor: vec4<f32>,\n  metallic: f32,\n  roughness: f32,\n  emissive: vec3<f32>,"
+            .to_string()
     }
 
     /// Generate the WGSL uniform data as a JavaScript Float32Array.

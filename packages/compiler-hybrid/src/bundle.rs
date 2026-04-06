@@ -4,11 +4,7 @@
 ///
 /// The DOM output is the base. WebGPU canvas and WASM bridge are
 /// injected before `</body>` if present.
-pub fn bundle(
-    dom_html: &str,
-    webgpu_js: Option<&str>,
-    wasm_bridge: Option<&str>,
-) -> String {
+pub fn bundle(dom_html: &str, webgpu_js: Option<&str>, wasm_bridge: Option<&str>) -> String {
     let mut html = dom_html.to_string();
 
     // Inject WebGPU canvas + init before </body>

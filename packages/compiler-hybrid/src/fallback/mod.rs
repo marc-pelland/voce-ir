@@ -4,8 +4,8 @@
 //! Each level provides a progressively simpler representation
 //! of the same content, ensuring the page works everywhere.
 
-pub mod capability;
 pub mod canvas2d;
+pub mod capability;
 
 /// JavaScript that detects capabilities and selects the best renderer.
 ///
@@ -50,7 +50,8 @@ pub fn capability_detection_js() -> String {
 
   detect();
 })();
-"#.to_string()
+"#
+    .to_string()
 }
 
 /// Generate the HTML structure for a 3D scene with all fallback layers.
@@ -95,5 +96,6 @@ pub fn fallback_css() -> String {
 [data-voce-renderer="static"] .voce-fallback-static { display: block !important; }
 [data-voce-renderer="static"] .voce-webgpu-canvas { display: none !important; }
 [data-voce-renderer="static"] .voce-fallback-canvas { display: none !important; }
-"#.to_string()
+"#
+    .to_string()
 }

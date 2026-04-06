@@ -34,8 +34,16 @@ pub fn compile_webgpu(json: &str, options: &WebGpuCompileOptions) -> Result<WebG
 
     // Phase 2: Emit — generate HTML with WebGPU
     let opts = webgpu_html::EmitOptions {
-        width: if options.width > 0 { options.width } else { 800 },
-        height: if options.height > 0 { options.height } else { 600 },
+        width: if options.width > 0 {
+            options.width
+        } else {
+            800
+        },
+        height: if options.height > 0 {
+            options.height
+        } else {
+            600
+        },
         orbit_controls: options.orbit_controls,
     };
 

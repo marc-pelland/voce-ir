@@ -68,8 +68,7 @@ fn landing_page_compiles_to_swiftui() {
 #[test]
 fn landing_page_compiles_to_compose() {
     let json = landing_page();
-    let result =
-        voce_compiler_android::compile_compose(&json).expect("Compose compilation failed");
+    let result = voce_compiler_android::compile_compose(&json).expect("Compose compilation failed");
     assert!(result.kotlin.contains("import androidx.compose"));
     assert!(result.kotlin.contains("@Composable"));
     assert!(result.size_bytes > 0);
@@ -78,8 +77,7 @@ fn landing_page_compiles_to_compose() {
 #[test]
 fn landing_page_compiles_to_wasm() {
     let json = landing_page();
-    let result =
-        voce_compiler_wasm::compile_to_wat(&json).expect("WASM compilation failed");
+    let result = voce_compiler_wasm::compile_to_wat(&json).expect("WASM compilation failed");
     // WASM compiler produces WAT for state machines; landing page may not have one
     // but it should not error
     assert!(result.wat.is_empty() || result.wat.contains("(module"));
@@ -329,7 +327,12 @@ fn broken_ref_returns_ref005() {
 fn missing_initial_state_returns_sta002() {
     let json = invalid_fixture("missing-initial-state.voce.json");
     let result = voce_validator::validate(&json).unwrap();
-    assert!(result.diagnostics.iter().any(|d| d.code == "STR001" || d.code == "STA002"));
+    assert!(
+        result
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "STR001" || d.code == "STA002")
+    );
 }
 
 #[test]
@@ -355,8 +358,7 @@ fn mutation_no_csrf_returns_sec002() {
 
 #[test]
 fn gesture_no_keyboard_returns_a11y004() {
-    let json =
-        invalid_fixture("gesture-no-keyboard.voce.json");
+    let json = invalid_fixture("gesture-no-keyboard.voce.json");
     let result = voce_validator::validate(&json).unwrap();
     assert!(result.diagnostics.iter().any(|d| d.code == "A11Y004"));
 }
@@ -370,8 +372,7 @@ fn heading_skip_returns_a11y005() {
 
 #[test]
 fn missing_reduced_motion_returns_mot001() {
-    let json =
-        invalid_fixture("transition-no-reduced-motion.voce.json");
+    let json = invalid_fixture("transition-no-reduced-motion.voce.json");
     let result = voce_validator::validate(&json).unwrap();
     assert!(result.diagnostics.iter().any(|d| d.code == "MOT001"));
 }
@@ -380,7 +381,12 @@ fn missing_reduced_motion_returns_mot001() {
 fn empty_localized_key_returns_i18n002() {
     let json = invalid_fixture("empty-localized-key.voce.json");
     let result = voce_validator::validate(&json).unwrap();
-    assert!(result.diagnostics.iter().any(|d| d.code.starts_with("I18N")));
+    assert!(
+        result
+            .diagnostics
+            .iter()
+            .any(|d| d.code.starts_with("I18N"))
+    );
 }
 
 #[test]

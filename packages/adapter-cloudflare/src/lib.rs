@@ -204,9 +204,8 @@ mod tests {
             .prepare(&sample_with_action(), &DeployConfig::default())
             .unwrap();
 
-        let worker = String::from_utf8_lossy(
-            bundle.files.get(&PathBuf::from("_worker.js")).unwrap(),
-        );
+        let worker =
+            String::from_utf8_lossy(bundle.files.get(&PathBuf::from("_worker.js")).unwrap());
         assert!(worker.contains("/api/submit"));
         assert!(worker.contains("request.method === 'POST'"));
     }
@@ -234,9 +233,8 @@ mod tests {
             .prepare(&sample_with_action(), &DeployConfig::default())
             .unwrap();
 
-        let toml = String::from_utf8_lossy(
-            bundle.files.get(&PathBuf::from("wrangler.toml")).unwrap(),
-        );
+        let toml =
+            String::from_utf8_lossy(bundle.files.get(&PathBuf::from("wrangler.toml")).unwrap());
         assert!(toml.contains("name = \"my-site\""));
     }
 }

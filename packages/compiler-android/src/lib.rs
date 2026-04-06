@@ -47,42 +47,69 @@ pub fn compile_compose(json: &str) -> Result<ComposeResult> {
     kt.push_str("}\n");
 
     let size = kt.len();
-    Ok(ComposeResult { kotlin: kt, size_bytes: size })
+    Ok(ComposeResult {
+        kotlin: kt,
+        size_bytes: size,
+    })
 }
 
 fn emit_composable(kt: &mut String, child: &Value, indent: usize) {
     let pad = " ".repeat(indent);
-    let type_name = child.get("value_type").and_then(|v| v.as_str()).unwrap_or("");
+    let type_name = child
+        .get("value_type")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
     let value = child.get("value").cloned().unwrap_or(Value::Null);
 
     match type_name {
         "Container" => {
-            let direction = value.get("direction").and_then(|v| v.as_str()).unwrap_or("Column");
+            let direction = value
+                .get("direction")
+                .and_then(|v| v.as_str())
+                .unwrap_or("Column");
             let composable = match direction {
                 "Row" | "RowReverse" => "Row",
                 _ => "Column",
             };
-            let gap = value.get("gap").and_then(|g| g.get("value")).and_then(|v| v.as_f64()).unwrap_or(0.0);
+            let gap = value
+                .get("gap")
+                .and_then(|g| g.get("value"))
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0);
 
             kt.push_str(&format!("{pad}{composable}(\n"));
-            kt.push_str(&format!("{pad}    verticalArrangement = Arrangement.spacedBy({gap:.0}.dp)\n"));
+            kt.push_str(&format!(
+                "{pad}    verticalArrangement = Arrangement.spacedBy({gap:.0}.dp)\n"
+            ));
             kt.push_str(&format!("{pad}) {{\n"));
 
             if let Some(children) = value.get("children").and_then(|v| v.as_array()) {
-                for c in children { emit_composable(kt, c, indent + 4); }
+                for c in children {
+                    emit_composable(kt, c, indent + 4);
+                }
             }
 
             kt.push_str(&format!("{pad}}}\n"));
         }
         "TextNode" => {
             let content = value.get("content").and_then(|v| v.as_str()).unwrap_or("");
-            let size = value.get("font_size").and_then(|f| f.get("value")).and_then(|v| v.as_f64()).unwrap_or(16.0);
-            let weight = value.get("font_weight").and_then(|v| v.as_str()).unwrap_or("Regular");
+            let size = value
+                .get("font_size")
+                .and_then(|f| f.get("value"))
+                .and_then(|v| v.as_f64())
+                .unwrap_or(16.0);
+            let weight = value
+                .get("font_weight")
+                .and_then(|v| v.as_str())
+                .unwrap_or("Regular");
 
             kt.push_str(&format!("{pad}Text(\n"));
             kt.push_str(&format!("{pad}    text = \"{content}\",\n"));
             kt.push_str(&format!("{pad}    fontSize = {size:.0}.sp,\n"));
-            kt.push_str(&format!("{pad}    fontWeight = FontWeight.{wt},\n", wt = kotlin_weight(weight)));
+            kt.push_str(&format!(
+                "{pad}    fontWeight = FontWeight.{wt},\n",
+                wt = kotlin_weight(weight)
+            ));
             if let Some(color) = value.get("color") {
                 kt.push_str(&format!("{pad}    color = {},\n", kotlin_color(color)));
             }
@@ -93,7 +120,9 @@ fn emit_composable(kt: &mut String, child: &Value, indent: usize) {
             kt.push_str(&format!("{pad}    modifier = Modifier.fillMaxWidth()\n"));
             kt.push_str(&format!("{pad}) {{\n"));
             if let Some(children) = value.get("children").and_then(|v| v.as_array()) {
-                for c in children { emit_composable(kt, c, indent + 4); }
+                for c in children {
+                    emit_composable(kt, c, indent + 4);
+                }
             }
             kt.push_str(&format!("{pad}}}\n"));
         }

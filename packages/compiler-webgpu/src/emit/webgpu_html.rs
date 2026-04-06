@@ -22,9 +22,13 @@ pub fn emit(scene: &Scene, options: &EmitOptions) -> String {
     html.push_str("<style>\n");
     html.push_str("body{margin:0;overflow:hidden;background:#000}\n");
     html.push_str("canvas{display:block;width:100vw;height:100vh}\n");
-    html.push_str("#fallback{display:none;color:#fff;font-family:system-ui;padding:40px;text-align:center}\n");
+    html.push_str(
+        "#fallback{display:none;color:#fff;font-family:system-ui;padding:40px;text-align:center}\n",
+    );
     html.push_str("</style>\n</head>\n<body>\n");
-    html.push_str(&format!("<canvas id=\"c\" width=\"{w}\" height=\"{h}\"></canvas>\n"));
+    html.push_str(&format!(
+        "<canvas id=\"c\" width=\"{w}\" height=\"{h}\"></canvas>\n"
+    ));
     html.push_str("<div id=\"fallback\"><h2>WebGPU is not available</h2><p>This scene requires a browser with WebGPU support (Chrome 113+, Edge 113+, Firefox 130+).</p></div>\n");
 
     // WGSL shaders
@@ -136,9 +140,7 @@ fn emit_init(scene: &Scene, options: &EmitOptions) -> String {
         .lights
         .iter()
         .find(|l| matches!(l.light_type, LightType::Ambient));
-    let amb_color = ambient
-        .map(|a| a.color)
-        .unwrap_or([0.2, 0.2, 0.25]);
+    let amb_color = ambient.map(|a| a.color).unwrap_or([0.2, 0.2, 0.25]);
 
     format!(
         r#"
@@ -269,19 +271,33 @@ function dot3(a,b){{return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}}
 
 init();
 "#,
-        cam_dist = (cam.position[0].powi(2) + cam.position[1].powi(2) + cam.position[2].powi(2)).sqrt(),
+        cam_dist =
+            (cam.position[0].powi(2) + cam.position[1].powi(2) + cam.position[2].powi(2)).sqrt(),
         cam_height = cam.position[1],
-        target0 = cam.target[0], target1 = cam.target[1], target2 = cam.target[2],
+        target0 = cam.target[0],
+        target1 = cam.target[1],
+        target2 = cam.target[2],
         fov = cam.fov_degrees.to_radians(),
-        near = cam.near, far = cam.far,
-        bg0 = bg[0], bg1 = bg[1], bg2 = bg[2],
+        near = cam.near,
+        far = cam.far,
+        bg0 = bg[0],
+        bg1 = bg[1],
+        bg2 = bg[2],
         mesh_count = mesh_count,
-        ld0 = dir_light.direction[0], ld1 = dir_light.direction[1], ld2 = dir_light.direction[2],
-        lc0 = dir_light.color[0], lc1 = dir_light.color[1], lc2 = dir_light.color[2],
-        ac0 = amb_color[0], ac1 = amb_color[1], ac2 = amb_color[2],
+        ld0 = dir_light.direction[0],
+        ld1 = dir_light.direction[1],
+        ld2 = dir_light.direction[2],
+        lc0 = dir_light.color[0],
+        lc1 = dir_light.color[1],
+        lc2 = dir_light.color[2],
+        ac0 = amb_color[0],
+        ac1 = amb_color[1],
+        ac2 = amb_color[2],
         orbit_js = if options.orbit_controls {
             "canvas.addEventListener('mousemove',(e)=>{if(e.buttons&1){camAngle+=e.movementX*0.01;camHeight+=e.movementY*0.05;}});\n  canvas.addEventListener('wheel',(e)=>{camDist+=e.deltaY*0.01;camDist=Math.max(1,camDist);});"
-        } else { "" },
+        } else {
+            ""
+        },
     )
 }
 

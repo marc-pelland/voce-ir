@@ -74,7 +74,12 @@ pub fn emit(ir: &CompilerIr, options: &CompileOptions) -> HtmlOutput {
     HtmlOutput { html }
 }
 
-fn emit_head(html: &mut String, ir: &CompilerIr, preload_images: &[String], options: &CompileOptions) {
+fn emit_head(
+    html: &mut String,
+    ir: &CompilerIr,
+    preload_images: &[String],
+    options: &CompileOptions,
+) {
     html.push_str("<head>\n");
     html.push_str("<meta charset=\"UTF-8\">\n");
     html.push_str("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n");
@@ -204,7 +209,14 @@ fn emit_node_safe(
     // Try to emit the node; on panic, emit a visible error placeholder
     let mut node_html = String::new();
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        emit_node(&mut node_html, ir, node_id, depth, options, interactive_targets);
+        emit_node(
+            &mut node_html,
+            ir,
+            node_id,
+            depth,
+            options,
+            interactive_targets,
+        );
     }));
 
     match result {
@@ -376,9 +388,8 @@ fn emit_node(
             let alt_attr = if *decorative { "" } else { alt.as_str() };
 
             // Try real image pipeline if source bytes are available
-            let used_pipeline = emit_image_pipeline(
-                html, src, alt_attr, *above_fold, &indent, options,
-            );
+            let used_pipeline =
+                emit_image_pipeline(html, src, alt_attr, *above_fold, &indent, options);
 
             if !used_pipeline {
                 // No source bytes or no image-pipeline feature — use placeholder srcset
@@ -573,9 +584,7 @@ fn emit_font_css(html: &mut String, ir: &CompilerIr, options: &CompileOptions) {
                 .and_then(|w| w.parse().ok())
                 .unwrap_or(400);
 
-            let entry = families
-                .entry(family)
-                .or_default();
+            let entry = families.entry(family).or_default();
             for ch in content.chars() {
                 entry.codepoints.insert(ch as u32);
             }
@@ -667,8 +676,7 @@ fn emit_image_pipeline(
             .file_stem()
             .and_then(|s| s.to_str())
             .unwrap_or("image");
-        if let Ok(processed) =
-            crate::assets::image_pipeline::process_image(source_bytes, base_name)
+        if let Ok(processed) = crate::assets::image_pipeline::process_image(source_bytes, base_name)
         {
             let picture = crate::assets::image_pipeline::picture_html(
                 &processed,

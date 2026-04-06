@@ -70,11 +70,7 @@ pub fn compile_to_wat(json: &str) -> Result<WasmCompileResult> {
     })
 }
 
-fn walk_for_wasm(
-    children: &[Value],
-    functions: &mut Vec<String>,
-    exports: &mut Vec<String>,
-) {
+fn walk_for_wasm(children: &[Value], functions: &mut Vec<String>, exports: &mut Vec<String>) {
     for child in children {
         let type_name = child
             .get("value_type")
@@ -102,8 +98,7 @@ fn walk_for_wasm(
                     .unwrap_or("compute");
                 let func_name = id.replace('-', "_");
 
-                let (func_wat, export_wat) =
-                    compute::compile_compute_node(&value, &func_name);
+                let (func_wat, export_wat) = compute::compile_compute_node(&value, &func_name);
                 functions.push(func_wat);
                 exports.push(export_wat);
             }

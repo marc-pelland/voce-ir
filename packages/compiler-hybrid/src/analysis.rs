@@ -8,8 +8,8 @@
 use anyhow::{Context, Result};
 use serde_json::Value;
 
-use crate::device::DeviceProfile;
 use crate::CompileTarget;
+use crate::device::DeviceProfile;
 
 /// A node with its assigned compile target.
 #[derive(Debug, Clone)]
@@ -87,9 +87,15 @@ fn select_target(
         // 3D nodes → WebGPU (if available)
         "Scene3D" | "MeshNode" | "ShaderNode" | "ParticleSystem" => {
             if device.has_webgpu {
-                (CompileTarget::WebGpu, "3D node, WebGPU available".to_string())
+                (
+                    CompileTarget::WebGpu,
+                    "3D node, WebGPU available".to_string(),
+                )
             } else {
-                (CompileTarget::Dom, "3D node, WebGPU not available — Canvas 2D fallback".to_string())
+                (
+                    CompileTarget::Dom,
+                    "3D node, WebGPU not available — Canvas 2D fallback".to_string(),
+                )
             }
         }
 
@@ -105,9 +111,17 @@ fn select_target(
                 .map_or(0, |a| a.len());
 
             if state_count > 10 || transition_count > 20 {
-                (CompileTarget::Wasm, format!("complex state machine ({state_count} states, {transition_count} transitions)"))
+                (
+                    CompileTarget::Wasm,
+                    format!(
+                        "complex state machine ({state_count} states, {transition_count} transitions)"
+                    ),
+                )
             } else {
-                (CompileTarget::Dom, format!("simple state machine ({state_count} states) — JS is sufficient"))
+                (
+                    CompileTarget::Dom,
+                    format!("simple state machine ({state_count} states) — JS is sufficient"),
+                )
             }
         }
 
@@ -117,10 +131,14 @@ fn select_target(
                 .get("expression")
                 .and_then(|v| v.as_str())
                 .unwrap_or("");
-            let is_complex = expr.len() > 50 || expr.matches('+').count() + expr.matches('*').count() > 3;
+            let is_complex =
+                expr.len() > 50 || expr.matches('+').count() + expr.matches('*').count() > 3;
 
             if is_complex {
-                (CompileTarget::Wasm, "complex compute expression".to_string())
+                (
+                    CompileTarget::Wasm,
+                    "complex compute expression".to_string(),
+                )
             } else {
                 (CompileTarget::Dom, "simple compute — inline JS".to_string())
             }

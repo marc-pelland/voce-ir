@@ -3,9 +3,9 @@
 //! Phase 1: Emit correct `<picture>` markup with responsive srcset.
 //! Phase 2: Real image processing (WebP generation, resize, BlurHash).
 
+pub mod font_pipeline;
 #[cfg(feature = "image-pipeline")]
 pub mod image_pipeline;
-pub mod font_pipeline;
 
 /// Standard responsive breakpoint widths for srcset generation.
 pub const RESPONSIVE_WIDTHS: &[u32] = &[320, 640, 768, 1024, 1280, 1920];

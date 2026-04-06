@@ -16,19 +16,15 @@ fn workspace_root() -> PathBuf {
 }
 
 fn load_landing_page() -> String {
-    fs::read_to_string(
-        workspace_root().join("examples/landing-page/landing-page.voce.json"),
-    )
-    .expect("Failed to load landing page fixture")
+    fs::read_to_string(workspace_root().join("examples/landing-page/landing-page.voce.json"))
+        .expect("Failed to load landing page fixture")
 }
 
 fn bench_validate_landing_page(c: &mut Criterion) {
     let json = load_landing_page();
 
     c.bench_function("validate_landing_page", |b| {
-        b.iter(|| {
-            voce_validator::validate(black_box(&json)).unwrap()
-        })
+        b.iter(|| voce_validator::validate(black_box(&json)).unwrap())
     });
 }
 

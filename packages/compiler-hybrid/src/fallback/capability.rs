@@ -27,5 +27,6 @@ window.__voce_capabilities = {
   Active renderer: ${c.renderer}`;
   }
 };
-"#.to_string()
+"#
+    .to_string()
 }

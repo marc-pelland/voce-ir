@@ -56,17 +56,13 @@ pub struct FallbackStack {
 /// Safety codepoints always included in subsets (digits, punctuation, common symbols).
 const SAFETY_CODEPOINTS: &[u32] = &[
     // Space, basic punctuation
-    0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E,
-    0x2F,
+    0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F,
     // Digits
-    0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39,
-    // More punctuation
-    0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F, 0x40,
-    // Common symbols
+    0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, // More punctuation
+    0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F, 0x40, // Common symbols
     0x5B, 0x5C, 0x5D, 0x5E, 0x5F, 0x60, 0x7B, 0x7C, 0x7D, 0x7E,
     // Non-breaking space, en-dash, em-dash, ellipsis
-    0xA0, 0x2013, 0x2014, 0x2026,
-    // Smart quotes
+    0xA0, 0x2013, 0x2014, 0x2026, // Smart quotes
     0x2018, 0x2019, 0x201C, 0x201D,
 ];
 
@@ -97,7 +93,10 @@ fn collect_from_node(node: &serde_json::Value, usage: &mut FontUsage, above_fold
         .get("value_type")
         .and_then(|v| v.as_str())
         .unwrap_or("");
-    let value = node.get("value").cloned().unwrap_or(serde_json::Value::Null);
+    let value = node
+        .get("value")
+        .cloned()
+        .unwrap_or(serde_json::Value::Null);
 
     if type_name == "TextNode" {
         let content = value.get("content").and_then(|v| v.as_str()).unwrap_or("");
@@ -203,9 +202,7 @@ pub fn font_face_css(
 
 /// Generate a preload `<link>` tag for a font file.
 pub fn preload_link(url: &str) -> String {
-    format!(
-        "<link rel=\"preload\" as=\"font\" type=\"font/woff2\" href=\"{url}\" crossorigin>"
-    )
+    format!("<link rel=\"preload\" as=\"font\" type=\"font/woff2\" href=\"{url}\" crossorigin>")
 }
 
 /// Get a system font fallback stack with metric adjustments for a given font family.
@@ -344,7 +341,8 @@ mod tests {
 
     #[test]
     fn collect_font_usage_from_ir() {
-        let ir: serde_json::Value = serde_json::from_str(r#"{
+        let ir: serde_json::Value = serde_json::from_str(
+            r#"{
             "root": {
                 "node_id": "root",
                 "children": [
@@ -359,7 +357,9 @@ mod tests {
                     }
                 ]
             }
-        }"#).unwrap();
+        }"#,
+        )
+        .unwrap();
 
         let usage = collect_font_usage(&ir);
         let inter = usage.families.get("Inter").unwrap();

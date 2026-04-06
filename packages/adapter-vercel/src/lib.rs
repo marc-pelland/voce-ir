@@ -71,10 +71,7 @@ impl Adapter for VercelAdapter {
 
         // Serverless functions from ActionNodes
         for action in &compiled.actions {
-            let route_name = action
-                .route
-                .trim_start_matches('/')
-                .replace('/', "-");
+            let route_name = action.route.trim_start_matches('/').replace('/', "-");
             let func_dir = format!("functions/api/{route_name}.func");
 
             // Function handler
@@ -206,15 +203,21 @@ mod tests {
             .unwrap();
 
         assert!(bundle.files.contains_key(&PathBuf::from("config.json")));
-        assert!(bundle
-            .files
-            .contains_key(&PathBuf::from("static/index.html")));
-        assert!(bundle
-            .files
-            .contains_key(&PathBuf::from("functions/api/contact.func/index.js")));
-        assert!(bundle.files.contains_key(&PathBuf::from(
-            "functions/api/contact.func/.vc-config.json"
-        )));
+        assert!(
+            bundle
+                .files
+                .contains_key(&PathBuf::from("static/index.html"))
+        );
+        assert!(
+            bundle
+                .files
+                .contains_key(&PathBuf::from("functions/api/contact.func/index.js"))
+        );
+        assert!(
+            bundle
+                .files
+                .contains_key(&PathBuf::from("functions/api/contact.func/.vc-config.json"))
+        );
     }
 
     #[test]
@@ -240,10 +243,7 @@ mod tests {
             .prepare(&sample_with_action(), &DeployConfig::default())
             .unwrap();
 
-        let config_bytes = bundle
-            .files
-            .get(&PathBuf::from("config.json"))
-            .unwrap();
+        let config_bytes = bundle.files.get(&PathBuf::from("config.json")).unwrap();
         let config: serde_json::Value = serde_json::from_slice(config_bytes).unwrap();
         assert_eq!(config["version"], 3);
     }

@@ -9,4 +9,4 @@ pub mod pipeline;
 pub mod scene;
 pub mod shaders;
 
-pub use pipeline::{compile_webgpu, WebGpuCompileOptions, WebGpuCompileResult};
+pub use pipeline::{WebGpuCompileOptions, WebGpuCompileResult, compile_webgpu};

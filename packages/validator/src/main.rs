@@ -160,7 +160,10 @@ fn main() {
                 let report = serde_json::json!({
                     "errors": [{ "code": "INTERNAL", "message": format!("{e:#}"), "suggestion": "Check the input file and try again" }]
                 });
-                eprintln!("{}", serde_json::to_string_pretty(&report).unwrap_or_default());
+                eprintln!(
+                    "{}",
+                    serde_json::to_string_pretty(&report).unwrap_or_default()
+                );
             } else {
                 eprintln!("voce: {e:#}");
             }
@@ -188,7 +191,14 @@ fn run(cli: Cli) -> Result<i32> {
             skip_fonts,
             minify,
             no_cache,
-        } => cmd_compile(&file, output.as_deref(), debug, skip_fonts, minify, no_cache),
+        } => cmd_compile(
+            &file,
+            output.as_deref(),
+            debug,
+            skip_fonts,
+            minify,
+            no_cache,
+        ),
         Commands::Report { file, format } => cmd_report(&file, &format),
         Commands::Manifest { file } => cmd_manifest(&file),
         Commands::Preview { file } => cmd_preview(&file),
@@ -300,7 +310,14 @@ fn cmd_bin2json(input: &PathBuf, output: Option<&std::path::Path>) -> Result<i32
     }
 }
 
-fn cmd_compile(file: &PathBuf, output: Option<&std::path::Path>, debug: bool, skip_fonts: bool, minify: bool, no_cache: bool) -> Result<i32> {
+fn cmd_compile(
+    file: &PathBuf,
+    output: Option<&std::path::Path>,
+    debug: bool,
+    skip_fonts: bool,
+    minify: bool,
+    no_cache: bool,
+) -> Result<i32> {
     let json = std::fs::read_to_string(file)
         .with_context(|| format!("Failed to read {}", file.display()))?;
 
@@ -333,7 +350,9 @@ fn cmd_compile(file: &PathBuf, output: Option<&std::path::Path>, debug: bool, sk
             std::fs::write(&out_path, &cached_html)?;
             eprintln!(
                 "✓ Cache hit: {} → {} ({} bytes)",
-                file.display(), out_path.display(), size
+                file.display(),
+                out_path.display(),
+                size
             );
             return Ok(0);
         }
@@ -556,9 +575,7 @@ fn cmd_deploy(file: &PathBuf, adapter_name: Option<&str>, dry_run: bool) -> Resu
         "cloudflare" => Box::new(voce_adapter_cloudflare::CloudflareAdapter::default()),
         "netlify" => Box::new(voce_adapter_netlify::NetlifyAdapter::default()),
         other => {
-            eprintln!(
-                "Unknown adapter: {other}. Available: static, vercel, cloudflare, netlify"
-            );
+            eprintln!("Unknown adapter: {other}. Available: static, vercel, cloudflare, netlify");
             return Ok(2);
         }
     };

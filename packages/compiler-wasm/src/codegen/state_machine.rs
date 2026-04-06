@@ -79,9 +79,7 @@ pub fn compile_state_machine(value: &Value, func_name: &str) -> (String, String)
         let to_id = state_ids.get(to.as_str()).copied().unwrap_or(-1);
         let event_id = event_ids.get(event.as_str()).copied().unwrap_or(-1);
 
-        func.push_str(&format!(
-            "    ;; {from} + {event} → {to}\n"
-        ));
+        func.push_str(&format!("    ;; {from} + {event} → {to}\n"));
         func.push_str(&format!(
             "    (if (i32.and (i32.eq (local.get $state) (i32.const {from_id})) (i32.eq (local.get $event) (i32.const {event_id})))\n"
         ));

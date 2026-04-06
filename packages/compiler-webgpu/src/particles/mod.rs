@@ -26,8 +26,13 @@ pub struct ParticleConfig {
 pub enum EmitterShape {
     #[default]
     Point,
-    Sphere { radius: f32 },
-    Cone { angle: f32, radius: f32 },
+    Sphere {
+        radius: f32,
+    },
+    Cone {
+        angle: f32,
+        radius: f32,
+    },
 }
 
 impl Default for ParticleConfig {

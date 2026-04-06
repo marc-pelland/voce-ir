@@ -72,32 +72,68 @@ impl std::fmt::Display for ErrorCode {
 
 impl ErrorCode {
     // Schema errors
-    pub fn schema_parse() -> Self { Self("S001".to_string()) }
-    pub fn schema_version() -> Self { Self("S002".to_string()) }
-    pub fn schema_missing_root() -> Self { Self("S003".to_string()) }
+    pub fn schema_parse() -> Self {
+        Self("S001".to_string())
+    }
+    pub fn schema_version() -> Self {
+        Self("S002".to_string())
+    }
+    pub fn schema_missing_root() -> Self {
+        Self("S003".to_string())
+    }
 
     // Compilation errors
-    pub fn compile_node_failed() -> Self { Self("C001".to_string()) }
-    pub fn compile_timeout() -> Self { Self("C002".to_string()) }
-    pub fn compile_unsupported_node() -> Self { Self("C003".to_string()) }
-    pub fn compile_asset_failed() -> Self { Self("C004".to_string()) }
+    pub fn compile_node_failed() -> Self {
+        Self("C001".to_string())
+    }
+    pub fn compile_timeout() -> Self {
+        Self("C002".to_string())
+    }
+    pub fn compile_unsupported_node() -> Self {
+        Self("C003".to_string())
+    }
+    pub fn compile_asset_failed() -> Self {
+        Self("C004".to_string())
+    }
 
     // Deployment errors
-    pub fn deploy_adapter_not_found() -> Self { Self("D001".to_string()) }
-    pub fn deploy_bundle_failed() -> Self { Self("D002".to_string()) }
-    pub fn deploy_upload_failed() -> Self { Self("D003".to_string()) }
-    pub fn deploy_config_invalid() -> Self { Self("D004".to_string()) }
+    pub fn deploy_adapter_not_found() -> Self {
+        Self("D001".to_string())
+    }
+    pub fn deploy_bundle_failed() -> Self {
+        Self("D002".to_string())
+    }
+    pub fn deploy_upload_failed() -> Self {
+        Self("D003".to_string())
+    }
+    pub fn deploy_config_invalid() -> Self {
+        Self("D004".to_string())
+    }
 
     // Pipeline errors
-    pub fn pipeline_timeout() -> Self { Self("P001".to_string()) }
-    pub fn pipeline_interrupted() -> Self { Self("P002".to_string()) }
+    pub fn pipeline_timeout() -> Self {
+        Self("P001".to_string())
+    }
+    pub fn pipeline_interrupted() -> Self {
+        Self("P002".to_string())
+    }
 
     // AI bridge errors
-    pub fn ai_api_error() -> Self { Self("A001".to_string()) }
-    pub fn ai_rate_limited() -> Self { Self("A002".to_string()) }
-    pub fn ai_timeout() -> Self { Self("A003".to_string()) }
-    pub fn ai_incomplete_output() -> Self { Self("A004".to_string()) }
-    pub fn ai_key_invalid() -> Self { Self("A005".to_string()) }
+    pub fn ai_api_error() -> Self {
+        Self("A001".to_string())
+    }
+    pub fn ai_rate_limited() -> Self {
+        Self("A002".to_string())
+    }
+    pub fn ai_timeout() -> Self {
+        Self("A003".to_string())
+    }
+    pub fn ai_incomplete_output() -> Self {
+        Self("A004".to_string())
+    }
+    pub fn ai_key_invalid() -> Self {
+        Self("A005".to_string())
+    }
 }
 
 /// Error severity levels.
@@ -135,42 +171,69 @@ pub struct ErrorReport {
 impl From<&VoceError> for ErrorReport {
     fn from(err: &VoceError) -> Self {
         match err {
-            VoceError::Schema { code, message, suggestion } => ErrorReport {
+            VoceError::Schema {
+                code,
+                message,
+                suggestion,
+            } => ErrorReport {
                 code: code.0.clone(),
                 severity: "error".to_string(),
                 message: message.clone(),
                 node_path: None,
                 suggestion: suggestion.clone(),
             },
-            VoceError::Validation { code, message, node_path, suggestion, severity } => ErrorReport {
+            VoceError::Validation {
+                code,
+                message,
+                node_path,
+                suggestion,
+                severity,
+            } => ErrorReport {
                 code: code.0.clone(),
                 severity: severity.to_string(),
                 message: message.clone(),
                 node_path: Some(node_path.clone()),
                 suggestion: suggestion.clone(),
             },
-            VoceError::Compilation { code, message, node_path, suggestion } => ErrorReport {
+            VoceError::Compilation {
+                code,
+                message,
+                node_path,
+                suggestion,
+            } => ErrorReport {
                 code: code.0.clone(),
                 severity: "error".to_string(),
                 message: message.clone(),
                 node_path: Some(node_path.clone()),
                 suggestion: suggestion.clone(),
             },
-            VoceError::Deployment { code, message, suggestion } => ErrorReport {
+            VoceError::Deployment {
+                code,
+                message,
+                suggestion,
+            } => ErrorReport {
                 code: code.0.clone(),
                 severity: "error".to_string(),
                 message: message.clone(),
                 node_path: None,
                 suggestion: suggestion.clone(),
             },
-            VoceError::Pipeline { code, message, suggestion } => ErrorReport {
+            VoceError::Pipeline {
+                code,
+                message,
+                suggestion,
+            } => ErrorReport {
                 code: code.0.clone(),
                 severity: "error".to_string(),
                 message: message.clone(),
                 node_path: None,
                 suggestion: suggestion.clone(),
             },
-            VoceError::AiBridge { code, message, suggestion } => ErrorReport {
+            VoceError::AiBridge {
+                code,
+                message,
+                suggestion,
+            } => ErrorReport {
                 code: code.0.clone(),
                 severity: "error".to_string(),
                 message: message.clone(),

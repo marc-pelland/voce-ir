@@ -56,11 +56,17 @@ pub fn compile_email(json: &str) -> Result<EmailResult> {
     html.push_str("</table>\n</td>\n</tr>\n</table>\n</body>\n</html>\n");
 
     let size = html.len();
-    Ok(EmailResult { html, size_bytes: size })
+    Ok(EmailResult {
+        html,
+        size_bytes: size,
+    })
 }
 
 fn emit_email_node(html: &mut String, child: &Value) {
-    let type_name = child.get("value_type").and_then(|v| v.as_str()).unwrap_or("");
+    let type_name = child
+        .get("value_type")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
     let value = child.get("value").cloned().unwrap_or(Value::Null);
 
     match type_name {
@@ -71,7 +77,10 @@ fn emit_email_node(html: &mut String, child: &Value) {
             html.push_str(&format!("<tr>\n<td style=\"{bg}{padding}\">\n"));
 
             // Nested table for columns
-            let direction = value.get("direction").and_then(|v| v.as_str()).unwrap_or("Column");
+            let direction = value
+                .get("direction")
+                .and_then(|v| v.as_str())
+                .unwrap_or("Column");
             if direction == "Row" {
                 html.push_str("<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%\"><tr>\n");
                 if let Some(children) = value.get("children").and_then(|v| v.as_array()) {
@@ -84,27 +93,51 @@ fn emit_email_node(html: &mut String, child: &Value) {
                 }
                 html.push_str("</tr></table>\n");
             } else if let Some(children) = value.get("children").and_then(|v| v.as_array()) {
-                    html.push_str("<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%\">\n");
-                    for c in children {
-                        emit_email_node(html, c);
-                    }
-                    html.push_str("</table>\n");
+                html.push_str("<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%\">\n");
+                for c in children {
+                    emit_email_node(html, c);
+                }
+                html.push_str("</table>\n");
             }
 
             html.push_str("</td>\n</tr>\n");
         }
         "TextNode" => {
             let content = value.get("content").and_then(|v| v.as_str()).unwrap_or("");
-            let heading = value.get("heading_level").and_then(|v| v.as_i64()).unwrap_or(0);
-            let size = value.get("font_size").and_then(|f| f.get("value")).and_then(|v| v.as_f64()).unwrap_or(16.0);
-            let weight = value.get("font_weight").and_then(|v| v.as_str()).unwrap_or("Regular");
+            let heading = value
+                .get("heading_level")
+                .and_then(|v| v.as_i64())
+                .unwrap_or(0);
+            let size = value
+                .get("font_size")
+                .and_then(|f| f.get("value"))
+                .and_then(|v| v.as_f64())
+                .unwrap_or(16.0);
+            let weight = value
+                .get("font_weight")
+                .and_then(|v| v.as_str())
+                .unwrap_or("Regular");
             let color = color_style(&value, "color");
-            let align = value.get("text_align").and_then(|v| v.as_str()).unwrap_or("Start");
-            let text_align = match align { "Center" => "center", "End" => "right", _ => "left" };
+            let align = value
+                .get("text_align")
+                .and_then(|v| v.as_str())
+                .unwrap_or("Start");
+            let text_align = match align {
+                "Center" => "center",
+                "End" => "right",
+                _ => "left",
+            };
 
-            let fw = match weight { "Bold" | "SemiBold" | "ExtraBold" | "Black" => "bold", _ => "normal" };
+            let fw = match weight {
+                "Bold" | "SemiBold" | "ExtraBold" | "Black" => "bold",
+                _ => "normal",
+            };
 
-            let tag = if (1..=6).contains(&heading) { format!("h{heading}") } else { "p".to_string() };
+            let tag = if (1..=6).contains(&heading) {
+                format!("h{heading}")
+            } else {
+                "p".to_string()
+            };
 
             html.push_str(&format!(
                 "<tr><td style=\"font-family:Arial,Helvetica,sans-serif;font-size:{size:.0}px;font-weight:{fw};{color}text-align:{text_align};padding:4px 0\"><{tag} style=\"margin:0\">{content}</{tag}></td></tr>\n"
@@ -113,10 +146,21 @@ fn emit_email_node(html: &mut String, child: &Value) {
         "Surface" => {
             let bg = color_style_field(&value, "fill");
             let padding = padding_style(&value);
-            let radius = value.get("corner_radius").and_then(|cr| cr.get("top_left")).and_then(|v| v.get("value")).and_then(|v| v.as_f64()).unwrap_or(0.0);
-            let border_radius = if radius > 0.0 { format!("border-radius:{radius:.0}px;") } else { String::new() };
+            let radius = value
+                .get("corner_radius")
+                .and_then(|cr| cr.get("top_left"))
+                .and_then(|v| v.get("value"))
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0);
+            let border_radius = if radius > 0.0 {
+                format!("border-radius:{radius:.0}px;")
+            } else {
+                String::new()
+            };
 
-            html.push_str(&format!("<tr><td style=\"{bg}{padding}{border_radius}\">\n"));
+            html.push_str(&format!(
+                "<tr><td style=\"{bg}{padding}{border_radius}\">\n"
+            ));
             if let Some(children) = value.get("children").and_then(|v| v.as_array()) {
                 html.push_str("<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%\">\n");
                 for c in children {
@@ -142,21 +186,47 @@ fn color_style(value: &Value, field: &str) -> String {
 }
 
 fn color_style_field(value: &Value, field: &str) -> String {
-    value.get(field).and_then(|c| {
-        let r = c.get("r")?.as_u64()?;
-        let g = c.get("g")?.as_u64()?;
-        let b = c.get("b")?.as_u64()?;
-        let prop = if field == "color" { "color" } else { "background-color" };
-        Some(format!("{prop}:rgb({r},{g},{b});"))
-    }).unwrap_or_default()
+    value
+        .get(field)
+        .and_then(|c| {
+            let r = c.get("r")?.as_u64()?;
+            let g = c.get("g")?.as_u64()?;
+            let b = c.get("b")?.as_u64()?;
+            let prop = if field == "color" {
+                "color"
+            } else {
+                "background-color"
+            };
+            Some(format!("{prop}:rgb({r},{g},{b});"))
+        })
+        .unwrap_or_default()
 }
 
 fn padding_style(value: &Value) -> String {
-    value.get("padding").map(|p| {
-        let top = p.get("top").and_then(|v| v.get("value")).and_then(|v| v.as_f64()).unwrap_or(0.0);
-        let right = p.get("right").and_then(|v| v.get("value")).and_then(|v| v.as_f64()).unwrap_or(0.0);
-        let bottom = p.get("bottom").and_then(|v| v.get("value")).and_then(|v| v.as_f64()).unwrap_or(0.0);
-        let left = p.get("left").and_then(|v| v.get("value")).and_then(|v| v.as_f64()).unwrap_or(0.0);
-        format!("padding:{top:.0}px {right:.0}px {bottom:.0}px {left:.0}px;")
-    }).unwrap_or_default()
+    value
+        .get("padding")
+        .map(|p| {
+            let top = p
+                .get("top")
+                .and_then(|v| v.get("value"))
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0);
+            let right = p
+                .get("right")
+                .and_then(|v| v.get("value"))
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0);
+            let bottom = p
+                .get("bottom")
+                .and_then(|v| v.get("value"))
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0);
+            let left = p
+                .get("left")
+                .and_then(|v| v.get("value"))
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0);
+            format!("padding:{top:.0}px {right:.0}px {bottom:.0}px {left:.0}px;")
+        })
+        .unwrap_or_default()
 }

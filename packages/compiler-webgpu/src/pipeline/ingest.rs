@@ -85,14 +85,8 @@ fn extract_camera(cam: &Value) -> Camera {
     Camera {
         position: extract_vec3(cam.get("position"), [0.0, 2.0, 5.0]),
         target: extract_vec3(cam.get("target"), [0.0, 0.0, 0.0]),
-        fov_degrees: cam
-            .get("fov")
-            .and_then(|v| v.as_f64())
-            .unwrap_or(45.0) as f32,
-        orbit_enabled: cam
-            .get("orbit")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(true),
+        fov_degrees: cam.get("fov").and_then(|v| v.as_f64()).unwrap_or(45.0) as f32,
+        orbit_enabled: cam.get("orbit").and_then(|v| v.as_bool()).unwrap_or(true),
         ..Default::default()
     }
 }
@@ -125,9 +119,15 @@ fn extract_mesh(value: &Value) -> Mesh {
 fn extract_vec3(val: Option<&Value>, default: [f32; 3]) -> [f32; 3] {
     val.map(|v| {
         [
-            v.get("x").and_then(|n| n.as_f64()).unwrap_or(default[0] as f64) as f32,
-            v.get("y").and_then(|n| n.as_f64()).unwrap_or(default[1] as f64) as f32,
-            v.get("z").and_then(|n| n.as_f64()).unwrap_or(default[2] as f64) as f32,
+            v.get("x")
+                .and_then(|n| n.as_f64())
+                .unwrap_or(default[0] as f64) as f32,
+            v.get("y")
+                .and_then(|n| n.as_f64())
+                .unwrap_or(default[1] as f64) as f32,
+            v.get("z")
+                .and_then(|n| n.as_f64())
+                .unwrap_or(default[2] as f64) as f32,
         ]
     })
     .unwrap_or(default)

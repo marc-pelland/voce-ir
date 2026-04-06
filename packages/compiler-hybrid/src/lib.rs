@@ -65,13 +65,13 @@ pub fn compile_hybrid(json: &str, options: &HybridCompileOptions) -> Result<Hybr
     let node_targets = analysis::analyze_targets(json, &options.device, options.force_target)?;
 
     // Phase 2: Compile DOM nodes
-    let dom_result = voce_compiler_dom::compile(
-        json,
-        &voce_compiler_dom::CompileOptions::default(),
-    )?;
+    let dom_result =
+        voce_compiler_dom::compile(json, &voce_compiler_dom::CompileOptions::default())?;
 
     // Phase 3: Check for WebGPU/WASM nodes
-    let has_webgpu = node_targets.iter().any(|t| t.target == CompileTarget::WebGpu);
+    let has_webgpu = node_targets
+        .iter()
+        .any(|t| t.target == CompileTarget::WebGpu);
     let has_wasm = node_targets.iter().any(|t| t.target == CompileTarget::Wasm);
 
     let wasm_result = if has_wasm {
@@ -99,8 +99,14 @@ pub fn compile_hybrid(json: &str, options: &HybridCompileOptions) -> Result<Hybr
     let size_bytes = html.len();
 
     let target_summary = TargetSummary {
-        dom_nodes: node_targets.iter().filter(|t| t.target == CompileTarget::Dom).count(),
-        webgpu_nodes: node_targets.iter().filter(|t| t.target == CompileTarget::WebGpu).count(),
+        dom_nodes: node_targets
+            .iter()
+            .filter(|t| t.target == CompileTarget::Dom)
+            .count(),
+        webgpu_nodes: node_targets
+            .iter()
+            .filter(|t| t.target == CompileTarget::WebGpu)
+            .count(),
         wasm_functions: wasm_result.as_ref().map_or(0, |r| r.function_count),
     };
 
