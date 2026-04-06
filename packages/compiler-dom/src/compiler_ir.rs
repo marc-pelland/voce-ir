@@ -32,6 +32,17 @@ pub struct CompilerIr {
     pub forms: Vec<CompiledForm>,
     /// Semantic nodes indexed by their node_id for ARIA emission.
     pub semantic_map: HashMap<String, SemanticInfo>,
+    /// Responsive rules — media queries with property overrides.
+    pub responsive_rules: Vec<CompiledResponsiveRule>,
+}
+
+/// A responsive media query rule.
+#[derive(Debug, Clone)]
+pub struct CompiledResponsiveRule {
+    /// Minimum viewport width (in px) for this rule.
+    pub min_width_px: f64,
+    /// Property overrides: (target_node_id, css_property, css_value).
+    pub overrides: Vec<(String, String, String)>,
 }
 
 /// Semantic information for ARIA attribute emission.
@@ -63,6 +74,8 @@ pub struct CompiledFormField {
     pub autocomplete: Option<String>,
     pub validations: Vec<CompiledValidationRule>,
     pub description: Option<String>,
+    /// Options for Select, Radio fields.
+    pub options: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -163,11 +176,15 @@ pub enum NodeKind {
     },
     Surface {
         decorative: bool,
+        href: Option<String>,
+        target: Option<String>,
     },
     Text {
         content: String,
         heading_level: i8,
-        tag: String, // "h1"-"h6", "p", "span"
+        tag: String, // "h1"-"h6", "p", "span", "a"
+        href: Option<String>,
+        target: Option<String>,
     },
     Media {
         src: String,
@@ -176,6 +193,10 @@ pub enum NodeKind {
         decorative: bool,
         above_fold: bool,
     },
+    /// Rich text content — paragraphs, headings, lists, tables, code blocks.
+    RichText {
+        blocks: Vec<RichTextBlock>,
+    },
     /// Catch-all for nodes the compiler doesn't emit HTML for directly
     /// (StateMachine, GestureHandler, AnimationTransition, etc.)
     /// These contribute JS or metadata, not HTML structure.
@@ -183,4 +204,24 @@ pub enum NodeKind {
         type_name: String,
         data: serde_json::Value,
     },
+}
+
+/// A block in a RichTextNode.
+#[derive(Debug)]
+pub struct RichTextBlock {
+    pub block_type: String,
+    pub level: i8,
+    pub children: Vec<RichTextSpan>,
+    pub media_src: Option<String>,
+    pub media_alt: Option<String>,
+    pub code_language: Option<String>,
+    pub rows: Vec<RichTextBlock>,
+}
+
+/// An inline span within a rich text block.
+#[derive(Debug)]
+pub struct RichTextSpan {
+    pub text: String,
+    pub marks: Vec<String>,
+    pub link_url: Option<String>,
 }

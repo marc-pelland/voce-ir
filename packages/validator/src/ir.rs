@@ -68,6 +68,7 @@ pub struct TextNode {
     pub content_binding: Option<serde_json::Value>,
     pub localized_content: Option<LocalizedString>,
     pub heading_level: Option<i8>,
+    pub href: Option<String>,
     pub semantic_node_id: Option<String>,
 }
 

@@ -468,6 +468,60 @@ fn dom_output_has_title() {
 // Performance regression test
 // ============================================================
 
+// ============================================================
+// Links and semantic HTML
+// ============================================================
+
+#[test]
+fn text_with_href_emits_anchor_tag() {
+    let json = fixture("links-and-nav.voce.json");
+    let result = voce_compiler_dom::compile(&json, &Default::default()).unwrap();
+    assert!(result.html.contains("<a href=\"/\""));
+    assert!(result.html.contains("<a href=\"/about\""));
+    assert!(result.html.contains("Home</a>"));
+    assert!(result.html.contains("About</a>"));
+}
+
+#[test]
+fn external_link_has_noopener() {
+    let json = fixture("links-and-nav.voce.json");
+    let result = voce_compiler_dom::compile(&json, &Default::default()).unwrap();
+    assert!(result.html.contains("target=\"_blank\""));
+    assert!(result.html.contains("rel=\"noopener noreferrer\""));
+}
+
+#[test]
+fn surface_with_href_emits_anchor_wrapper() {
+    let json = fixture("links-and-nav.voce.json");
+    let result = voce_compiler_dom::compile(&json, &Default::default()).unwrap();
+    assert!(result.html.contains("<a href=\"/get-started\""));
+    assert!(result.html.contains("Get Started"));
+}
+
+#[test]
+fn semantic_nav_emits_nav_element() {
+    let json = fixture("links-and-nav.voce.json");
+    let result = voce_compiler_dom::compile(&json, &Default::default()).unwrap();
+    assert!(result.html.contains("<nav "));
+    assert!(result.html.contains("</nav>"));
+}
+
+#[test]
+fn semantic_main_emits_main_element() {
+    let json = fixture("links-and-nav.voce.json");
+    let result = voce_compiler_dom::compile(&json, &Default::default()).unwrap();
+    assert!(result.html.contains("<main "));
+    assert!(result.html.contains("</main>"));
+}
+
+#[test]
+fn semantic_footer_emits_footer_element() {
+    let json = fixture("links-and-nav.voce.json");
+    let result = voce_compiler_dom::compile(&json, &Default::default()).unwrap();
+    assert!(result.html.contains("<footer "));
+    assert!(result.html.contains("</footer>"));
+}
+
 #[test]
 fn compilation_under_500ms() {
     let json = landing_page();

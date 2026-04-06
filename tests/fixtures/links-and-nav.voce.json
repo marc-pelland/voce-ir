@@ -1,0 +1,67 @@
+{
+  "schema_version_major": 1,
+  "schema_version_minor": 0,
+  "root": {
+    "node_id": "root",
+    "viewport_width": { "value": 1024, "unit": "Px" },
+    "metadata": { "title": "Links Test", "description": "Tests link and semantic HTML support." },
+    "semantic_nodes": [
+      { "node_id": "sem-nav", "role": "navigation", "label": "Main navigation" },
+      { "node_id": "sem-main", "role": "main", "label": "Main content" },
+      { "node_id": "sem-footer", "role": "contentinfo", "label": "Footer" }
+    ],
+    "children": [
+      {
+        "value_type": "Container",
+        "value": {
+          "node_id": "nav",
+          "direction": "Row",
+          "gap": { "value": 16, "unit": "Px" },
+          "semantic_node_id": "sem-nav",
+          "children": [
+            { "value_type": "TextNode", "value": { "node_id": "nav-home", "content": "Home", "font_size": { "value": 14, "unit": "Px" }, "href": "/" } },
+            { "value_type": "TextNode", "value": { "node_id": "nav-about", "content": "About", "font_size": { "value": 14, "unit": "Px" }, "href": "/about" } },
+            { "value_type": "TextNode", "value": { "node_id": "nav-github", "content": "GitHub", "font_size": { "value": 14, "unit": "Px" }, "href": "https://github.com/example", "target": "_blank" } }
+          ]
+        }
+      },
+      {
+        "value_type": "Container",
+        "value": {
+          "node_id": "main-content",
+          "direction": "Column",
+          "semantic_node_id": "sem-main",
+          "children": [
+            { "value_type": "TextNode", "value": { "node_id": "title", "content": "Welcome", "heading_level": 1, "font_size": { "value": 36, "unit": "Px" }, "font_weight": "Bold" } },
+            { "value_type": "TextNode", "value": { "node_id": "body", "content": "This is a test page with real navigation links.", "font_size": { "value": 16, "unit": "Px" } } },
+            {
+              "value_type": "Surface",
+              "value": {
+                "node_id": "cta-button",
+                "fill": { "r": 99, "g": 102, "b": 241, "a": 255 },
+                "corner_radius": { "top_left": { "value": 8, "unit": "Px" }, "top_right": { "value": 8, "unit": "Px" }, "bottom_left": { "value": 8, "unit": "Px" }, "bottom_right": { "value": 8, "unit": "Px" } },
+                "padding": { "top": { "value": 12, "unit": "Px" }, "bottom": { "value": 12, "unit": "Px" }, "left": { "value": 24, "unit": "Px" }, "right": { "value": 24, "unit": "Px" } },
+                "href": "/get-started",
+                "children": [
+                  { "value_type": "TextNode", "value": { "node_id": "cta-text", "content": "Get Started", "font_size": { "value": 16, "unit": "Px" }, "font_weight": "SemiBold", "color": { "r": 255, "g": 255, "b": 255, "a": 255 } } }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "value_type": "Container",
+        "value": {
+          "node_id": "footer",
+          "direction": "Row",
+          "semantic_node_id": "sem-footer",
+          "children": [
+            { "value_type": "TextNode", "value": { "node_id": "copyright", "content": "Copyright 2026", "font_size": { "value": 13, "unit": "Px" } } }
+          ]
+        }
+      }
+    ]
+  },
+  "metadata": { "title": "Links Test", "description": "Tests link and semantic HTML support.", "language": "en" }
+}

@@ -97,6 +97,9 @@ pub fn ingest(json: &str) -> Result<CompilerIr> {
     };
     nodes[root_id.0].children = child_ids;
 
+    // Collect responsive rules from ResponsiveRule nodes
+    let responsive_rules = collect_responsive_rules(&nodes);
+
     Ok(CompilerIr {
         nodes,
         root: root_id,
@@ -107,6 +110,7 @@ pub fn ingest(json: &str) -> Result<CompilerIr> {
         animations,
         forms,
         semantic_map,
+        responsive_rules,
     })
 }
 
@@ -258,6 +262,11 @@ fn ingest_children(
                     .get("decorative")
                     .and_then(|v| v.as_bool())
                     .unwrap_or(false),
+                href: value.get("href").and_then(|v| v.as_str()).map(String::from),
+                target: value
+                    .get("target")
+                    .and_then(|v| v.as_str())
+                    .map(String::from),
             },
             "TextNode" => {
                 let content = value
@@ -269,8 +278,15 @@ fn ingest_children(
                     .get("heading_level")
                     .and_then(|v| v.as_i64())
                     .unwrap_or(0) as i8;
+                let href = value.get("href").and_then(|v| v.as_str()).map(String::from);
+                let target = value
+                    .get("target")
+                    .and_then(|v| v.as_str())
+                    .map(String::from);
                 let tag = if (1..=6).contains(&heading_level) {
                     format!("h{heading_level}")
+                } else if href.is_some() {
+                    "a".to_string()
                 } else {
                     "p".to_string()
                 };
@@ -278,6 +294,8 @@ fn ingest_children(
                     content,
                     heading_level,
                     tag,
+                    href,
+                    target,
                 }
             }
             "MediaNode" => NodeKind::Media {
@@ -305,6 +323,14 @@ fn ingest_children(
                     .and_then(|v| v.as_bool())
                     .unwrap_or(false),
             },
+            "RichTextNode" => {
+                let blocks = value
+                    .get("blocks")
+                    .and_then(|v| v.as_array())
+                    .map(|arr| arr.iter().map(parse_rich_text_block).collect())
+                    .unwrap_or_default();
+                NodeKind::RichText { blocks }
+            }
             _ => {
                 // Collect interactive data for JS emission
                 if type_name == "StateMachine" {
@@ -438,6 +464,16 @@ fn extract_form(value: &Value) -> Option<CompiledForm> {
                         })
                         .unwrap_or_default();
 
+                    let options: Vec<String> = f
+                        .get("options")
+                        .and_then(|v| v.as_array())
+                        .map(|arr| {
+                            arr.iter()
+                                .filter_map(|o| o.as_str().map(String::from))
+                                .collect()
+                        })
+                        .unwrap_or_default();
+
                     Some(CompiledFormField {
                         name,
                         field_type,
@@ -446,6 +482,7 @@ fn extract_form(value: &Value) -> Option<CompiledForm> {
                         autocomplete,
                         validations,
                         description,
+                        options,
                     })
                 })
                 .collect()
@@ -760,6 +797,95 @@ fn extract_styles(value: &Value, type_name: &str) -> HashMap<String, String> {
         styles.insert("letter-spacing".to_string(), ls);
     }
 
+    // Text decoration
+    if let Some(td) = value.get("text_decoration").and_then(|v| v.as_str()) {
+        match td {
+            "Underline" => {
+                styles.insert("text-decoration".to_string(), "underline".to_string());
+            }
+            "LineThrough" => {
+                styles.insert("text-decoration".to_string(), "line-through".to_string());
+            }
+            _ => {}
+        }
+    }
+
+    // Text overflow + max lines
+    if let Some(to) = value.get("text_overflow").and_then(|v| v.as_str()) {
+        if to == "Ellipsis" {
+            styles.insert("text-overflow".to_string(), "ellipsis".to_string());
+            styles.insert("overflow".to_string(), "hidden".to_string());
+        }
+    }
+    if let Some(ml) = value.get("max_lines").and_then(|v| v.as_i64()) {
+        if ml > 0 {
+            styles.insert("display".to_string(), "-webkit-box".to_string());
+            styles.insert("-webkit-line-clamp".to_string(), ml.to_string());
+            styles.insert("-webkit-box-orient".to_string(), "vertical".to_string());
+            styles.insert("overflow".to_string(), "hidden".to_string());
+        }
+    }
+
+    // Font family
+    if let Some(ff) = value.get("font_family").and_then(|v| v.as_str()) {
+        if !ff.is_empty() {
+            styles.insert("font-family".to_string(), format!("'{ff}',sans-serif"));
+        }
+    }
+
+    // Border
+    if let Some(border) = value.get("border") {
+        for (side, css_side) in [
+            ("top", "border-top"),
+            ("right", "border-right"),
+            ("bottom", "border-bottom"),
+            ("left", "border-left"),
+        ] {
+            if let Some(b) = border.get(side) {
+                let width = length_to_css(b.get("width"));
+                let bstyle = b
+                    .get("style")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("solid")
+                    .to_lowercase();
+                let color = b
+                    .get("color")
+                    .and_then(|c| {
+                        let r = c.get("r")?.as_u64()?;
+                        let g = c.get("g")?.as_u64()?;
+                        let b_val = c.get("b")?.as_u64()?;
+                        Some(format!("rgb({r},{g},{b_val})"))
+                    })
+                    .unwrap_or_default();
+                if !width.is_empty() {
+                    styles.insert(css_side.to_string(), format!("{width} {bstyle} {color}"));
+                }
+            }
+        }
+    }
+
+    // Grid rows
+    if let Some(rows) = value.get("grid_rows").and_then(|v| v.as_array()) {
+        let row_vals: Vec<String> = rows
+            .iter()
+            .filter_map(|r| {
+                let val = r.get("value")?.as_f64()?;
+                let unit = r.get("unit").and_then(|u| u.as_str()).unwrap_or("Fr");
+                let css_unit = match unit {
+                    "Fr" => "fr",
+                    "Px" => "px",
+                    "Rem" => "rem",
+                    "Percent" => "%",
+                    _ => "fr",
+                };
+                Some(format!("{val}{css_unit}"))
+            })
+            .collect();
+        if !row_vals.is_empty() {
+            styles.insert("grid-template-rows".to_string(), row_vals.join(" "));
+        }
+    }
+
     // Box shadow
     if let Some(shadows) = value.get("shadow").and_then(|v| v.as_array()) {
         let shadow_parts: Vec<String> = shadows
@@ -861,9 +987,136 @@ fn length_to_css(val: Option<&Value>) -> String {
             "Percent" => "%",
             "Vw" => "vw",
             "Vh" => "vh",
+            "Dvh" => "dvh",
+            "Svh" => "svh",
+            "Fr" => "fr",
             _ => "px",
         };
         Some(format!("{num}{css_unit}"))
     })
     .unwrap_or_default()
+}
+
+fn collect_responsive_rules(
+    nodes: &[crate::compiler_ir::CNode],
+) -> Vec<crate::compiler_ir::CompiledResponsiveRule> {
+    let mut rules = Vec::new();
+
+    for node in nodes {
+        if let NodeKind::NonVisual { type_name, data } = &node.kind {
+            if type_name == "ResponsiveRule" {
+                // Parse breakpoints
+                let breakpoints: std::collections::HashMap<String, f64> = data
+                    .get("breakpoints")
+                    .and_then(|v| v.as_array())
+                    .map(|arr| {
+                        arr.iter()
+                            .filter_map(|bp| {
+                                let name = bp.get("name")?.as_str()?;
+                                let min_width = bp
+                                    .get("min_width")
+                                    .and_then(|w| w.get("value"))
+                                    .and_then(|v| v.as_f64())?;
+                                Some((name.to_string(), min_width))
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default();
+
+                // Parse overrides per breakpoint
+                if let Some(overrides) = data.get("responsive_overrides").and_then(|v| v.as_array())
+                {
+                    for override_set in overrides {
+                        let bp_name = override_set
+                            .get("breakpoint_name")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("");
+                        let min_width = breakpoints.get(bp_name).copied().unwrap_or(0.0);
+
+                        let props: Vec<(String, String, String)> = override_set
+                            .get("overrides")
+                            .and_then(|v| v.as_array())
+                            .map(|arr| {
+                                arr.iter()
+                                    .filter_map(|o| {
+                                        let target = o.get("target_node_id")?.as_str()?;
+                                        let property = o.get("property")?.as_str()?;
+                                        let value = o.get("value")?.as_str()?;
+                                        Some((
+                                            target.to_string(),
+                                            property.to_string(),
+                                            value.to_string(),
+                                        ))
+                                    })
+                                    .collect()
+                            })
+                            .unwrap_or_default();
+
+                        if !props.is_empty() {
+                            rules.push(crate::compiler_ir::CompiledResponsiveRule {
+                                min_width_px: min_width,
+                                overrides: props,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    rules
+}
+
+fn parse_rich_text_block(block: &serde_json::Value) -> crate::compiler_ir::RichTextBlock {
+    crate::compiler_ir::RichTextBlock {
+        block_type: block
+            .get("block_type")
+            .and_then(|v| v.as_str())
+            .unwrap_or("Paragraph")
+            .to_string(),
+        level: block.get("level").and_then(|v| v.as_i64()).unwrap_or(0) as i8,
+        children: block
+            .get("children")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .map(|s| crate::compiler_ir::RichTextSpan {
+                        text: s
+                            .get("text")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("")
+                            .to_string(),
+                        marks: s
+                            .get("marks")
+                            .and_then(|v| v.as_array())
+                            .map(|marks| {
+                                marks
+                                    .iter()
+                                    .filter_map(|m| m.as_str().map(String::from))
+                                    .collect()
+                            })
+                            .unwrap_or_default(),
+                        link_url: s.get("link_url").and_then(|v| v.as_str()).map(String::from),
+                    })
+                    .collect()
+            })
+            .unwrap_or_default(),
+        media_src: block
+            .get("media_src")
+            .and_then(|v| v.as_str())
+            .map(String::from),
+        media_alt: block
+            .get("media_alt")
+            .and_then(|v| v.as_str())
+            .map(String::from),
+        code_language: block
+            .get("code_language")
+            .and_then(|v| v.as_str())
+            .map(String::from),
+        rows: block
+            .get("rows")
+            .and_then(|v| v.as_array())
+            .map(|arr| arr.iter().map(parse_rich_text_block).collect())
+            .unwrap_or_default(),
+    }
 }

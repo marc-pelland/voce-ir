@@ -54,7 +54,8 @@
                 "content": "Voce IR",
                 "font_size": { "value": 18, "unit": "Px" },
                 "font_weight": "Bold",
-                "color": { "r": 250, "g": 250, "b": 250, "a": 255 }
+                "color": { "r": 250, "g": 250, "b": 250, "a": 255 },
+                "href": "/"
               }
             },
             {
@@ -63,7 +64,8 @@
                 "node_id": "nav-docs",
                 "content": "Docs",
                 "font_size": { "value": 14, "unit": "Px" },
-                "color": { "r": 161, "g": 161, "b": 170, "a": 255 }
+                "color": { "r": 161, "g": 161, "b": 170, "a": 255 },
+                "href": "/docs"
               }
             },
             {
@@ -72,7 +74,8 @@
                 "node_id": "nav-playground",
                 "content": "Playground",
                 "font_size": { "value": 14, "unit": "Px" },
-                "color": { "r": 161, "g": 161, "b": 170, "a": 255 }
+                "color": { "r": 161, "g": 161, "b": 170, "a": 255 },
+                "href": "/playground"
               }
             },
             {
@@ -81,7 +84,9 @@
                 "node_id": "nav-github",
                 "content": "GitHub",
                 "font_size": { "value": 14, "unit": "Px" },
-                "color": { "r": 161, "g": 161, "b": 170, "a": 255 }
+                "color": { "r": 161, "g": 161, "b": 170, "a": 255 },
+                "href": "https://github.com/marc-pelland/voce-ir",
+                "target": "_blank"
               }
             }
           ]
@@ -136,6 +141,7 @@
                       "fill": { "r": 99, "g": 102, "b": 241, "a": 255 },
                       "corner_radius": { "top_left": { "value": 8, "unit": "Px" }, "top_right": { "value": 8, "unit": "Px" }, "bottom_left": { "value": 8, "unit": "Px" }, "bottom_right": { "value": 8, "unit": "Px" } },
                       "padding": { "top": { "value": 12, "unit": "Px" }, "bottom": { "value": 12, "unit": "Px" }, "left": { "value": 24, "unit": "Px" }, "right": { "value": 24, "unit": "Px" } },
+                      "href": "/docs/getting-started/installation.html",
                       "children": [
                         {
                           "value_type": "TextNode",
@@ -156,6 +162,8 @@
                       "node_id": "cta-secondary",
                       "corner_radius": { "top_left": { "value": 8, "unit": "Px" }, "top_right": { "value": 8, "unit": "Px" }, "bottom_left": { "value": 8, "unit": "Px" }, "bottom_right": { "value": 8, "unit": "Px" } },
                       "padding": { "top": { "value": 12, "unit": "Px" }, "bottom": { "value": 12, "unit": "Px" }, "left": { "value": 24, "unit": "Px" }, "right": { "value": 24, "unit": "Px" } },
+                      "href": "https://github.com/marc-pelland/voce-ir",
+                      "target": "_blank",
                       "children": [
                         {
                           "value_type": "TextNode",

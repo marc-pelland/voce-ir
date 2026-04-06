@@ -98,6 +98,25 @@ impl AccessibilityPass {
                         }
                     }
                 }
+                // A11Y006: TextNode with href must have non-empty content for accessible link text
+                "TextNode" => {
+                    if let Some(text) = child.as_type::<crate::ir::TextNode>() {
+                        if text.href.as_ref().is_some_and(|h| !h.is_empty()) {
+                            let has_content = text.content.as_ref().is_some_and(|c| !c.is_empty());
+                            let has_semantic = child.semantic_node_id().is_some();
+                            if !has_content && !has_semantic {
+                                result.diagnostics.push(Diagnostic {
+                                    severity: Severity::Error,
+                                    code: "A11Y006".to_string(),
+                                    message: "Link (TextNode with href) must have text content or a semantic_node_id with a label".to_string(),
+                                    node_path: path.clone(),
+                                    pass: self.name().to_string(),
+                                    hint: Some("Add content text or a SemanticNode with an aria-label".to_string()),
+                                });
+                            }
+                        }
+                    }
+                }
                 _ => {}
             }
 

@@ -130,6 +130,10 @@ table Surface {
   // If true, no SemanticNode required (decorative element)
   decorative: bool = false;
 
+  // Link — when present, wraps content in <a>
+  href: string;
+  target: string;
+
   // Accessibility
   semantic_node_id: string;
 }
@@ -199,6 +203,10 @@ table TextNode {
 
   // Semantic heading level (0 = not a heading, 1-6 = h1-h6)
   heading_level: int8 = 0;
+
+  // Link — when present, emits <a> instead of <p>/<span>
+  href: string;
+  target: string;  // "_blank", "_self", etc.
 
   // Accessibility
   semantic_node_id: string;

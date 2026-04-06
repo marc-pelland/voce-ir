@@ -6,7 +6,7 @@
 //! - ARIA attributes from SemanticNode references
 //! - No framework runtime
 
-use crate::compiler_ir::{CompilerIr, NodeId, NodeKind};
+use crate::compiler_ir::{CNode, CompilerIr, NodeId, NodeKind};
 use crate::pipeline::CompileOptions;
 
 /// The complete HTML output.
@@ -164,6 +164,18 @@ fn emit_head(
     html.push_str("body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5}\n");
     html.push_str("img{max-width:100%;height:auto;display:block}\n");
 
+    // Interactive states for links, buttons, and form inputs
+    html.push_str("a{transition:opacity .15s}\n");
+    html.push_str("a:hover{opacity:.8}\n");
+    html.push_str("a:focus-visible{outline:2px solid var(--voce-primary,#6366f1);outline-offset:2px;border-radius:2px}\n");
+    html.push_str("input,textarea,select{transition:border-color .15s,box-shadow .15s}\n");
+    html.push_str("input:focus,textarea:focus,select:focus{outline:none;border-color:var(--voce-primary,#6366f1);box-shadow:0 0 0 3px rgba(99,102,241,.2)}\n");
+    html.push_str("button,[role=\"button\"]{cursor:pointer}\n");
+    html.push_str(".voce-btn{cursor:pointer;transition:opacity .15s,transform .1s}\n");
+    html.push_str(".voce-btn:hover{opacity:.9}\n");
+    html.push_str(".voce-btn:active{transform:scale(.98)}\n");
+    html.push_str(".voce-btn:focus-visible{outline:2px solid var(--voce-primary,#6366f1);outline-offset:2px;border-radius:2px}\n");
+
     // Animation CSS (Tier 1: CSS transitions with compile-time spring easing)
     for anim in &ir.animations {
         let target = &anim.target_node_id;
@@ -188,6 +200,20 @@ fn emit_head(
                     "[data-voce-id=\"{target}\"]{{transition:none!important;}}\n"
                 ));
             }
+        }
+        html.push_str("}\n");
+    }
+
+    // Responsive media queries from ResponsiveRule nodes
+    for rule in &ir.responsive_rules {
+        html.push_str(&format!(
+            "@media(max-width:{}px){{\n",
+            rule.min_width_px as u32
+        ));
+        for (target_id, property, value) in &rule.overrides {
+            html.push_str(&format!(
+                "[data-voce-id=\"{target_id}\"]{{ {property}:{value}; }}\n"
+            ));
         }
         html.push_str("}\n");
     }
@@ -335,15 +361,22 @@ fn emit_node(
                 style.push_str(&format!("gap:{g};"));
             }
 
+            // Map SemanticNode role to semantic HTML element
+            let semantic_tag = semantic_html_tag(node, ir);
+
             html.push_str(&format!(
-                "{indent}<div style=\"{style}\"{aria_attrs}{data_attr}>\n"
+                "{indent}<{semantic_tag} style=\"{style}\"{aria_attrs}{data_attr}>\n"
             ));
             for &child_id in &node.children {
                 emit_node_safe(html, ir, child_id, depth + 1, options, interactive_targets);
             }
-            html.push_str(&format!("{indent}</div>\n"));
+            html.push_str(&format!("{indent}</{semantic_tag}>\n"));
         }
-        NodeKind::Surface { decorative } => {
+        NodeKind::Surface {
+            decorative,
+            href,
+            target,
+        } => {
             let style = build_style_string(&node.styles);
             let aria = if *decorative {
                 " role=\"presentation\" aria-hidden=\"true\""
@@ -351,15 +384,41 @@ fn emit_node(
                 ""
             };
 
-            html.push_str(&format!(
-                "{indent}<div style=\"{style}\"{aria}{aria_attrs}{data_attr}>\n"
-            ));
-            for &child_id in &node.children {
-                emit_node_safe(html, ir, child_id, depth + 1, options, interactive_targets);
+            if let Some(url) = href {
+                // Surface with href wraps content in <a>
+                let target_attr = target
+                    .as_ref()
+                    .map(|t| format!(" target=\"{t}\""))
+                    .unwrap_or_default();
+                let rel = if target.as_deref() == Some("_blank") {
+                    " rel=\"noopener noreferrer\""
+                } else {
+                    ""
+                };
+                html.push_str(&format!(
+                    "{indent}<a href=\"{url}\"{target_attr}{rel} class=\"voce-btn\" style=\"{style};display:block;text-decoration:none;color:inherit\"{aria_attrs}{data_attr}>\n"
+                ));
+                for &child_id in &node.children {
+                    emit_node_safe(html, ir, child_id, depth + 1, options, interactive_targets);
+                }
+                html.push_str(&format!("{indent}</a>\n"));
+            } else {
+                html.push_str(&format!(
+                    "{indent}<div style=\"{style}\"{aria}{aria_attrs}{data_attr}>\n"
+                ));
+                for &child_id in &node.children {
+                    emit_node_safe(html, ir, child_id, depth + 1, options, interactive_targets);
+                }
+                html.push_str(&format!("{indent}</div>\n"));
             }
-            html.push_str(&format!("{indent}</div>\n"));
         }
-        NodeKind::Text { content, tag, .. } => {
+        NodeKind::Text {
+            content,
+            tag,
+            href,
+            target,
+            ..
+        } => {
             let style = build_style_string(&node.styles);
             let style_attr = if style.is_empty() {
                 String::new()
@@ -367,57 +426,109 @@ fn emit_node(
                 format!(" style=\"{style}\"")
             };
 
-            html.push_str(&format!(
-                "{indent}<{tag}{style_attr}>{}</{tag}>\n",
-                escape_html(content)
-            ));
+            if let Some(url) = href {
+                // TextNode with href emits <a>
+                let target_attr = target
+                    .as_ref()
+                    .map(|t| format!(" target=\"{t}\""))
+                    .unwrap_or_default();
+                let rel = if target.as_deref() == Some("_blank") {
+                    " rel=\"noopener noreferrer\""
+                } else {
+                    ""
+                };
+                // If it's a heading with a link, wrap: <h2><a href>...</a></h2>
+                if tag.starts_with('h') {
+                    html.push_str(&format!(
+                        "{indent}<{tag}{style_attr}><a href=\"{url}\"{target_attr}{rel} style=\"color:inherit;text-decoration:none\">{}</{tag}>\n",
+                        escape_html(content)
+                    ));
+                } else {
+                    html.push_str(&format!(
+                        "{indent}<a href=\"{url}\"{target_attr}{rel}{style_attr}>{}</a>\n",
+                        escape_html(content)
+                    ));
+                }
+            } else {
+                html.push_str(&format!(
+                    "{indent}<{tag}{style_attr}>{}</{tag}>\n",
+                    escape_html(content)
+                ));
+            }
         }
         NodeKind::Media {
             src,
             alt,
+            media_type,
             decorative,
             above_fold,
-            ..
         } => {
-            let loading = if *above_fold { "eager" } else { "lazy" };
-            let fetchpriority = if *above_fold {
-                " fetchpriority=\"high\""
-            } else {
-                ""
-            };
-            let alt_attr = if *decorative { "" } else { alt.as_str() };
-
-            // Try real image pipeline if source bytes are available
-            let used_pipeline =
-                emit_image_pipeline(html, src, alt_attr, *above_fold, &indent, options);
-
-            if !used_pipeline {
-                // No source bytes or no image-pipeline feature — use placeholder srcset
-                let has_ext = src.contains('.');
-                let is_image = has_ext
-                    && !src.ends_with(".svg")
-                    && (src.ends_with(".jpg")
-                        || src.ends_with(".jpeg")
-                        || src.ends_with(".png")
-                        || src.ends_with(".webp")
-                        || src.ends_with(".avif"));
-
-                if is_image {
-                    let srcset =
-                        crate::assets::generate_srcset(src, crate::assets::RESPONSIVE_WIDTHS);
-                    let sizes = crate::assets::default_sizes();
-
-                    html.push_str(&format!("{indent}<picture>\n"));
+            match media_type.as_str() {
+                "Video" => {
+                    let alt_attr = if alt.is_empty() {
+                        String::new()
+                    } else {
+                        format!(" aria-label=\"{alt}\"")
+                    };
                     html.push_str(&format!(
-                        "{indent}  <img src=\"{src}\" srcset=\"{srcset}\" sizes=\"{sizes}\" alt=\"{alt_attr}\" loading=\"{loading}\"{fetchpriority} decoding=\"async\">\n"
-                    ));
-                    html.push_str(&format!("{indent}</picture>\n"));
-                } else {
-                    html.push_str(&format!(
-                        "{indent}<img src=\"{src}\" alt=\"{alt_attr}\" loading=\"{loading}\"{fetchpriority} decoding=\"async\">\n"
+                        "{indent}<video src=\"{src}\" controls preload=\"metadata\"{alt_attr} style=\"max-width:100%\"></video>\n"
                     ));
                 }
+                "Audio" => {
+                    let alt_attr = if alt.is_empty() {
+                        String::new()
+                    } else {
+                        format!(" aria-label=\"{alt}\"")
+                    };
+                    html.push_str(&format!(
+                        "{indent}<audio src=\"{src}\" controls preload=\"metadata\"{alt_attr}></audio>\n"
+                    ));
+                }
+                _ => {
+                    // Image (default)
+                    let loading = if *above_fold { "eager" } else { "lazy" };
+                    let fetchpriority = if *above_fold {
+                        " fetchpriority=\"high\""
+                    } else {
+                        ""
+                    };
+                    let alt_attr = if *decorative { "" } else { alt.as_str() };
+
+                    let used_pipeline =
+                        emit_image_pipeline(html, src, alt_attr, *above_fold, &indent, options);
+
+                    if !used_pipeline {
+                        let has_ext = src.contains('.');
+                        let is_image = has_ext
+                            && !src.ends_with(".svg")
+                            && (src.ends_with(".jpg")
+                                || src.ends_with(".jpeg")
+                                || src.ends_with(".png")
+                                || src.ends_with(".webp")
+                                || src.ends_with(".avif"));
+
+                        if is_image {
+                            let srcset = crate::assets::generate_srcset(
+                                src,
+                                crate::assets::RESPONSIVE_WIDTHS,
+                            );
+                            let sizes = crate::assets::default_sizes();
+                            html.push_str(&format!("{indent}<picture>\n"));
+                            html.push_str(&format!(
+                                "{indent}  <img src=\"{src}\" srcset=\"{srcset}\" sizes=\"{sizes}\" alt=\"{alt_attr}\" loading=\"{loading}\"{fetchpriority} decoding=\"async\">\n"
+                            ));
+                            html.push_str(&format!("{indent}</picture>\n"));
+                        } else {
+                            html.push_str(&format!(
+                                "{indent}<img src=\"{src}\" alt=\"{alt_attr}\" loading=\"{loading}\"{fetchpriority} decoding=\"async\">\n"
+                            ));
+                        }
+                    }
+                }
             }
+        }
+        NodeKind::RichText { blocks } => {
+            emit_rich_text(html, blocks, &indent);
         }
         NodeKind::NonVisual { type_name, .. } => {
             // Most non-visual nodes don't emit HTML (SM, GH, animations → JS).
@@ -428,6 +539,145 @@ fn emit_node(
                 }
             }
         }
+    }
+}
+
+fn emit_rich_text(html: &mut String, blocks: &[crate::compiler_ir::RichTextBlock], indent: &str) {
+    let mut in_list: Option<&str> = None;
+
+    for block in blocks {
+        // Close previous list if block type changed
+        if let Some(list_tag) = in_list {
+            if block.block_type != "ListItem" {
+                html.push_str(&format!("{indent}</{list_tag}>\n"));
+                in_list = None;
+            }
+        }
+
+        match block.block_type.as_str() {
+            "Paragraph" => {
+                html.push_str(&format!("{indent}<p>"));
+                emit_rich_text_spans(html, &block.children);
+                html.push_str("</p>\n");
+            }
+            "Heading" => {
+                let level = block.level.clamp(1, 6);
+                html.push_str(&format!("{indent}<h{level}>"));
+                emit_rich_text_spans(html, &block.children);
+                html.push_str(&format!("</h{level}>\n"));
+            }
+            "UnorderedList" => {
+                if in_list.is_none() {
+                    html.push_str(&format!("{indent}<ul>\n"));
+                    in_list = Some("ul");
+                }
+                // Render child blocks as list items
+                for row in &block.rows {
+                    html.push_str(&format!("{indent}  <li>"));
+                    emit_rich_text_spans(html, &row.children);
+                    html.push_str("</li>\n");
+                }
+            }
+            "OrderedList" => {
+                if in_list.is_none() {
+                    html.push_str(&format!("{indent}<ol>\n"));
+                    in_list = Some("ol");
+                }
+                for row in &block.rows {
+                    html.push_str(&format!("{indent}  <li>"));
+                    emit_rich_text_spans(html, &row.children);
+                    html.push_str("</li>\n");
+                }
+            }
+            "ListItem" => {
+                // Standalone list item (shouldn't happen often, but handle it)
+                html.push_str(&format!("{indent}<li>"));
+                emit_rich_text_spans(html, &block.children);
+                html.push_str("</li>\n");
+            }
+            "CodeBlock" => {
+                let lang = block
+                    .code_language
+                    .as_deref()
+                    .map(|l| format!(" class=\"language-{l}\""))
+                    .unwrap_or_default();
+                html.push_str(&format!("{indent}<pre><code{lang}>"));
+                // Code blocks: just emit text without marks
+                for span in &block.children {
+                    html.push_str(&escape_html(&span.text));
+                }
+                html.push_str("</code></pre>\n");
+            }
+            "Blockquote" => {
+                html.push_str(&format!("{indent}<blockquote>"));
+                emit_rich_text_spans(html, &block.children);
+                html.push_str("</blockquote>\n");
+            }
+            "Divider" => {
+                html.push_str(&format!("{indent}<hr>\n"));
+            }
+            "Image" => {
+                if let Some(src) = &block.media_src {
+                    let alt = block.media_alt.as_deref().unwrap_or("");
+                    html.push_str(&format!(
+                        "{indent}<img src=\"{src}\" alt=\"{alt}\" loading=\"lazy\" decoding=\"async\">\n"
+                    ));
+                }
+            }
+            "Table" => {
+                html.push_str(&format!("{indent}<table>\n"));
+                for row in &block.rows {
+                    html.push_str(&format!("{indent}  <tr>\n"));
+                    if row.block_type == "TableRow" {
+                        for cell in &row.rows {
+                            html.push_str(&format!("{indent}    <td>"));
+                            emit_rich_text_spans(html, &cell.children);
+                            html.push_str("</td>\n");
+                        }
+                    }
+                    html.push_str(&format!("{indent}  </tr>\n"));
+                }
+                html.push_str(&format!("{indent}</table>\n"));
+            }
+            _ => {
+                // Unknown block type — emit as paragraph
+                html.push_str(&format!("{indent}<p>"));
+                emit_rich_text_spans(html, &block.children);
+                html.push_str("</p>\n");
+            }
+        }
+    }
+
+    // Close any remaining open list
+    if let Some(list_tag) = in_list {
+        html.push_str(&format!("{indent}</{list_tag}>\n"));
+    }
+}
+
+fn emit_rich_text_spans(html: &mut String, spans: &[crate::compiler_ir::RichTextSpan]) {
+    for span in spans {
+        let mut text = escape_html(&span.text);
+
+        // Apply marks (innermost first)
+        for mark in &span.marks {
+            text = match mark.as_str() {
+                "Bold" => format!("<strong>{text}</strong>"),
+                "Italic" => format!("<em>{text}</em>"),
+                "Underline" => format!("<u>{text}</u>"),
+                "Strikethrough" => format!("<s>{text}</s>"),
+                "Code" => format!("<code>{text}</code>"),
+                "Subscript" => format!("<sub>{text}</sub>"),
+                "Superscript" => format!("<sup>{text}</sup>"),
+                _ => text,
+            };
+        }
+
+        // Wrap in link if present
+        if let Some(url) = &span.link_url {
+            text = format!("<a href=\"{url}\">{text}</a>");
+        }
+
+        html.push_str(&text);
     }
 }
 
@@ -451,6 +701,14 @@ fn emit_form(html: &mut String, form: &crate::compiler_ir::CompiledForm, indent:
             "Url" => "url",
             "Textarea" => "textarea",
             "Hidden" => "hidden",
+            "Date" => "date",
+            "Time" => "time",
+            "Color" => "color",
+            "Range" => "range",
+            "File" => "file",
+            "Checkbox" => "checkbox",
+            "Radio" => "radio",
+            "Select" => "select",
             _ => "text",
         };
 
@@ -501,17 +759,57 @@ fn emit_form(html: &mut String, form: &crate::compiler_ir::CompiledForm, indent:
             .map(|p| format!(" placeholder=\"{}\"", escape_attr(p)))
             .unwrap_or_default();
 
-        // Input or textarea
-        if input_type == "textarea" {
-            html.push_str(&format!(
-                "{inner}<textarea id=\"{field_id}\" name=\"{name}\"{required_attr}{describedby}{placeholder}></textarea>\n",
-                name = field.name
-            ));
-        } else {
-            html.push_str(&format!(
-                "{inner}<input id=\"{field_id}\" name=\"{name}\" type=\"{input_type}\"{required_attr}{autocomplete}{describedby}{placeholder}>\n",
-                name = field.name
-            ));
+        // Input, textarea, select, checkbox, or radio
+        match input_type {
+            "textarea" => {
+                html.push_str(&format!(
+                    "{inner}<textarea id=\"{field_id}\" name=\"{name}\"{required_attr}{describedby}{placeholder}></textarea>\n",
+                    name = field.name
+                ));
+            }
+            "select" => {
+                html.push_str(&format!(
+                    "{inner}<select id=\"{field_id}\" name=\"{name}\"{required_attr}{describedby}>\n",
+                    name = field.name
+                ));
+                html.push_str(&format!(
+                    "{inner}  <option value=\"\" disabled selected>Choose...</option>\n"
+                ));
+                for opt in &field.options {
+                    html.push_str(&format!(
+                        "{inner}  <option value=\"{val}\">{label}</option>\n",
+                        val = escape_attr(opt),
+                        label = escape_html(opt)
+                    ));
+                }
+                html.push_str(&format!("{inner}</select>\n"));
+            }
+            "checkbox" => {
+                // Checkbox: label wraps the input
+                html.push_str(&format!(
+                    "{inner}<label><input id=\"{field_id}\" name=\"{name}\" type=\"checkbox\"{required_attr}{describedby}> {label}</label>\n",
+                    name = field.name,
+                    label = escape_html(&field.label)
+                ));
+            }
+            "radio" => {
+                // Radio: one input per option
+                for (i, opt) in field.options.iter().enumerate() {
+                    let opt_id = format!("{field_id}-{i}");
+                    html.push_str(&format!(
+                        "{inner}<label><input id=\"{opt_id}\" name=\"{name}\" type=\"radio\" value=\"{val}\"{required_attr}> {label}</label>\n",
+                        name = field.name,
+                        val = escape_attr(opt),
+                        label = escape_html(opt)
+                    ));
+                }
+            }
+            _ => {
+                html.push_str(&format!(
+                    "{inner}<input id=\"{field_id}\" name=\"{name}\" type=\"{input_type}\"{required_attr}{autocomplete}{describedby}{placeholder}>\n",
+                    name = field.name
+                ));
+            }
         }
 
         // Description text
@@ -559,6 +857,26 @@ fn alignment_to_css(align: &str) -> &str {
         "Baseline" => "baseline",
         _ => "",
     }
+}
+
+/// Map a node's SemanticNode role to the correct HTML element.
+/// Falls back to "div" if no semantic role is attached.
+fn semantic_html_tag<'a>(node: &'a CNode, ir: &'a CompilerIr) -> &'a str {
+    node.semantic_node_id
+        .as_ref()
+        .and_then(|sem_id| ir.semantic_map.get(sem_id))
+        .and_then(|sem| sem.role.as_deref())
+        .map(|role| match role {
+            "navigation" => "nav",
+            "main" => "main",
+            "contentinfo" => "footer",
+            "banner" => "header",
+            "complementary" => "aside",
+            "region" => "section",
+            "article" => "article",
+            _ => "div",
+        })
+        .unwrap_or("div")
 }
 
 /// Emit font preload links and @font-face CSS from IR font usage analysis.
