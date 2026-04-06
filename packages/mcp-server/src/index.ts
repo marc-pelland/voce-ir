@@ -26,7 +26,24 @@ import {
   ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { execSync } from "node:child_process";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync, writeFileSync, unlinkSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+// Find the voce binary — check local workspace build first, then PATH
+const __dirname = dirname(fileURLToPath(import.meta.url));
+function findVoceBinary(): string {
+  const candidates = [
+    resolve(__dirname, "../../../target/release/voce"),
+    resolve(__dirname, "../../../target/debug/voce"),
+  ];
+  for (const c of candidates) {
+    if (existsSync(c)) return c;
+  }
+  return "voce"; // fall back to PATH
+}
+const VOCE_BIN = findVoceBinary();
 
 const server = new Server(
   { name: "voce-ir", version: "0.3.0" },
@@ -177,49 +194,67 @@ function runVoceCommand(
   command: string,
   irJson: string
 ): { content: Array<{ type: "text"; text: string }>; isError?: boolean } {
-  const { writeFileSync, unlinkSync } = require("node:fs");
-  const { tmpdir } = require("node:os");
-  const { join } = require("node:path");
-
   const tmpFile = join(tmpdir(), `voce-mcp-${Date.now()}.voce.json`);
   writeFileSync(tmpFile, irJson);
 
   try {
-    let cmd: string;
     if (command === "compile") {
       const outFile = join(tmpdir(), `voce-mcp-${Date.now()}.html`);
-      execSync(`voce compile "${tmpFile}" -o "${outFile}"`, { encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] });
+      execSync(`"${VOCE_BIN}" compile "${tmpFile}" -o "${outFile}" --skip-fonts`, {
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+      });
       const html = readFileSync(outFile, "utf-8");
-      unlinkSync(outFile);
+      try { unlinkSync(outFile); } catch { /* ignore */ }
       return { content: [{ type: "text", text: html }] };
     }
 
-    cmd = `voce ${command} --format json "${tmpFile}"`;
-    const output = execSync(cmd, { encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] });
+    const formatFlag = command === "validate" ? " --format json" : "";
+    const output = execSync(`"${VOCE_BIN}" ${command}${formatFlag} "${tmpFile}"`, {
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+    });
     return { content: [{ type: "text", text: output }] };
   } catch (error: unknown) {
     const err = error as { stdout?: string; stderr?: string };
-    return { content: [{ type: "text", text: err.stdout || err.stderr || "Command failed" }], isError: true };
+    return {
+      content: [{ type: "text", text: err.stdout || err.stderr || "Command failed" }],
+      isError: true,
+    };
   } finally {
     try { unlinkSync(tmpFile); } catch { /* ignore */ }
   }
 }
 
 function getSchema(nodeType?: string): { content: Array<{ type: "text"; text: string }> } {
-  // Return the schema context that the AI bridge uses
-  const { buildSchemaContext } = require("@voce-ir/ai-bridge");
-  const context = buildSchemaContext();
-
-  if (nodeType) {
-    // Extract the relevant section for the requested type
-    const lines = context.split("\n");
-    const relevant = lines.filter((l: string) =>
-      l.includes(nodeType) || l.includes(`**${nodeType}**`)
-    );
-    return { content: [{ type: "text", text: relevant.join("\n") || `Node type ${nodeType} not found in schema.` }] };
+  // Read schema docs from the docs site
+  const schemaDir = resolve(__dirname, "../../../docs/site/src/schema");
+  if (!existsSync(schemaDir)) {
+    return { content: [{ type: "text", text: "Schema docs not found. Run 'cd docs/site && mdbook build' first." }] };
   }
 
-  return { content: [{ type: "text", text: context }] };
+  if (nodeType) {
+    // Try to find a matching schema doc
+    const files = ["layout.md", "state.md", "motion.md", "navigation.md", "accessibility.md",
+      "theming.md", "data.md", "forms.md", "seo.md", "i18n.md", "overview.md"];
+    for (const f of files) {
+      const path = join(schemaDir, f);
+      if (existsSync(path)) {
+        const content = readFileSync(path, "utf-8");
+        if (content.includes(nodeType)) {
+          return { content: [{ type: "text", text: content }] };
+        }
+      }
+    }
+    return { content: [{ type: "text", text: `Node type ${nodeType} not found in schema docs.` }] };
+  }
+
+  // Return the overview
+  const overviewPath = join(schemaDir, "overview.md");
+  const content = existsSync(overviewPath)
+    ? readFileSync(overviewPath, "utf-8")
+    : "Schema overview not found.";
+  return { content: [{ type: "text", text: content }] };
 }
 
 function getExamples(name?: string): { content: Array<{ type: "text"; text: string }> } {
@@ -248,7 +283,7 @@ function getExamples(name?: string): { content: Array<{ type: "text"; text: stri
 
 function generateIr(prompt: string): { content: Array<{ type: "text"; text: string }> } {
   try {
-    const output = execSync(`voce generate "${prompt.replace(/"/g, '\\"')}"`, {
+    const output = execSync(`"${VOCE_BIN}" generate "${prompt.replace(/"/g, '\\"')}"`, {
       encoding: "utf-8",
       timeout: 60000,
       stdio: ["pipe", "pipe", "pipe"],
@@ -271,7 +306,7 @@ function getProjectStatus(): string {
 
   const decDir = ".voce/decisions";
   if (existsSync(decDir)) {
-    const count = require("node:fs").readdirSync(decDir).filter((f: string) => f.endsWith(".yaml")).length;
+    const count = readdirSync(decDir).filter((f: string) => f.endsWith(".yaml")).length;
     lines.push(`Decisions: ${count} recorded`);
   }
 

@@ -68,7 +68,10 @@
       "WebSearch",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npm run:*)",
+      "Bash(chmod +x /Users/marcpelland/Documents/Development/personal/voce-ir/packages/cli-chat/dist/index.js)",
+      "Bash(node packages/cli-chat/dist/index.js)"
     ]
   }
 }
