@@ -64,7 +64,8 @@
       "Read(//Users/marcpelland/Documents/Development/personal/voce-ir/**)",
       "Bash(grep -r \"Fire Burns\" /Users/marcpelland/Documents/Development/personal/voce-ir/docs/ /Users/marcpelland/Documents/Development/personal/voce-ir/packages/ /Users/marcpelland/Documents/Development/personal/voce-ir/*.md /Users/marcpelland/Documents/Development/personal/voce-ir/Cargo.toml /Users/marcpelland/Documents/Development/personal/voce-ir/LICENSE /Users/marcpelland/Documents/Development/personal/voce-ir/CLAUDE.md)",
       "Bash(grep -rn 'path = \"\\\\.\\\\./.*\"' packages/*/Cargo.toml)",
-      "Bash(cargo check:*)"
+      "Bash(cargo check:*)",
+      "WebSearch"
     ]
   }
 }
