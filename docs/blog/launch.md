@@ -87,5 +87,5 @@ The code is gone. The experience remains. And it's just getting started.
 
 ---
 
-*Voce IR is open source under Apache 2.0. Created by [Marc Pelland](https://github.com/marcpelland).*
+*Voce IR is open source under Apache 2.0. Created by [Marc Pelland](https://github.com/marc-pelland).*
 *Named from "sotto voce" — quiet input, extraordinary output.*

@@ -14,7 +14,7 @@ Thank you for your interest in contributing to Voce IR! This guide covers everyt
 ### Building
 
 ```bash
-git clone https://github.com/marcpelland/voce-ir.git
+git clone https://github.com/marc-pelland/voce-ir.git
 cd voce-ir
 
 # Build all Rust crates
@@ -111,4 +111,4 @@ This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.
 
 ## Questions?
 
-Open a [discussion](https://github.com/marcpelland/voce-ir/discussions) or [issue](https://github.com/marcpelland/voce-ir/issues).
+Open a [discussion](https://github.com/marc-pelland/voce-ir/discussions) or [issue](https://github.com/marc-pelland/voce-ir/issues).

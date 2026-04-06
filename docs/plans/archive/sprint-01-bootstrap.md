@@ -38,7 +38,7 @@ members = [
 version = "0.1.0"
 edition = "2024"
 license = "Apache-2.0"
-repository = "https://github.com/marcpelland/voce-ir"
+repository = "https://github.com/marc-pelland/voce-ir"
 rust-version = "1.85"
 
 [workspace.dependencies]

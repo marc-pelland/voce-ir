@@ -8,7 +8,7 @@ Step-by-step guide for publishing all components of Voce IR as open source.
 
 Before starting, you need accounts and tokens for:
 
-- [ ] **GitHub** — repo at `github.com/marcpelland/voce-ir`
+- [ ] **GitHub** — repo at `github.com/marc-pelland/voce-ir`
 - [ ] **crates.io** — API token (`cargo login`)
 - [ ] **npm** — auth token (`npm login`, scope `@voce-ir`)
 - [ ] **Cloudflare** — account for Pages deployment (voce-ir.xyz)
@@ -29,10 +29,10 @@ git commit -m "Initial commit: Voce IR v1.1.0
 Full pipeline: conversation → IR → validate → compile → deploy."
 
 # Create the repo on GitHub (using gh CLI)
-gh repo create marcpelland/voce-ir --public --source=. --push
+gh repo create marc-pelland/voce-ir --public --source=. --push
 
 # Or manually:
-git remote add origin git@github.com:marcpelland/voce-ir.git
+git remote add origin git@github.com:marc-pelland/voce-ir.git
 git branch -M main
 git push -u origin main
 ```
@@ -202,7 +202,7 @@ voce-ir.xyz/playground/   -> Browser-based IR playground (WASM-powered)
      ```
    - **CNAME record** (for `www`):
      ```
-     www -> marcpelland.github.io
+     www -> marc-pelland.github.io
      ```
 3. Check "Enforce HTTPS" once DNS propagates (may take a few minutes)
 4. Add a `CNAME` file to the site root so GitHub remembers the domain:
@@ -243,8 +243,8 @@ Everything rebuilds from source on every push — no manual deploys needed
 Create a separate repo for the tap:
 
 ```bash
-# Create repo: github.com/marcpelland/homebrew-voce-ir
-gh repo create marcpelland/homebrew-voce-ir --public
+# Create repo: github.com/marc-pelland/homebrew-voce-ir
+gh repo create marc-pelland/homebrew-voce-ir --public
 ```
 
 Create the formula file:
@@ -254,7 +254,7 @@ Create the formula file:
 class VoceIr < Formula
   desc "AI-native intermediate representation for user interfaces"
   homepage "https://voce-ir.xyz"
-  url "https://github.com/marcpelland/voce-ir/archive/refs/tags/v1.1.0.tar.gz"
+  url "https://github.com/marc-pelland/voce-ir/archive/refs/tags/v1.1.0.tar.gz"
   # sha256 "..." # Fill in after release
   license "Apache-2.0"
 
@@ -272,7 +272,7 @@ end
 
 Users install with:
 ```bash
-brew tap marcpelland/voce-ir
+brew tap marc-pelland/voce-ir
 brew install voce-ir
 ```
 
@@ -312,7 +312,7 @@ brew install voce-ir
 | Record | Type | Name | Value |
 |--------|------|------|-------|
 | Apex domain | A | `@` | `185.199.108.153` (+ .109, .110, .111) |
-| www redirect | CNAME | `www` | `marcpelland.github.io` |
+| www redirect | CNAME | `www` | `marc-pelland.github.io` |
 
 All paths (landing, docs, playground) are served from one GitHub Pages deployment.
 

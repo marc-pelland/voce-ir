@@ -1,6 +1,6 @@
 # Voce IR
 
-[![CI](https://github.com/marcpelland/voce-ir/actions/workflows/ci.yml/badge.svg)](https://github.com/marcpelland/voce-ir/actions/workflows/ci.yml)
+[![CI](https://github.com/marc-pelland/voce-ir/actions/workflows/ci.yml/badge.svg)](https://github.com/marc-pelland/voce-ir/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 **The code is gone. The experience remains.**
@@ -104,7 +104,7 @@ cargo install voce-validator
 Or build from source:
 
 ```bash
-git clone https://github.com/marcpelland/voce-ir.git
+git clone https://github.com/marc-pelland/voce-ir.git
 cd voce-ir
 cargo build --release --workspace
 ```
@@ -356,8 +356,8 @@ See [MASTER_PLAN.md](docs/plans/MASTER_PLAN.md) for the full 60-sprint breakdown
 - **Website:** [voce-ir.xyz](https://voce-ir.xyz)
 - **Docs:** [voce-ir.xyz/docs](https://voce-ir.xyz/docs)
 - **Playground:** [voce-ir.xyz/playground](https://voce-ir.xyz/playground)
-- **Issues:** [github.com/marcpelland/voce-ir/issues](https://github.com/marcpelland/voce-ir/issues)
+- **Issues:** [github.com/marc-pelland/voce-ir/issues](https://github.com/marc-pelland/voce-ir/issues)
 
 ---
 
-Created by [Marc Pelland](https://github.com/marcpelland).
+Created by [Marc Pelland](https://github.com/marc-pelland).

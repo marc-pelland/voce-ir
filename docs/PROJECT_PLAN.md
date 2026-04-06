@@ -42,7 +42,7 @@ members = [
 version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
-repository = "https://github.com/marcpelland/voce-ir"
+repository = "https://github.com/marc-pelland/voce-ir"
 
 [workspace.dependencies]
 flatbuffers = "24.3"
