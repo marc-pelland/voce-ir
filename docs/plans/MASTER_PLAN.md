@@ -2,7 +2,11 @@
 
 **Created:** 2026-04-02
 **Last updated:** 2026-04-02
-**Status:** Phases 1-6 COMPLETE (v1.0.0). 50 sprints done. Phase 7 (Production Readiness): S51-S59 COMPLETE. S60 (Community Launch) planned. S61–S63 (Self-Demonstrating Site trilogy: live hero → multi-target → gallery) planned. S64 (Compiler-Emits-Rich-Defaults) planned, motivated by S61 regression. S65–S67 (Conversational Quality trilogy: MCP polish → standalone REPL → validator diagnostics) planned. S68–S72, S74, S82 (Solidity & Quality batch: cross-target parity → test coverage → security → perf budgets → schema completeness → dev experience → a11y deep-dive) planned to make every output, every test, every release verifiably top-quality. Future Considerations section below tracks longer-tail ideas.
+**Status:** Phases 1-6 COMPLETE (v1.0.0). 50 sprints done. Phase 7 (Production Readiness): S51-S59 COMPLETE.
+
+**As of 2026-05-01:** S64 and S67 fully shipped. S61 mostly shipped (live hero + integrated dist deploying via pages.yml). S69 parts 1+2 of 4 shipped (proptest properties + full-pipeline integration tests). S72 part 1 of 3 shipped (schema completeness audit document; actual `.fbs` additions deferred to a focused future session). S60, S62, S63, S65, S66, S68, S70, S71, S74, S82 scoped as full sprint plans, untouched. Future Considerations section below tracks longer-tail ideas.
+
+**Recommended next sprints (ordered by leverage):** S65 (MCP server polish — biggest user-visible payload), S72 part 2 (actual schema additions starting with FormFieldStyle), S69 parts 3+4 (coverage gate + mutation pilot), S70 (security hardening). Each deserves a fresh dedicated session.
 
 ---
 

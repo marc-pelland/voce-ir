@@ -23,7 +23,19 @@ Voce IR is an open-source AI-native UI intermediate representation — "SPIR-V f
 
 **v1.0.0+ — All 6 Phases COMPLETE, Phase 7 (Production Hardening) in progress**
 
-50 sprints. 15 Rust crates (including 5 adapter crates, playground-wasm). 4 TypeScript packages. 7 compile targets (DOM, WebGPU, WASM, Hybrid, iOS/SwiftUI, Android/Compose, Email HTML). 172 tests. Schema → Validator → Compiler → AI Bridge → Inspector → Ecosystem. Phase 7 additions: font pipeline, image pipeline, benchmark suite, compilation cache, unified error taxonomy, production demo site (voce-ir.xyz), documentation site (mdBook).
+50 sprints. 15 Rust crates (including 5 adapter crates, playground-wasm). 4 TypeScript packages (+ site-hero added in S61). 7 compile targets (DOM, WebGPU, WASM, Hybrid, iOS/SwiftUI, Android/Compose, Email HTML). ~250 tests. Schema → Validator → Compiler → AI Bridge → Inspector → Ecosystem.
+
+**Phase 7 progress as of 2026-05-01:**
+
+| Sprint | Status |
+| --- | --- |
+| S51–S59 | Complete |
+| S61 (live pipeline hero) | Mostly shipped — `dist-integrated/` deploys via `pages.yml` |
+| S64 (compiler rich defaults) | Complete |
+| S67 (validator diagnostic quality) | Complete (Days 1–5: per-pass output, hints, fixes, `voce fix` CLI, docs URLs, severity config) |
+| S69 (test coverage) | Parts 1+2 of 4 (proptest + full-pipeline integration tests); coverage gate + mutation pilot deferred |
+| S72 (schema audit) | Part 1 of 3 (audit document shipped; schema additions deferred) |
+| S60, S62, S63, S65, S66, S68, S70, S71, S74, S82 | Scoped, untouched |
 
 Current task status — update this section as work progresses:
 - [x] Deep research & landscape analysis completed (`docs/research/DEEP_RESEARCH.md`)
@@ -69,6 +81,22 @@ Current task status — update this section as work progresses:
 - [x] Production demo site (voce-ir.xyz)
 - [x] Performance optimization and criterion benchmarks
 - [x] Open source infrastructure (CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, templates)
+- [x] **S61 Live pipeline hero (mostly)** — site-hero package, three-column visualization, real per-pass telemetry consumed in browser, .voce-domain integrated landing page (`packages/site-hero/dist-integrated/`)
+- [x] **S64 Compiler-emits-rich-defaults** — typography rhythm, lists, code blocks, blockquote, hr, tables, fallback theme palette with light/dark via prefers-color-scheme; baseline form CSS from S61 carries forward
+- [x] **S67 Validator diagnostic quality (entire sprint)** — per-pass telemetry, --verbose-passes, --list-passes, --list-codes, hint field on all 41 codes, JSON Patch fix proposals (12 codes), `voce fix` CLI, per-code docs URLs, `.voce/validator.toml` severity escalation
+- [x] **F-026** — `voce fix` auto-descends through union wrappers; works for nested fixes
+- [x] **S69 part 1+2** — proptest property-based tests (5 properties, ~1280 random cases per CI run), full-pipeline integration tests (3 e2e tests), CI clippy --all-targets
+- [x] **S72 part 1** — schema completeness audit at `docs/schema/COMPLETENESS_AUDIT.md`
+- [ ] **S69 parts 3+4** — `cargo-llvm-cov` coverage gate, `cargo-mutants` pilot
+- [ ] **S72 part 2** — actual schema additions (FormFieldStyle, FormLayout priority); deferred for fresh session
+- [ ] **S65 MCP server polish** — biggest remaining user-visible payload; conversational pillars in tool descriptions, .voce/ memory, multi-step generate workflow
+- [ ] **S66 Standalone REPL** — tool-use loop, .voce/ persistence, slash command surface
+- [ ] **S68 Cross-target parity matrix**
+- [ ] **S70 Security hardening** — CSP audit, prompt injection defense, threat model
+- [ ] **S71 Perf budgets** — WASM ≤500 KB target, Lighthouse CI gate
+- [ ] **S74 Dev experience** — `voce dev` live-reload, error overlays, IDE plugins
+- [ ] **S82 A11y deep dive** — color contrast, focus order, axe-core CI
+- [ ] **S60 Community launch / v1.1.0**
 
 ## Architecture
 

@@ -2,7 +2,54 @@
 
 ## [Unreleased] — Phase 7: Production Readiness
 
-### Added
+### Added (2026-05-01: S61 / S64 / S67 / S69 partial / S72 partial)
+
+**S67 — Validator diagnostic quality (entire sprint):**
+- Per-pass execution metadata: `voce validate --format json --verbose-passes` returns timing, error/warning counts, and emitted codes per pass
+- `voce validate --list-passes` enumerates the 9 canonical passes in execution order (machine-readable)
+- `voce validate --list-codes` enumerates the full 41-code rule catalog with summary + hint + fix_confidence + docs_url per entry
+- Every diagnostic now carries a populated `hint` field (~280 chars action-oriented text naming specific schema fields)
+- 12 codes have JSON Patch fix proposals attached: `STR002, STR004, MOT001, MOT002, MOT005, FRM004` (safe); `FRM009, A11Y005, SEC003, SEC004, SEO001, SEO007, STA002` (suggested)
+- New `voce fix <ir>` CLI: preview mode (default) or `--apply` writes back; `--confidence safe|suggested|risky` gates
+- Per-code docs URLs: `https://voce-ir.xyz/docs/validator-rules/{code}` (stable pattern, pages forthcoming)
+- `.voce/validator.toml` severity escalation: projects can promote warnings to errors with `[severity] CODE = "error"`
+- Auto-descend through union wrappers in `voce fix` so patches hit the right JSON path even when the validator emits simplified node paths
+
+**S64 — Compiler emits rich CSS defaults:**
+- Typography rhythm: heading line-height + bottom margin, paragraph rhythm, last-child resets
+- Lists, inline `<code>`, block `<pre><code>`, `<blockquote>`, `<hr>`, `<table>` baseline styles
+- Fallback theme palette (`--voce-fg/bg/muted-fg/border/surface/primary/error/warning/success`) with `prefers-color-scheme: dark` overrides; IR-defined theme_vars take precedence
+- Body now binds to theme vars so the page actually paints
+
+**S61 — Live pipeline hero (mostly shipped):**
+- New `packages/site-hero/` — TypeScript + WASM-driven three-column visualization
+- Cinematic ~1s/pass animation paces the display; the validation + compilation pipeline genuinely runs in the visitor's browser via `playground-wasm`
+- Real per-pass telemetry consumed (closes F-001 — visualization no longer synthesizes data)
+- Integrated `dist-integrated/` deploys via `pages.yml` (replaces the previously hand-styled `examples/production/dist/`)
+- Reduced-motion honored, skip-link, focus-visible rings, real `<main>` element
+
+**S69 — Test coverage uplift (parts 1–2):**
+- 5 property-based tests via proptest: validate never panics, deterministic, count helpers consistent, every emitted code in catalog
+- 3 full-pipeline integration tests: simple landing page, form with action, state machine — exercise validate → compile → assert end-to-end
+- CI clippy now runs with `--all-targets` so test-only regressions fail PRs
+
+**S72 — Schema completeness audit (part 1):**
+- `docs/schema/COMPLETENESS_AUDIT.md` — per-node analysis of `.fbs` schema vs validator IR vs compiler emit. Identifies FormField as the single biggest gap (zero visual style props at IR level). Recommends prioritized order for the schema-additions sprint that follows.
+
+**WASM:**
+- New `validate_verbose` export returns per-pass telemetry envelope
+- WASM-side `std::time::Instant` panic on `wasm32-unknown-unknown` worked around via cfg-gated time helper (durations report 0 on wasm; native CLI path retains real µs)
+
+**Sprint plans drafted (10 new, scoped, untouched):**
+- S62 multi-target split-screen, S63 gallery + sidecars
+- S65 MCP server polish, S66 standalone conversational REPL
+- S68 cross-target parity, S70 security hardening, S71 perf budgets
+- S74 dev experience (`voce dev`), S82 a11y deep dive
+- All in `docs/plans/sprint-*.md` with full deliverables + acceptance + risks
+
+**Build journal:** `docs/site-v2-build-journal.md` — 26 logged findings (F-001 through F-026) covering surprises, divergences, and trade-offs encountered
+
+### Added (earlier — 2026-04-XX)
 - Real image processing pipeline: WebP/JPEG responsive variants, BlurHash placeholders (S51)
 - Deployment adapters: Vercel, Cloudflare Pages, Netlify, static (S52)
 - `voce deploy` CLI command with --adapter and --dry-run

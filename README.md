@@ -160,7 +160,14 @@ voce deploy hello.voce.json --adapter cloudflare --dry-run
 ## CLI Reference
 
 ```
-voce validate <file>     Validate IR (9 passes, 46 rules)
+voce validate <file>     Validate IR (9 passes, 41 rules)
+                         [--format terminal|json] [--verbose-passes]
+                         [--list-passes]   Print canonical pass list and exit
+                         [--list-codes]    Print rule catalog (code, summary, hint, fix_confidence, docs_url) and exit
+                         [--warn-as-error]
+voce fix <file>          Apply auto-fix proposals
+                         [--apply]                       Write changes (default: preview)
+                         [--confidence safe|suggested|risky]   Threshold (default: safe)
 voce compile <file>      Compile to HTML [--minify] [--skip-fonts] [--no-cache] [--debug]
 voce deploy <file>       Deploy [--adapter static|vercel|cloudflare|netlify] [--dry-run]
 voce inspect <file>      IR summary (node counts, types, features)
@@ -170,6 +177,10 @@ voce manifest <file>     Application manifest
 voce json2bin <file>     JSON to FlatBuffers binary
 voce bin2json <file>     FlatBuffers binary to JSON
 ```
+
+Every diagnostic from `voce validate` carries an actionable `hint` and (for 12 codes) a `fix` proposal as a JSON Patch. Run `voce fix --apply` after editing the IR to auto-apply safe fixes; suggested-confidence fixes need review.
+
+Project config: drop a `.voce/validator.toml` next to your IR to escalate rule severity per project — e.g. `[severity] SEO007 = "error"` to require og:image.
 
 Global flags: `--verbose`, `--json-errors`
 
