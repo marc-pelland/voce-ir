@@ -60,6 +60,10 @@ pub struct CodeMeta {
     pub code: &'static str,
     /// One-line summary of what the rule checks. Plain English, ≤ 120 chars.
     pub summary: &'static str,
+    /// Action-oriented next step. Names specific schema fields where possible.
+    /// Surfaced on every emitted Diagnostic via the engine's hint-injection
+    /// step. Plain English, target ≤ 280 chars.
+    pub hint: &'static str,
 }
 
 /// Per-pass execution metadata. Populated by the engine for every pass that

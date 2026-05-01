@@ -76,6 +76,7 @@ pub fn print_json(file: &str, result: &ValidationResult) -> Result<(), serde_jso
                 "message": d.message,
                 "path": d.node_path,
                 "pass": d.pass,
+                "hint": d.hint,
             })
         }).collect::<Vec<_>>(),
     });
@@ -115,6 +116,7 @@ pub fn print_json_verbose(file: &str, result: &ValidationResult) -> Result<(), s
                 "message": d.message,
                 "path": d.node_path,
                 "pass": d.pass,
+                "hint": d.hint,
             })
         }).collect::<Vec<_>>(),
         "passes": passes,

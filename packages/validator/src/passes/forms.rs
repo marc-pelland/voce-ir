@@ -15,22 +15,34 @@ const CODES: &[CodeMeta] = &[
     CodeMeta {
         code: "FRM001",
         summary: "FormNode must have at least one field",
+        hint: "Add at least one FormField to the `fields` array (text, email, \
+               password, textarea, etc.). An empty form has nothing to submit.",
     },
     CodeMeta {
         code: "FRM002",
         summary: "FormNode is missing a submission configuration",
+        hint: "Add `submission: { action_node_id, encoding, progressive }` to \
+               the FormNode. Without it, submitted form data has nowhere to go.",
     },
     CodeMeta {
         code: "FRM003",
         summary: "Duplicate field name within the same FormNode",
+        hint: "Two FormFields share the same `name`. Server-side handlers can't \
+               distinguish them — rename one to be unique within the form.",
     },
     CodeMeta {
         code: "FRM004",
         summary: "Email field is missing an Email validation rule",
+        hint: "Add `{ rule_type: \"Email\", message: \"...\" }` to the field's \
+               `validations` array. The HTML input enforces format client-side, \
+               but the validation rule produces server-side checks too.",
     },
     CodeMeta {
         code: "FRM009",
         summary: "FormField has no label, breaking screen-reader accessibility",
+        hint: "Set a `label` string on the FormField. Required for screen readers \
+               and helpful for users skimming the form. Don't rely on placeholder \
+               text — placeholders disappear on focus.",
     },
 ];
 

@@ -16,22 +16,32 @@ const CODES: &[CodeMeta] = &[
     CodeMeta {
         code: "STA001",
         summary: "StateMachine has no states defined",
+        hint: "Add at least one entry to the `states` array. Each state needs a \
+               unique `state_id`; one of them must be marked `initial: true`.",
     },
     CodeMeta {
         code: "STA002",
         summary: "StateMachine has no initial state, or has multiple",
+        hint: "Set `initial: true` on exactly one state. If multiple states are \
+               flagged initial, pick one to start in and unflag the others.",
     },
     CodeMeta {
         code: "STA003",
         summary: "Transition declares an event already handled by another transition",
+        hint: "Two transitions handle the same event from the same state. Consolidate \
+               the logic or differentiate them with a `guard` condition.",
     },
     CodeMeta {
         code: "STA004",
         summary: "Effect references an undefined target node",
+        hint: "The Effect's `target_node_id` doesn't match a real node. Update it \
+               to point to an existing node, or remove the effect.",
     },
     CodeMeta {
         code: "REF004",
         summary: "Transition references a state_id that does not exist",
+        hint: "The transition's `to_state` (or `from_state`) doesn't match any state \
+               in the StateMachine. Check the name and confirm the state is declared.",
     },
 ];
 

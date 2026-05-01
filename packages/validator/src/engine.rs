@@ -1,5 +1,7 @@
 //! Validation engine — orchestrates passes and collects diagnostics.
 
+use std::collections::HashMap;
+
 use crate::errors::{PassResult, Severity, ValidationResult};
 use crate::index::NodeIndex;
 use crate::ir::VoceIr;
@@ -36,6 +38,12 @@ pub fn validate(json: &str) -> Result<ValidationResult, String> {
     let index = NodeIndex::build(&ir);
     let mut result = ValidationResult::default();
 
+    // Pre-build a code → hint lookup so engine can inject hints onto every
+    // diagnostic without each pass having to remember to do it. Hints live
+    // on CodeMeta in the per-pass CODES consts; this is the single point
+    // where they get attached to runtime diagnostics.
+    let hints = build_hint_lookup();
+
     for pass in passes::all_passes() {
         let before = result.diagnostics.len();
         let duration_us = time_us(|| pass.run(&ir, &index, &mut result));
@@ -43,13 +51,18 @@ pub fn validate(json: &str) -> Result<ValidationResult, String> {
         let mut error_count = 0;
         let mut warning_count = 0;
         let mut codes: Vec<String> = Vec::new();
-        for diag in &result.diagnostics[before..] {
+        for diag in result.diagnostics[before..].iter_mut() {
             match diag.severity {
                 Severity::Error => error_count += 1,
                 Severity::Warning => warning_count += 1,
             }
             if !codes.contains(&diag.code) {
                 codes.push(diag.code.clone());
+            }
+            if diag.hint.is_none()
+                && let Some(hint) = hints.get(diag.code.as_str())
+            {
+                diag.hint = Some((*hint).to_string());
             }
         }
 
@@ -63,4 +76,16 @@ pub fn validate(json: &str) -> Result<ValidationResult, String> {
     }
 
     Ok(result)
+}
+
+/// Aggregate every pass's CodeMeta into a code → hint lookup. Built once per
+/// validate() call; cheap because there are <50 codes total.
+fn build_hint_lookup() -> HashMap<&'static str, &'static str> {
+    let mut map = HashMap::new();
+    for pass in passes::all_passes() {
+        for meta in pass.codes() {
+            map.insert(meta.code, meta.hint);
+        }
+    }
+    map
 }

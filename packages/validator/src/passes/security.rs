@@ -14,18 +14,28 @@ const CODES: &[CodeMeta] = &[
     CodeMeta {
         code: "SEC001",
         summary: "Protected route is missing a redirect for unauthorized users",
+        hint: "Routes with `requires_auth: true` need `redirect_on_fail` set. \
+               Typical value is `/login` so unauthorized visitors land on the \
+               sign-in page instead of seeing a permission error.",
     },
     CodeMeta {
         code: "SEC002",
         summary: "Action is missing an explicit allowed-origins list",
+        hint: "ActionNodes posting to external endpoints need `allowed_origins`. \
+               List specific domains; wildcard origins (`*`) defeat CORS protection.",
     },
     CodeMeta {
         code: "SEC003",
         summary: "Resource URL uses http:// — should use https:// for security",
+        hint: "Change the URL to https://. Modern browsers block mixed content on \
+               secure pages, so http:// resources won't load anyway.",
     },
     CodeMeta {
         code: "SEC004",
         summary: "Password field is missing the appropriate autocomplete attribute",
+        hint: "Set `autocomplete: NewPassword` on signup/reset forms, or \
+               `CurrentPassword` on login forms. Password managers depend on \
+               this hint to fill the right credential.",
     },
 ];
 

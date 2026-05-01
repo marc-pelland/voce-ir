@@ -14,22 +14,37 @@ const CODES: &[CodeMeta] = &[
     CodeMeta {
         code: "A11Y001",
         summary: "Interactive node has no SemanticNode for screen readers",
+        hint: "Add a `SemanticNode` with the right `role` (`button`, `link`, `checkbox`, \
+               etc.) and reference it via `semantic_node_id`. Voce treats accessibility \
+               as a compile error — interactive nodes always need semantics.",
     },
     CodeMeta {
         code: "A11Y003",
         summary: "MediaNode is missing alt text and is not marked decorative",
+        hint: "Set `alt` describing the image, OR add `semantic_node_id` referencing a \
+               labeled SemanticNode, OR set `decorative: true` to mark it as purely \
+               visual. Pick one — silence is not a valid option.",
     },
     CodeMeta {
         code: "A11Y004",
         summary: "Heading hierarchy skips a level (e.g. h1 → h3)",
+        hint: "Heading levels jumped (e.g. h1 → h3, skipping h2). Demote the heading \
+               to maintain a continuous hierarchy, or add the missing intermediate \
+               heading. Screen readers depend on this for navigation.",
     },
     CodeMeta {
         code: "A11Y005",
         summary: "Form field is missing a label or aria-label",
+        hint: "Set a `label` string on the FormField. If the design doesn't show a \
+               visible label, set `aria_label` instead so screen readers can announce \
+               the field.",
     },
     CodeMeta {
         code: "A11Y006",
         summary: "Link or button has no accessible text content",
+        hint: "Add visible text content (a TextNode child) inside the interactive \
+               element, OR set `semantic_node_id` referencing a SemanticNode with a \
+               `label`. Icon-only buttons need explicit names.",
     },
 ];
 

@@ -14,18 +14,26 @@ const CODES: &[CodeMeta] = &[
     CodeMeta {
         code: "STR001",
         summary: "Document root is missing or has no node_id",
+        hint: "Add a `root` ViewRoot to the document with `node_id`, `metadata`, \
+               `semantic_nodes`, and `children`. Without a root, no IR is valid.",
     },
     CodeMeta {
         code: "STR002",
         summary: "Node is missing a node_id, or two nodes share the same id",
+        hint: "Every node needs a unique `node_id`. Pick a stable, descriptive identifier \
+               (e.g. \"hero-cta\") and ensure no two nodes in the document share it.",
     },
     CodeMeta {
         code: "STR004",
         summary: "Container is missing required structural fields (e.g. direction)",
+        hint: "Container needs `direction` (`Row` or `Column`) and a non-empty `children` \
+               array. Stack/Flex/Grid layouts also need their layout-mode-specific fields.",
     },
     CodeMeta {
         code: "STR005",
         summary: "MediaNode is missing required src field",
+        hint: "Set `src` on the MediaNode to the image or video URL. For accessibility, \
+               also set either `alt` text or `decorative: true`.",
     },
 ];
 

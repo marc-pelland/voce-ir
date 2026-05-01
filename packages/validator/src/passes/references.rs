@@ -14,26 +14,38 @@ const CODES: &[CodeMeta] = &[
     CodeMeta {
         code: "REF001",
         summary: "Referenced node_id does not exist in this document",
+        hint: "The `ref_id` (or referenced `node_id`) doesn't match any node. \
+               Check the spelling and confirm the target node exists in the document.",
     },
     CodeMeta {
         code: "REF005",
         summary: "Reference target type does not match the expected type",
+        hint: "The referenced node is the wrong type for this field. For example, \
+               `semantic_node_id` must point to a SemanticNode, not a TextNode.",
     },
     CodeMeta {
         code: "REF006",
         summary: "Reference target was found but is not reachable from root",
+        hint: "The referenced node exists but isn't in the `root.children` tree. \
+               Move it into the tree or remove the dangling reference.",
     },
     CodeMeta {
         code: "REF007",
         summary: "Cyclic reference detected between nodes",
+        hint: "Two or more nodes reference each other in a cycle. Break the cycle \
+               by removing one reference or restructuring the relationship.",
     },
     CodeMeta {
         code: "REF008",
         summary: "ContextNode references an undefined provider",
+        hint: "The ContextNode's `provider_id` doesn't match a defined provider. \
+               Add the provider node, or fix the id to match an existing one.",
     },
     CodeMeta {
         code: "REF009",
         summary: "DataBinding references an unknown node or field",
+        hint: "The binding string doesn't resolve to a real node or property. \
+               Verify the path matches an actual field on a real node.",
     },
 ];
 

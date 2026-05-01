@@ -259,6 +259,7 @@ fn cmd_validate(
                     "code": meta.code,
                     "pass": pass.name(),
                     "summary": meta.summary,
+                    "hint": meta.hint,
                 }));
             }
         }

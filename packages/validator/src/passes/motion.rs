@@ -15,22 +15,36 @@ const CODES: &[CodeMeta] = &[
     CodeMeta {
         code: "MOT001",
         summary: "AnimationTransition has no reduced_motion alternative",
+        hint: "Set `reduced_motion` to one of `Remove`, `Simplify`, `ReduceDuration`, \
+               or `Functional`. Voce honors prefers-reduced-motion as a compile error \
+               — silent animation is not an option.",
     },
     CodeMeta {
         code: "MOT002",
         summary: "Sequence has no reduced_motion alternative",
+        hint: "Multi-step Sequences need `reduced_motion` set. For most cases pick \
+               `Simplify` (single-step transition) or `Remove` (instant final state).",
     },
     CodeMeta {
         code: "MOT003",
         summary: "Spring physics has invalid damping or stiffness (must be > 0)",
+        hint: "Damping and stiffness must both be greater than 0. Negative or zero \
+               values are physically meaningless and cause runtime layout breakage. \
+               Typical values: damping 0.7-1.0, stiffness 100-400.",
     },
     CodeMeta {
         code: "MOT004",
         summary: "Animation duration exceeds the recommended UX threshold",
+        hint: "Animations longer than ~1000ms feel sluggish and delay user interaction. \
+               Consider shortening, or split into a faster main motion + slower \
+               secondary detail. Reserve long durations for hero/storytelling moments.",
     },
     CodeMeta {
         code: "MOT005",
         summary: "ScrollBinding has no reduced_motion alternative",
+        hint: "Scroll-driven animations can cause vestibular discomfort. Set \
+               `reduced_motion` so users with the OS preference get a non-animated \
+               version (typically `Remove` for parallax effects).",
     },
 ];
 

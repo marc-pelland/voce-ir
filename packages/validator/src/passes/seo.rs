@@ -13,18 +13,30 @@ const CODES: &[CodeMeta] = &[
     CodeMeta {
         code: "SEO001",
         summary: "Page is missing PageMetadata or has no title",
+        hint: "Add a `metadata` object to root with at least a `title`. Title is \
+               required for browser tabs, search results, and accessibility \
+               (screen readers announce it on page load).",
     },
     CodeMeta {
         code: "SEO002",
         summary: "PageMetadata title or description length is outside the recommended range",
+        hint: "Title should be 30-60 characters; description 120-160. Out-of-range \
+               values get truncated by Google and Twitter. Aim for length that \
+               communicates intent without padding.",
     },
     CodeMeta {
         code: "SEO003",
         summary: "Page has zero or multiple h1 headings (recommended: exactly 1)",
+        hint: "Set `heading_level: 1` on exactly one TextNode (typically the page \
+               title or hero headline). Multiple h1s confuse search engines; zero \
+               h1s leaves screen readers without a primary anchor.",
     },
     CodeMeta {
         code: "SEO007",
         summary: "OpenGraph data is present but missing og:image",
+        hint: "Add `image` to the `open_graph` object. Without it, links to this \
+               page on social platforms render no thumbnail — visibly worse than \
+               sharing the URL by itself.",
     },
 ];
 
