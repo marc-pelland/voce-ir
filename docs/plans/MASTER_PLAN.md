@@ -2,7 +2,7 @@
 
 **Created:** 2026-04-02
 **Last updated:** 2026-04-02
-**Status:** Phases 1-6 COMPLETE (v1.0.0). 50 sprints done. Phase 7 (Production Readiness): S51-S59 COMPLETE. S60 (Community Launch) planned. S61–S63 (Self-Demonstrating Site trilogy: live hero → multi-target → gallery) planned. S64 (Compiler-Emits-Rich-Defaults) planned, motivated by S61 regression.
+**Status:** Phases 1-6 COMPLETE (v1.0.0). 50 sprints done. Phase 7 (Production Readiness): S51-S59 COMPLETE. S60 (Community Launch) planned. S61–S63 (Self-Demonstrating Site trilogy: live hero → multi-target → gallery) planned. S64 (Compiler-Emits-Rich-Defaults) planned, motivated by S61 regression. S65–S67 (Conversational Quality trilogy: MCP polish → standalone REPL → validator diagnostics) planned. S68–S72, S74, S82 (Solidity & Quality batch: cross-target parity → test coverage → security → perf budgets → schema completeness → dev experience → a11y deep-dive) planned to make every output, every test, every release verifiably top-quality. Future Considerations section below tracks longer-tail ideas.
 
 ---
 
@@ -525,6 +525,41 @@ All research informing this plan lives in `docs/research/`:
 | `VOICE_AND_AI_INTEGRATION.md` | Voice input, AI-agnostic platform, MCP server, pluggable providers |
 | `ANIMATION_ASSETS_DEPLOY.md` | CSS/WAAPI/rAF tiers, compile-time springs, Gatsby-model images, adapter deployment |
 | `MEMORY_AND_DECISIONS.md` | Brief enforcement, decision log, session persistence, drift detection |
+
+---
+
+## Future Considerations
+
+Sprints not yet scoped as full plans, but identified as load-bearing or high-leverage for system completeness. Each is a one-liner; promote to a full plan when it moves up the priority queue.
+
+### Compiler & Schema
+
+- **S73 — AI Bridge Multi-Agent Maturity:** harden the multi-agent orchestrator (S22) with explicit handoff state machine, error recovery, and per-agent test coverage. Currently partially built; finish.
+- **S75 — Style Pack Polish:** make `style-packs/` real — discoverable, versioned, applied via CLI. Builds on S24/S48.
+- **S83 — i18n Runtime Path:** the schema has i18n; the compiler's runtime emission for dynamic locale switching is incomplete. Wire it to ContentSlot and DataNode.
+- **S90 — Image Optimization v2:** AVIF support, content-aware crops, automatic responsive `srcset`/`sizes`. Builds on S51.
+
+### Tools & Integrations
+
+- **S86 — IDE Integrations:** VS Code, JetBrains, Vim/Neovim plugins. Promotes the `voce-vscode` stub from S74 into a published extension.
+- **S80 — Migration Tooling:** import from React/Svelte/Vue components → IR; design tokens import. Lowers the activation barrier for existing projects.
+- **S89 — A11y Audit Automation:** axe-core / Lighthouse / Pa11y integrated into deployment adapters so every published page has a fresh report. Builds on S82.
+
+### Output & Distribution
+
+- **S76 — Documentation Site Upgrade:** rebuild `voce-ir.xyz/docs` itself in Voce IR — meta-demonstration. Currently mdBook.
+- **S77 — Public Examples Gallery:** community submission flow at `voce-ir.xyz/gallery` extending S63.
+- **S78 — Telemetry & Quality Metrics (opt-in):** track real-world IR shapes, validation pass rates, compile sizes. Feed back into improving defaults.
+
+### Future-Adjacent
+
+- **S81 — Voice + Multimodal Production:** make `ai-bridge/voice/` production-ready. Currently exists as exploration.
+- **S84 — Forms Intelligence:** detect intent ("checkout") and propose appropriate field schemas + server-side action codegen scaffolds.
+- **S85 — Production Observability:** opt-in tiny analytics for Core Web Vitals + error tracking baked into compiled output. Note: changes the "zero runtime" claim; weigh carefully.
+- **S87 — Real-time Collaborative Editing:** multiple authors editing the same IR. Significant infrastructure investment.
+- **S88 — Batch IR Generation:** generate N IRs from a CSV (e.g., 50 product pages from a catalog).
+
+These will be promoted to full plans as they become next-up. The bar for promotion: identifies a concrete user-visible outcome, has a clear acceptance criterion, fits in 1-3 weeks of focused work.
 
 ---
 
