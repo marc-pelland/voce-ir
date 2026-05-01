@@ -8,6 +8,16 @@ use colored::Colorize;
 use crate::errors::{Diagnostic, FixPatch, Severity, ValidationResult};
 use crate::fixes::build_fix;
 
+/// Canonical docs URL pattern for a validator rule. Pages may not exist yet
+/// for every code; the URL is stable so deep-links continue to work as the
+/// docs site grows. S67 Day 5.
+pub const DOCS_BASE: &str = "https://voce-ir.xyz/docs/validator-rules";
+
+/// Build the docs URL for a diagnostic code (e.g. "STR002" → ".../STR002").
+pub fn docs_url(code: &str) -> String {
+    format!("{DOCS_BASE}/{code}")
+}
+
 /// Project a Diagnostic to JSON, including the auto-fix proposal when one
 /// is available for that code (S67 Day 4). Centralizing here keeps the two
 /// JSON output paths in sync.
@@ -20,6 +30,7 @@ fn diagnostic_to_json(d: &Diagnostic) -> serde_json::Value {
         "path": d.node_path,
         "pass": d.pass,
         "hint": d.hint,
+        "docs_url": docs_url(&d.code),
         "fix": fix_value,
     })
 }

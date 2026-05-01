@@ -142,6 +142,22 @@ enum Commands {
         output: Option<PathBuf>,
     },
 
+    /// Apply auto-fix proposals to an IR file (S67 Day 5)
+    Fix {
+        /// Path to the IR file (.voce.json)
+        file: PathBuf,
+
+        /// Write changes back to the file. Without this flag, runs in
+        /// preview mode and prints what would change.
+        #[arg(long)]
+        apply: bool,
+
+        /// Highest confidence level to apply. Patches with higher confidence
+        /// (i.e. less safe) are listed but skipped.
+        #[arg(long, default_value = "safe", value_parser = ["safe", "suggested", "risky"])]
+        confidence: String,
+    },
+
     /// Deploy compiled output to a hosting platform
     Deploy {
         /// Path to the IR file (.voce.json)
@@ -225,6 +241,11 @@ fn run(cli: Cli) -> Result<i32> {
         Commands::Manifest { file } => cmd_manifest(&file),
         Commands::Preview { file } => cmd_preview(&file),
         Commands::Generate { prompt, output } => cmd_generate(&prompt, output.as_deref()),
+        Commands::Fix {
+            file,
+            apply,
+            confidence,
+        } => cmd_fix(&file, apply, &confidence),
         Commands::Deploy {
             file,
             adapter,
@@ -261,6 +282,7 @@ fn cmd_validate(
                     "summary": meta.summary,
                     "hint": meta.hint,
                     "fix_confidence": meta.fix_confidence.map(|c| c.to_string()),
+                    "docs_url": voce_validator::formatter::docs_url(meta.code),
                 }));
             }
         }
@@ -278,7 +300,11 @@ fn cmd_validate(
     let json = std::fs::read_to_string(file)
         .with_context(|| format!("Failed to read {}", file.display()))?;
 
-    let result = voce_validator::validate(&json).map_err(|e| anyhow::anyhow!("{e}"))?;
+    // Discover .voce/validator.toml from the IR's directory upward.
+    let config_dir = file.parent().unwrap_or(std::path::Path::new("."));
+    let config = voce_validator::ValidatorConfig::load_from_dir(config_dir);
+    let result =
+        voce_validator::validate_with_config(&json, &config).map_err(|e| anyhow::anyhow!("{e}"))?;
 
     let file_str = file.display().to_string();
 
@@ -601,6 +627,155 @@ fn cmd_generate(prompt: &str, output: Option<&std::path::Path>) -> Result<i32> {
     }
 
     Ok(0)
+}
+
+fn cmd_fix(file: &PathBuf, apply: bool, confidence_str: &str) -> Result<i32> {
+    use voce_validator::errors::Confidence;
+
+    let json = std::fs::read_to_string(file)
+        .with_context(|| format!("Failed to read {}", file.display()))?;
+
+    let threshold = match confidence_str {
+        "safe" => Confidence::Safe,
+        "suggested" => Confidence::Suggested,
+        "risky" => Confidence::Risky,
+        other => anyhow::bail!("unknown confidence level: {other}"),
+    };
+
+    // Validate first to get diagnostics with their fixes attached.
+    let config_dir = file.parent().unwrap_or(std::path::Path::new("."));
+    let config = voce_validator::ValidatorConfig::load_from_dir(config_dir);
+    let result =
+        voce_validator::validate_with_config(&json, &config).map_err(|e| anyhow::anyhow!("{e}"))?;
+
+    // Collect (diagnostic, fix) pairs ordered by node_path so dependent
+    // patches apply in document order.
+    let mut candidates: Vec<(
+        &voce_validator::Diagnostic,
+        voce_validator::errors::FixPatch,
+    )> = result
+        .diagnostics
+        .iter()
+        .filter_map(|d| voce_validator::build_fix(d).map(|f| (d, f)))
+        .collect();
+    candidates.sort_by(|a, b| a.0.node_path.cmp(&b.0.node_path));
+
+    if candidates.is_empty() {
+        println!("voce fix: no auto-fix proposals available for this file.");
+        if result.has_errors() {
+            println!(
+                "  ({} error(s) need manual attention.)",
+                result.error_count()
+            );
+        }
+        return Ok(0);
+    }
+
+    let (mut to_apply, mut deferred) = (Vec::new(), Vec::new());
+    for (d, fix) in candidates {
+        if confidence_meets(&fix.confidence, &threshold) {
+            to_apply.push((d, fix));
+        } else {
+            deferred.push((d, fix));
+        }
+    }
+
+    println!(
+        "voce fix: {} proposal(s) at or below {confidence_str}, {} above threshold",
+        to_apply.len(),
+        deferred.len()
+    );
+    println!();
+
+    if !to_apply.is_empty() {
+        println!(
+            "{}",
+            if apply {
+                "Applying:"
+            } else {
+                "Would apply (preview, --apply to write):"
+            }
+        );
+        for (d, fix) in &to_apply {
+            println!("  [{}] {}  at {}", fix.confidence, d.code, d.node_path);
+            println!("       → {}", fix.preview);
+        }
+        println!();
+    }
+
+    if !deferred.is_empty() {
+        println!("Skipped (above {confidence_str} threshold; lower with --confidence):");
+        for (d, fix) in &deferred {
+            println!("  [{}] {}  at {}", fix.confidence, d.code, d.node_path);
+        }
+        println!();
+    }
+
+    if !apply {
+        return Ok(0);
+    }
+
+    // Parse, apply each patch in order, write back.
+    let mut value: serde_json::Value =
+        serde_json::from_str(&json).with_context(|| "failed to parse IR JSON")?;
+    let mut applied = 0;
+    let mut failed = 0;
+    for (d, fix) in &to_apply {
+        let mut ok = true;
+        for op in &fix.operations {
+            if let Err(e) = voce_validator::fixes::apply_op(&mut value, op) {
+                eprintln!("  ✗ {} at {}: patch op failed: {e}", d.code, d.node_path);
+                ok = false;
+                break;
+            }
+        }
+        if ok {
+            applied += 1;
+        } else {
+            failed += 1;
+        }
+    }
+
+    let updated =
+        serde_json::to_string_pretty(&value).with_context(|| "failed to serialize patched IR")?;
+    std::fs::write(file, updated).with_context(|| format!("failed to write {}", file.display()))?;
+
+    println!(
+        "Wrote {}: {applied} applied, {failed} failed.",
+        file.display()
+    );
+
+    // Re-validate and show new state.
+    let after_json = std::fs::read_to_string(file)?;
+    let after = voce_validator::validate_with_config(&after_json, &config)
+        .map_err(|e| anyhow::anyhow!("{e}"))?;
+    println!(
+        "Re-validate: {} ({} → {} errors, {} → {} warnings)",
+        if after.has_errors() {
+            "✗ still invalid"
+        } else {
+            "✓ valid"
+        },
+        result.error_count(),
+        after.error_count(),
+        result.warning_count(),
+        after.warning_count(),
+    );
+
+    Ok(if after.has_errors() { 1 } else { 0 })
+}
+
+fn confidence_meets(
+    actual: &voce_validator::errors::Confidence,
+    threshold: &voce_validator::errors::Confidence,
+) -> bool {
+    use voce_validator::errors::Confidence;
+    let rank = |c: &Confidence| match c {
+        Confidence::Safe => 0,
+        Confidence::Suggested => 1,
+        Confidence::Risky => 2,
+    };
+    rank(actual) <= rank(threshold)
 }
 
 fn cmd_deploy(file: &PathBuf, adapter_name: Option<&str>, dry_run: bool) -> Result<i32> {

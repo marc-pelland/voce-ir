@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 
+use crate::config::ValidatorConfig;
 use crate::errors::{PassResult, Severity, ValidationResult};
 use crate::index::NodeIndex;
 use crate::ir::VoceIr;
@@ -25,13 +26,25 @@ fn time_us(f: impl FnOnce()) -> u64 {
     0
 }
 
-/// Run all validation passes on a JSON IR string.
+/// Run all validation passes on a JSON IR string with default config.
 ///
 /// Returns a `ValidationResult` containing all diagnostics from all passes,
 /// plus per-pass execution metadata (`result.passes`) for downstream consumers
 /// that want timing and outcome per pass — see `--verbose-passes` in the CLI.
 /// The JSON string must be the Voce IR canonical JSON format.
+///
+/// For project-specific severity overrides, use `validate_with_config`.
 pub fn validate(json: &str) -> Result<ValidationResult, String> {
+    validate_with_config(json, &ValidatorConfig::default())
+}
+
+/// Run all validation passes with project config applied. Severity overrides
+/// from `config.severity_overrides` are applied before per-pass error/warning
+/// counts are computed, so all downstream metrics reflect the final severity.
+pub fn validate_with_config(
+    json: &str,
+    config: &ValidatorConfig,
+) -> Result<ValidationResult, String> {
     let ir: VoceIr =
         serde_json::from_str(json).map_err(|e| format!("Failed to parse IR JSON: {e}"))?;
 
@@ -52,6 +65,11 @@ pub fn validate(json: &str) -> Result<ValidationResult, String> {
         let mut warning_count = 0;
         let mut codes: Vec<String> = Vec::new();
         for diag in result.diagnostics[before..].iter_mut() {
+            // Project-level severity override comes first so the rest of this
+            // loop (counts, codes list) reflects the final severity.
+            if let Some(&overridden) = config.severity_overrides.get(diag.code.as_str()) {
+                diag.severity = overridden;
+            }
             match diag.severity {
                 Severity::Error => error_count += 1,
                 Severity::Warning => warning_count += 1,

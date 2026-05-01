@@ -12,6 +12,7 @@
 //! assert!(!result.has_errors() || result.has_errors()); // always returns a result
 //! ```
 
+pub mod config;
 pub mod engine;
 pub mod errors;
 pub mod fixes;
@@ -23,6 +24,7 @@ pub mod manifest;
 pub mod passes;
 pub mod report;
 
-pub use engine::validate;
+pub use config::ValidatorConfig;
+pub use engine::{validate, validate_with_config};
 pub use errors::{Diagnostic, Severity, ValidationResult};
 pub use fixes::build_fix;
