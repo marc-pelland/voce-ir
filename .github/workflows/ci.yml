@@ -22,6 +22,44 @@ jobs:
       - run: cargo test --workspace
       - run: cargo build --release --workspace
 
+  coverage:
+    name: Coverage gate (cargo-llvm-cov, S69 part 3)
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+      - uses: Swatinem/rust-cache@v2
+        with:
+          # Distinct cache key from `check` — instrumented builds differ from
+          # plain ones and would otherwise poison the shared cache.
+          key: coverage
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+      # Run instrumented tests once; the same .profraw data drives both the
+      # printable summary and the fail-under-lines gate so coverage numbers
+      # are guaranteed consistent between the two.
+      - name: Generate coverage data
+        run: cargo llvm-cov --workspace --no-report
+      - name: Print summary table
+        run: cargo llvm-cov report
+      - name: Export lcov for downstream tooling
+        run: cargo llvm-cov report --lcov --output-path lcov.info
+      # Soft floor: 60% lines. Starting point — ratchet up after a few weeks
+      # of green runs. If coverage trends much higher, raise this to
+      # `actual − 5` so the gate stays meaningful without being fragile.
+      - name: Enforce minimum line coverage (60%)
+        run: cargo llvm-cov report --fail-under-lines 60
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lcov-coverage
+          path: lcov.info
+          if-no-files-found: warn
+
   frontend-verify:
     name: Site-hero verifiers (round-trip + pass-list drift)
     needs: check
