@@ -79,7 +79,9 @@
       "Bash(npm --version)",
       "Bash(echo \"exit: $?\")",
       "Bash(npx vite *)",
-      "Bash(echo \"tsc exit: $?\")"
+      "Bash(echo \"tsc exit: $?\")",
+      "Bash(~/.cargo/bin/rustc --version)",
+      "Bash(/Users/marcpelland/Documents/Development/personal/voce-ir/target/release/voce compile *)"
     ]
   }
 }

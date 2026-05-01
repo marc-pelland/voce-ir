@@ -1,4 +1,5 @@
-/** Shape of an entry in fixtures/index.json. */
+/** Shape of an entry in fixtures/index.json. Kept deterministic — no
+ * timestamps or run-time-dependent values, so CI can diff for drift. */
 export interface FixtureIndexEntry {
   id: string;
   label: string;
@@ -6,11 +7,9 @@ export interface FixtureIndexEntry {
   pending?: string | null;
   sizeBytes?: number;
   validation?: { valid: boolean; errors: number; warnings: number };
-  timings?: { validateMs: number; compileMs: number };
 }
 
 export interface FixtureIndex {
-  generatedAt: string;
   prompts: FixtureIndexEntry[];
 }
 
@@ -23,8 +22,6 @@ export interface Fixture {
   validation: ValidationReport;
   html: string;
   sizeBytes: number;
-  timings: { validateMs: number; compileMs: number };
-  generatedAt: string;
 }
 
 export interface ValidationDiagnostic {
@@ -71,17 +68,17 @@ export interface WasmValidateResult {
   warnings: ValidationDiagnostic[];
 }
 
-/** The 9 validation passes the validator runs. Synthesized for the visualization
- * because the current `voce validate --format json` output is summary-only —
- * see build journal finding #1 (S61 Day 1). */
+/** Canonical list of validation passes, mirroring `passes/mod.rs::all_passes()`
+ * order and `ValidationPass::name()` strings. Drift between the two is caught
+ * by `verify-pass-list.mjs` in CI. */
 export const VALIDATION_PASSES = [
-  "structural-completeness",
-  "reference-resolution",
+  "structural",
+  "references",
   "state-machine",
   "accessibility",
-  "motion-safety",
   "security",
   "seo",
   "forms",
   "i18n",
+  "motion",
 ] as const;

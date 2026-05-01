@@ -1,0 +1,75 @@
+const e="contact-form",t="A contact form with name, email, message, and validation",n="A contact form with name, email, and message fields. All fields are required. The email field should validate email format. Include a submit button that posts to an API endpoint. The form should work without JavaScript (progressive enhancement).",a={schema_version_major:0,schema_version_minor:1,root:{node_id:"root",document_language:"en",metadata:{title:"Contact Us"},semantic_nodes:[{node_id:"sem-main",role:"main",label:"Contact form"},{node_id:"sem-form",role:"form",label:"Contact form"}],children:[{value_type:"Container",value:{node_id:"contact-page",layout:"Stack",direction:"Column",semantic_node_id:"sem-main",children:[{value_type:"TextNode",value:{node_id:"heading",content:"Get in touch",font_size:{value:32,unit:"Px"},font_weight:"Bold",heading_level:1}},{value_type:"FormNode",value:{node_id:"contact-form",semantic_node_id:"sem-form",validation_mode:"OnBlurThenChange",fields:[{name:"name",field_type:"Text",label:"Your name",validations:[{rule_type:"Required",message:"Name is required"}],autocomplete:"Name"},{name:"email",field_type:"Email",label:"Email address",validations:[{rule_type:"Required",message:"Email is required"},{rule_type:"Email",message:"Please enter a valid email"}],autocomplete:"Email"},{name:"message",field_type:"Textarea",label:"Message",validations:[{rule_type:"Required",message:"Message is required"},{rule_type:"MinLength",value:"10",message:"Message must be at least 10 characters"}]}],submission:{action_node_id:"contact-submit",encoding:"Json",progressive:!0}}},{value_type:"ActionNode",value:{node_id:"contact-submit",source:{endpoint:"/api/contact",provider:"Rest"},method:"POST",csrf_protected:!0}}]}}]}},o={diagnostics:[],errors:0,valid:!0,warnings:0},r=`<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="X-Frame-Options" content="DENY">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Contact Us</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5}
+img{max-width:100%;height:auto;display:block}
+a{transition:opacity .15s}
+a:hover{opacity:.8}
+a:focus-visible{outline:2px solid var(--voce-primary,#6366f1);outline-offset:2px;border-radius:2px}
+input,textarea,select{transition:border-color .15s,box-shadow .15s}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--voce-primary,#6366f1);box-shadow:0 0 0 3px rgba(99,102,241,.2)}
+button,[role="button"]{cursor:pointer}
+.voce-btn{cursor:pointer;transition:opacity .15s,transform .1s}
+.voce-btn:hover{opacity:.9}
+.voce-btn:active{transform:scale(.98)}
+.voce-btn:focus-visible{outline:2px solid var(--voce-primary,#6366f1);outline-offset:2px;border-radius:2px}
+form{display:flex;flex-direction:column;gap:14px;max-width:520px;width:100%}
+form label{font-size:14px;font-weight:500;display:block}
+input,textarea,select{font:inherit;color:inherit;background:rgba(127,127,127,.06);border:1px solid rgba(127,127,127,.25);border-radius:6px;padding:10px 12px;width:100%;min-height:44px}
+textarea{min-height:120px;resize:vertical;font-family:inherit}
+form button[type="submit"],form button:not([type]){font:inherit;font-weight:600;background:var(--voce-primary,#6366f1);color:#fff;border:none;border-radius:6px;padding:12px 20px;min-height:44px;align-self:flex-start;cursor:pointer;transition:opacity .15s,transform .1s}
+form button[type="submit"]:hover,form button:not([type]):hover{opacity:.92}
+form button[type="submit"]:active,form button:not([type]):active{transform:scale(.98)}
+form button[type="submit"]:focus-visible,form button:not([type]):focus-visible{outline:2px solid var(--voce-primary,#6366f1);outline-offset:2px}
+form [role="alert"]{font-size:13px;color:var(--voce-error,#ef4444)}
+@media(max-width:520px){form{max-width:100%}form button[type="submit"],form button:not([type]){width:100%;align-self:stretch}}
+</style>
+</head>
+<body>
+  <main style="display:flex;flex-direction:column;" role="main" aria-label="Contact form">
+    <h1 style="font-size:32px;font-weight:700;">Get in touch</h1>
+    <form id="contact-form" method="POST" action="contact-submit" novalidate>
+      <label for="contact-form-name">Your name</label>
+      <input id="contact-form-name" name="name" type="text" required aria-required="true" autocomplete="name">
+      <span id="contact-form-name-error" role="alert" aria-live="polite" hidden></span>
+      <label for="contact-form-email">Email address</label>
+      <input id="contact-form-email" name="email" type="email" required aria-required="true" autocomplete="email">
+      <span id="contact-form-email-error" role="alert" aria-live="polite" hidden></span>
+      <label for="contact-form-message">Message</label>
+      <textarea id="contact-form-message" name="message" required aria-required="true"></textarea>
+      <span id="contact-form-message-error" role="alert" aria-live="polite" hidden></span>
+      <button type="submit">Submit</button>
+    </form>
+  </main>
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+  const contact_form_form=document.getElementById('contact-form');
+  if(contact_form_form){contact_form_form.addEventListener('submit',(e)=>{
+    let valid=true;
+    const name=document.getElementById('contact-form-name');
+    const name_err=document.getElementById('contact-form-name-error');
+    if(!name.value.trim()){name_err.textContent='Name is required';name_err.hidden=false;valid=false;}else{name_err.hidden=true;}
+    const email=document.getElementById('contact-form-email');
+    const email_err=document.getElementById('contact-form-email-error');
+    if(!email.value.trim()){email_err.textContent='Email is required';email_err.hidden=false;valid=false;}else{email_err.hidden=true;}
+    if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email.value)){email_err.textContent='Please enter a valid email';email_err.hidden=false;valid=false;}else{email_err.hidden=true;}
+    const message=document.getElementById('contact-form-message');
+    const message_err=document.getElementById('contact-form-message-error');
+    if(!message.value.trim()){message_err.textContent='Message is required';message_err.hidden=false;valid=false;}else{message_err.hidden=true;}
+    if(message.value.length<10){message_err.textContent='Message must be at least 10 characters';message_err.hidden=false;valid=false;}else{message_err.hidden=true;}
+    if(!valid){e.preventDefault();}
+  })}
+});
+<\/script>
+</body>
+</html>
+`,i=5058,s={id:e,label:t,prompt:n,ir:a,validation:o,html:r,sizeBytes:i};export{s as default,r as html,e as id,a as ir,t as label,n as prompt,i as sizeBytes,o as validation};

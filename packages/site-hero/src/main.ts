@@ -20,14 +20,15 @@ import { VALIDATION_PASSES } from "./types.js";
 
 const FIXTURE_INDEX = indexJson as FixtureIndex;
 
-// Animation timing constants (ms)
-const TIMING = {
-  irFadeIn: 800,
-  prePass: 200,
-  perPass: 900,
-  postPass: 300,
-  renderFadeIn: 600,
-} as const;
+// Animation timing constants (ms). Honors prefers-reduced-motion: when the
+// user has asked for reduced motion, all stages collapse to instant (10ms).
+const REDUCED_MOTION =
+  typeof window !== "undefined" &&
+  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+const TIMING = REDUCED_MOTION
+  ? { irFadeIn: 10, prePass: 10, perPass: 10, postPass: 10, renderFadeIn: 10 }
+  : { irFadeIn: 800, prePass: 200, perPass: 900, postPass: 300, renderFadeIn: 600 };
 
 // DOM refs
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T =>

@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "build-fixtures": "node build-fixtures.mjs"
+    "build-fixtures": "node build-fixtures.mjs",
+    "build-landing": "node build-landing.mjs",
+    "build-all": "npm run build && npm run build-landing",
+    "verify": "node verify-pass-list.mjs && node verify-roundtrip.mjs",
+    "serve:integrated": "vite preview --outDir dist-integrated --port 5175"
   },
   "devDependencies": {
     "typescript": "~5.7.0",

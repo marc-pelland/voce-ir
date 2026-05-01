@@ -8,7 +8,7 @@
 // Run from the repo root:   node packages/site-hero/build-fixtures.mjs
 
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -17,6 +17,12 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, "..", "..");
 const FIXTURES_DIR = join(HERE, "fixtures");
 const MANIFEST_PATH = join(HERE, "starter-prompts.json");
+
+// Prefer the locally-built voce CLI over a PATH-installed one — a stale
+// Homebrew-installed `voce` will silently emit pre-rebuild output and quietly
+// poison fixture regeneration after compiler changes (F-021).
+const LOCAL_VOCE = join(REPO_ROOT, "target/release/voce");
+const VOCE = existsSync(LOCAL_VOCE) ? LOCAL_VOCE : "voce";
 
 const manifest = JSON.parse(readFileSync(MANIFEST_PATH, "utf8"));
 const tmp = mkdtempSync(join(tmpdir(), "voce-hero-"));
@@ -44,22 +50,23 @@ for (const prompt of manifest.prompts) {
   const ir = JSON.parse(readFileSync(irPath, "utf8"));
   const intentText = readFileSync(intentPath, "utf8").trim();
 
-  const validateStart = Date.now();
+  // Fixture content is deterministic — no timestamps or wall-clock timings,
+  // so CI can detect drift via `git diff --quiet`.
   const validateOut = execFileSync(
-    "voce",
+    VOCE,
     ["validate", "--format", "json", irPath],
     { encoding: "utf8" }
   );
-  const validateMs = Date.now() - validateStart;
   const validation = JSON.parse(validateOut);
   delete validation.file; // absolute path leaks the build host
 
   const htmlPath = join(tmp, `${prompt.id}.html`);
-  const compileStart = Date.now();
-  execFileSync("voce", ["compile", irPath, "-o", htmlPath], {
+  // --no-cache: the CLI compilation cache is keyed on IR content, not compiler
+  // version, so without this a fixture rebuild after a compiler change can
+  // silently write stale HTML. Round-trip verification then fails (F-021).
+  execFileSync(VOCE, ["compile", irPath, "-o", htmlPath, "--no-cache"], {
     encoding: "utf8",
   });
-  const compileMs = Date.now() - compileStart;
   const html = readFileSync(htmlPath, "utf8");
 
   const fixture = {
@@ -70,8 +77,6 @@ for (const prompt of manifest.prompts) {
     validation,
     html,
     sizeBytes: Buffer.byteLength(html, "utf8"),
-    timings: { validateMs, compileMs },
-    generatedAt: new Date().toISOString(),
   };
 
   const fixturePath = join(FIXTURES_DIR, `${prompt.id}.json`);
@@ -83,23 +88,16 @@ for (const prompt of manifest.prompts) {
     available: true,
     sizeBytes: fixture.sizeBytes,
     validation: { valid: validation.valid, errors: validation.errors, warnings: validation.warnings },
-    timings: fixture.timings,
   });
 
   availableCount += 1;
-  console.log(
-    `  ✓ ${prompt.id.padEnd(16)}  validate ${validateMs}ms  compile ${compileMs}ms  ${fixture.sizeBytes}B`
-  );
+  console.log(`  ✓ ${prompt.id.padEnd(16)}  ${fixture.sizeBytes}B`);
 }
 
 const indexPath = join(FIXTURES_DIR, "index.json");
 writeFileSync(
   indexPath,
-  JSON.stringify(
-    { generatedAt: new Date().toISOString(), prompts: indexEntries },
-    null,
-    2
-  ) + "\n"
+  JSON.stringify({ prompts: indexEntries }, null, 2) + "\n"
 );
 
 rmSync(tmp, { recursive: true, force: true });

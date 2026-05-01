@@ -176,6 +176,21 @@ fn emit_head(
     html.push_str(".voce-btn:active{transform:scale(.98)}\n");
     html.push_str(".voce-btn:focus-visible{outline:2px solid var(--voce-primary,#6366f1);outline-offset:2px;border-radius:2px}\n");
 
+    // Form defaults — base layout, field styling, submit button, errors. The
+    // schema's FormNode/FormField don't carry style props, so without these
+    // the compiler emits unstyled browser-default inputs. Uses theme vars with
+    // fallbacks so untouched IRs still render. Touch target ≥ 44px (WCAG AAA).
+    html.push_str("form{display:flex;flex-direction:column;gap:14px;max-width:520px;width:100%}\n");
+    html.push_str("form label{font-size:14px;font-weight:500;display:block}\n");
+    html.push_str("input,textarea,select{font:inherit;color:inherit;background:rgba(127,127,127,.06);border:1px solid rgba(127,127,127,.25);border-radius:6px;padding:10px 12px;width:100%;min-height:44px}\n");
+    html.push_str("textarea{min-height:120px;resize:vertical;font-family:inherit}\n");
+    html.push_str("form button[type=\"submit\"],form button:not([type]){font:inherit;font-weight:600;background:var(--voce-primary,#6366f1);color:#fff;border:none;border-radius:6px;padding:12px 20px;min-height:44px;align-self:flex-start;cursor:pointer;transition:opacity .15s,transform .1s}\n");
+    html.push_str("form button[type=\"submit\"]:hover,form button:not([type]):hover{opacity:.92}\n");
+    html.push_str("form button[type=\"submit\"]:active,form button:not([type]):active{transform:scale(.98)}\n");
+    html.push_str("form button[type=\"submit\"]:focus-visible,form button:not([type]):focus-visible{outline:2px solid var(--voce-primary,#6366f1);outline-offset:2px}\n");
+    html.push_str("form [role=\"alert\"]{font-size:13px;color:var(--voce-error,#ef4444)}\n");
+    html.push_str("@media(max-width:520px){form{max-width:100%}form button[type=\"submit\"],form button:not([type]){width:100%;align-self:stretch}}\n");
+
     // Animation CSS (Tier 1: CSS transitions with compile-time spring easing)
     for anim in &ir.animations {
         let target = &anim.target_node_id;

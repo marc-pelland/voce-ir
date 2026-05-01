@@ -238,10 +238,16 @@
     .passes li.running::before { animation: none; }
   }
 </style>
+  <script type="module" crossorigin src="/assets/index-ZUm9fPmx.js"></script>
 </head>
 <body>
 <a class="skip-link" href="#columns">Skip to live demo</a>
-<!-- VOCE_LANDING_TOP -->
+<div style="padding:16px 24px 16px 24px;display:flex;flex-direction:row;" role="navigation" aria-label="Main navigation">
+    <p style="color:rgb(250,250,250);font-size:18px;font-weight:700;">Voce IR</p>
+    <p style="color:rgb(161,161,170);font-size:14px;">Docs</p>
+    <p style="color:rgb(161,161,170);font-size:14px;">Playground</p>
+    <p style="color:rgb(161,161,170);font-size:14px;">GitHub</p>
+  </div>
 <div class="wrap">
 
 <header>
@@ -297,7 +303,61 @@
 <button class="skip" id="skip-btn" hidden>skip animation →</button>
 
 </div>
-<!-- VOCE_LANDING_BOTTOM -->
-<script type="module" src="/src/main.ts"></script>
+<div style="padding:80px 24px 80px 24px;display:flex;flex-direction:row;gap:32px;">
+    <div style="display:flex;flex-direction:column;">
+      <p style="color:rgb(99,102,241);font-size:32px;font-weight:700;">01</p>
+      <p style="color:rgb(250,250,250);font-size:18px;font-weight:600;">Conversation</p>
+      <p style="color:rgb(113,113,122);font-size:14px;">Describe what you want in natural language. The AI asks questions, builds context, and pushes back on anti-patterns.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;">
+      <p style="color:rgb(99,102,241);font-size:32px;font-weight:700;">02</p>
+      <p style="color:rgb(250,250,250);font-size:18px;font-weight:600;">Generate IR</p>
+      <p style="color:rgb(113,113,122);font-size:14px;">AI emits typed binary IR — 27 node types covering layout, state, animation, accessibility, SEO, and forms.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;">
+      <p style="color:rgb(99,102,241);font-size:32px;font-weight:700;">03</p>
+      <p style="color:rgb(250,250,250);font-size:18px;font-weight:600;">Validate</p>
+      <p style="color:rgb(113,113,122);font-size:14px;">9 validation passes enforce 46 quality rules. Accessibility, security, and SEO are compile errors, not warnings.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;">
+      <p style="color:rgb(99,102,241);font-size:32px;font-weight:700;">04</p>
+      <p style="color:rgb(250,250,250);font-size:18px;font-weight:600;">Compile &amp; Deploy</p>
+      <p style="color:rgb(113,113,122);font-size:14px;">Compile to 7 targets: DOM, WebGPU, WASM, iOS, Android, Email, or Hybrid. Deploy to Vercel, Cloudflare, or Netlify.</p>
+    </div>
+  </div>
+  <div style="grid-template-columns:1fr 1fr 1fr;padding:40px 24px 80px 24px;display:flex;flex-direction:column;gap:24px;">
+    <h2 style="color:rgb(250,250,250);font-size:32px;font-weight:700;">Why Voce IR</h2>
+    <div style="background-color:rgb(24,24,27);border-radius:8px 8px 8px 8px;padding:24px 24px 24px 24px;">
+      <h3 style="color:rgb(250,250,250);font-size:18px;font-weight:600;">Zero Runtime</h3>
+      <p style="color:rgb(113,113,122);font-size:14px;">No framework JS shipped. Spring physics solved at compile time. Every byte serves the user.</p>
+    </div>
+    <div style="background-color:rgb(24,24,27);border-radius:8px 8px 8px 8px;padding:24px 24px 24px 24px;">
+      <h3 style="color:rgb(250,250,250);font-size:18px;font-weight:600;">7 Compile Targets</h3>
+      <p style="color:rgb(113,113,122);font-size:14px;">DOM, WebGPU, WASM, Hybrid, iOS SwiftUI, Android Compose, Email HTML. One IR, every platform.</p>
+    </div>
+    <div style="background-color:rgb(24,24,27);border-radius:8px 8px 8px 8px;padding:24px 24px 24px 24px;">
+      <h3 style="color:rgb(250,250,250);font-size:18px;font-weight:600;">46 Validation Rules</h3>
+      <p style="color:rgb(113,113,122);font-size:14px;">9 passes covering structure, references, state machines, accessibility, security, SEO, forms, i18n, and motion safety.</p>
+    </div>
+    <div style="background-color:rgb(24,24,27);border-radius:8px 8px 8px 8px;padding:24px 24px 24px 24px;">
+      <h3 style="color:rgb(250,250,250);font-size:18px;font-weight:600;">Accessible by Default</h3>
+      <p style="color:rgb(113,113,122);font-size:14px;">Missing SemanticNode is a compile error. Keyboard equivalents required. Heading hierarchy enforced. ReducedMotion mandatory.</p>
+    </div>
+    <div style="background-color:rgb(24,24,27);border-radius:8px 8px 8px 8px;padding:24px 24px 24px 24px;">
+      <h3 style="color:rgb(250,250,250);font-size:18px;font-weight:600;">AI-Native</h3>
+      <p style="color:rgb(113,113,122);font-size:14px;">Not AI writing framework code faster. A system designed from scratch for AI authorship. Conversation in, production UI out.</p>
+    </div>
+    <div style="background-color:rgb(24,24,27);border-radius:8px 8px 8px 8px;padding:24px 24px 24px 24px;">
+      <h3 style="color:rgb(250,250,250);font-size:18px;font-weight:600;">Production Ready</h3>
+      <p style="color:rgb(113,113,122);font-size:14px;">Deploy to Vercel, Cloudflare, or Netlify. Real image pipeline. Font subsetting. Content-hashed assets. CSP headers.</p>
+    </div>
+  </div>
+  <div style="background-color:rgb(24,24,27);border-radius:12px 12px 12px 12px;padding:48px 48px 48px 48px;">
+    <h2 style="color:rgb(250,250,250);font-size:32px;font-weight:700;">Ready to build?</h2>
+    <p style="color:rgb(99,102,241);font-size:16px;">cargo install voce-validator</p>
+  </div>
+  <div style="padding:32px 24px 32px 24px;display:flex;flex-direction:row;" role="contentinfo" aria-label="Footer">
+    <p style="color:rgb(113,113,122);font-size:13px;">Voce IR. Apache-2.0 License. Built by Marc Pelland.</p>
+  </div>
 </body>
 </html>

@@ -20,6 +20,41 @@ jobs:
       - run: cargo test --workspace
       - run: cargo build --release --workspace
 
+  frontend-verify:
+    name: Site-hero verifiers (round-trip + pass-list drift)
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Build voce CLI (release)
+        run: cargo build --release -p voce-validator
+      - name: Put voce on PATH
+        run: echo "${{ github.workspace }}/target/release" >> $GITHUB_PATH
+      - name: Install site-hero deps
+        working-directory: packages/site-hero
+        run: npm ci || npm install
+      - name: Pass-list drift check
+        working-directory: packages/site-hero
+        run: node verify-pass-list.mjs
+      - name: Regenerate fixtures from current toolchain
+        working-directory: packages/site-hero
+        run: node build-fixtures.mjs
+      - name: Round-trip verification (WASM ↔ cached)
+        working-directory: packages/site-hero
+        run: node verify-roundtrip.mjs
+      - name: Fail on uncommitted fixture drift
+        run: |
+          if ! git diff --quiet packages/site-hero/fixtures/; then
+            echo "::error::fixture regeneration produced changes — commit them"
+            git diff packages/site-hero/fixtures/
+            exit 1
+          fi
+
   release:
     name: Build Release Binaries
     needs: check
