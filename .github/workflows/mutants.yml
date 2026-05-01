@@ -1,0 +1,98 @@
+# Mutation testing pilot — S69 part 4.
+#
+# cargo-mutants intentionally introduces small "mutations" into the source
+# (e.g. flipping booleans, replacing return values) and runs the test suite
+# against each variant. A mutation that survives means the tests didn't
+# detect it — i.e., the behavior was untested or under-specified.
+#
+# Mutation testing is slow (each mutant = one full test build + run), so
+# this workflow does NOT run on every PR. Instead it runs:
+#   - on push to main (signal after merges)
+#   - weekly on cron (catch slow drift in test sensitivity)
+#   - on manual dispatch (when a contributor wants signal pre-merge)
+#
+# Scope is narrowed to the validator's passes/ tree — that is our most
+# behaviorally tested module (40+ codes, lots of unit tests, the proptest
+# suite) and the best candidate for surfacing real test gaps. Once the
+# pilot proves valuable we can expand scope.
+#
+# The job does NOT fail on surviving mutants in v1. We want signal, not a
+# gate, until we understand what survives and whether the mutants are
+# meaningful (e.g., timeout reductions on guard expressions might be
+# behaviorally indistinguishable). The summary line goes to the job log;
+# the full mutants.out report is uploaded as an artifact for analysis.
+
+name: Mutation Testing
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # Sundays at 04:17 UTC — off-peak for GitHub Actions and after weekend
+    # commits land. Cron syntax: minute hour day-of-month month day-of-week.
+    - cron: "17 4 * * 0"
+  workflow_dispatch:
+
+jobs:
+  mutants:
+    name: cargo-mutants pilot (validator passes)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          # Distinct cache key — mutants does many incremental builds and
+          # benefits from its own cache slot.
+          key: mutants
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-mutants
+
+      # Narrow the pilot to validator passes — see header comment for
+      # rationale. Continue-on-error and explicit `|| true` together
+      # ensure surviving mutants don't fail the job in v1.
+      - name: Run cargo-mutants on validator passes
+        id: mutants_run
+        continue-on-error: true
+        run: |
+          set +e
+          cargo mutants \
+            --in-place=false \
+            --file 'packages/validator/src/passes/**/*.rs' \
+            --no-shuffle \
+            --timeout 120 \
+            --output mutants.out
+          echo "mutants_exit=$?" >> "$GITHUB_OUTPUT"
+          # Don't propagate the exit code; we want signal, not a gate.
+          exit 0
+
+      - name: Summarize results
+        if: always()
+        run: |
+          echo "## cargo-mutants pilot — validator passes" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ -d mutants.out ]; then
+            echo "Exit code from mutants run: ${{ steps.mutants_run.outputs.mutants_exit }}" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            for file in caught.txt missed.txt timeout.txt unviable.txt; do
+              if [ -f "mutants.out/$file" ]; then
+                count=$(wc -l < "mutants.out/$file" | tr -d ' ')
+                label="${file%.txt}"
+                echo "- **$label**: $count" >> "$GITHUB_STEP_SUMMARY"
+              fi
+            done
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "Pilot is non-blocking; surviving mutants are uploaded as an artifact." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No mutants.out directory produced — see logs above." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload mutants.out
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutants-report
+          path: mutants.out/
+          if-no-files-found: warn
