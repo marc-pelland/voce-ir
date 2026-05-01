@@ -31,22 +31,51 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # --- Rust toolchain ---
+      # --- Toolchain setup ---
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-      # --- Build the landing page from IR ---
-      - name: Compile landing page
+      # The landing page (S61 live hero) and the playground both depend on the
+      # WASM-compiled validator+compiler. Build it once, then fan out.
+      - name: Install wasm-pack
+        run: cargo install wasm-pack
+      - name: Add wasm32 target
+        run: rustup target add wasm32-unknown-unknown
+      - name: Build playground-wasm
+        run: |
+          cd packages/playground-wasm
+          wasm-pack build --target web --release
+
+      # The build-landing.mjs script invokes `voce` from PATH to compile the
+      # landing IR, so install the CLI before building site-hero.
+      - name: Install voce CLI
+        run: cargo install --path packages/validator --locked
+
+      # --- Landing page: S61 live three-column hero spliced into compiled IR ---
+      - name: Build site-hero
+        run: |
+          cd packages/site-hero
+          # Sync WASM bindings from the freshly-built playground-wasm so the
+          # live hero matches the playground.
+          mkdir -p wasm
+          cp ../playground-wasm/pkg/voce_playground_wasm_bg.wasm wasm/
+          cp ../playground-wasm/pkg/voce_playground_wasm.js wasm/
+          cp ../playground-wasm/pkg/voce_playground_wasm.d.ts wasm/
+          cp ../playground-wasm/pkg/voce_playground_wasm_bg.wasm.d.ts wasm/
+          npm install
+          npm run build-all
+      - name: Stage landing page into _site/
         run: |
           mkdir -p _site
-          cargo run -p voce-validator -- compile \
-            examples/production/landing.voce.json \
-            -o _site/index.html \
-            --skip-fonts --minify
+          cp -R packages/site-hero/dist-integrated/. _site/
           # Custom domain file (so GitHub Pages remembers the domain)
           echo "voce-ir.xyz" > _site/CNAME
 
-      # --- Build the documentation site ---
+      # --- Documentation site ---
       - name: Install mdBook
         run: cargo install mdbook --no-default-features
       - name: Build docs
@@ -56,19 +85,7 @@ jobs:
           # Move into _site/docs/
           mv book ../../_site/docs
 
-      # --- Build the playground ---
-      - name: Install wasm-pack
-        run: cargo install wasm-pack
-      - name: Add wasm32 target
-        run: rustup target add wasm32-unknown-unknown
-      - name: Build WASM
-        run: |
-          cd packages/playground-wasm
-          wasm-pack build --target web --release
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
+      # --- Playground ---
       - name: Build playground
         run: |
           cd packages/playground
