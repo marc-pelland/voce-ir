@@ -364,11 +364,10 @@ fn cmd_json2bin(input: &PathBuf, output: Option<&std::path::Path>) -> Result<i32
     if status.success() {
         let in_size = std::fs::metadata(input)?.len();
         let out_size = std::fs::metadata(&out_path).map(|m| m.len()).unwrap_or(0);
-        let pct = if in_size > 0 {
-            100 - (out_size * 100 / in_size)
-        } else {
-            0
-        };
+        let pct = (out_size * 100)
+            .checked_div(in_size)
+            .map(|ratio| 100u64.saturating_sub(ratio))
+            .unwrap_or(0);
         eprintln!(
             "Converted: {} bytes JSON → {} bytes binary ({}% smaller)",
             in_size, out_size, pct
