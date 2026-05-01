@@ -25,6 +25,15 @@ export function inspect(ir_json: string): string;
  */
 export function validate(ir_json: string): string;
 
+/**
+ * Validate IR JSON with per-pass telemetry (S67). Returns a JSON string
+ * containing the same fields as `validate()` plus a `passes` array, where
+ * each entry is `{ name, durationUs, errors, warnings, codes }`. Used by
+ * site-hero (and future MCP / playground consumers) to surface real per-pass
+ * data instead of synthesizing it.
+ */
+export function validate_verbose(ir_json: string): string;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
@@ -33,6 +42,7 @@ export interface InitOutput {
     readonly compile_email: (a: number, b: number) => [number, number];
     readonly inspect: (a: number, b: number) => [number, number];
     readonly validate: (a: number, b: number) => [number, number];
+    readonly validate_verbose: (a: number, b: number) => [number, number];
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;

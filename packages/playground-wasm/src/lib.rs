@@ -44,6 +44,63 @@ pub fn validate(ir_json: &str) -> String {
     }
 }
 
+/// Validate IR JSON with per-pass telemetry (S67). Returns a JSON string
+/// containing the same fields as `validate()` plus a `passes` array, where
+/// each entry is `{ name, durationUs, errors, warnings, codes }`. Used by
+/// site-hero (and future MCP / playground consumers) to surface real per-pass
+/// data instead of synthesizing it.
+#[wasm_bindgen]
+pub fn validate_verbose(ir_json: &str) -> String {
+    match voce_validator::validate(ir_json) {
+        Ok(result) => {
+            let errors: Vec<serde_json::Value> = result
+                .diagnostics
+                .iter()
+                .filter(|d| matches!(d.severity, voce_validator::errors::Severity::Error))
+                .map(diagnostic_to_json)
+                .collect();
+            let warnings: Vec<serde_json::Value> = result
+                .diagnostics
+                .iter()
+                .filter(|d| matches!(d.severity, voce_validator::errors::Severity::Warning))
+                .map(diagnostic_to_json)
+                .collect();
+            let passes: Vec<serde_json::Value> = result
+                .passes
+                .iter()
+                .map(|p| {
+                    serde_json::json!({
+                        "name": p.name,
+                        "durationUs": p.duration_us,
+                        "errors": p.error_count,
+                        "warnings": p.warning_count,
+                        "codes": p.codes,
+                    })
+                })
+                .collect();
+
+            serde_json::json!({
+                "valid": !result.has_errors(),
+                "errorCount": result.error_count(),
+                "warningCount": result.warning_count(),
+                "errors": errors,
+                "warnings": warnings,
+                "passes": passes,
+            })
+            .to_string()
+        }
+        Err(e) => serde_json::json!({
+            "valid": false,
+            "errorCount": 1,
+            "warningCount": 0,
+            "errors": [{ "code": "PARSE", "message": e, "path": "" }],
+            "warnings": [],
+            "passes": [],
+        })
+        .to_string(),
+    }
+}
+
 /// Compile IR JSON to HTML (DOM target). Returns a JSON string with the result.
 ///
 /// Result shape: `{ "ok": bool, "html": string, "sizeBytes": number, "error"?: string }`
