@@ -242,12 +242,14 @@
 </head>
 <body>
 <a class="skip-link" href="#columns">Skip to live demo</a>
-<div style="padding:16px 24px 16px 24px;display:flex;flex-direction:row;" role="navigation" aria-label="Main navigation">
-    <p style="color:rgb(250,250,250);font-size:18px;font-weight:700;">Voce IR</p>
-    <p style="color:rgb(161,161,170);font-size:14px;">Docs</p>
-    <p style="color:rgb(161,161,170);font-size:14px;">Playground</p>
-    <p style="color:rgb(161,161,170);font-size:14px;">GitHub</p>
-  </div>
+<nav style="padding:20px 24px 20px 24px;display:flex;flex-direction:row;justify-content:space-between;align-items:center;gap:24px;" role="navigation" aria-label="Main navigation">
+    <a href="/" style="color:rgb(250,250,250);font-size:18px;font-weight:700;">Voce IR</a>
+    <div style="display:flex;flex-direction:row;align-items:center;gap:24px;">
+      <a href="/docs" style="color:rgb(161,161,170);font-size:14px;">Docs</a>
+      <a href="/playground" style="color:rgb(161,161,170);font-size:14px;">Playground</a>
+      <a href="https://github.com/marc-pelland/voce-ir" target="_blank" rel="noopener noreferrer" style="color:rgb(161,161,170);font-size:14px;">GitHub</a>
+    </div>
+  </nav>
 <div class="wrap">
 
 <header>
@@ -356,8 +358,8 @@
     <h2 style="color:rgb(250,250,250);font-size:32px;font-weight:700;">Ready to build?</h2>
     <p style="color:rgb(99,102,241);font-size:16px;">cargo install voce-validator</p>
   </div>
-  <div style="padding:32px 24px 32px 24px;display:flex;flex-direction:row;" role="contentinfo" aria-label="Footer">
+  <footer style="padding:32px 24px 32px 24px;display:flex;flex-direction:row;" role="contentinfo" aria-label="Footer">
     <p style="color:rgb(113,113,122);font-size:13px;">Voce IR. Apache-2.0 License. Built by Marc Pelland.</p>
-  </div>
+  </footer>
 </body>
 </html>

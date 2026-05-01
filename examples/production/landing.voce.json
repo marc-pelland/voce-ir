@@ -38,11 +38,13 @@
         "value": {
           "node_id": "nav",
           "direction": "Row",
-          "alignment": "Center",
+          "main_align": "SpaceBetween",
+          "cross_align": "Center",
+          "gap": { "value": 24, "unit": "Px" },
           "semantic_node_id": "sem-nav",
           "padding": {
-            "top": { "value": 16, "unit": "Px" },
-            "bottom": { "value": 16, "unit": "Px" },
+            "top": { "value": 20, "unit": "Px" },
+            "bottom": { "value": 20, "unit": "Px" },
             "left": { "value": 24, "unit": "Px" },
             "right": { "value": 24, "unit": "Px" }
           },
@@ -59,34 +61,45 @@
               }
             },
             {
-              "value_type": "TextNode",
+              "value_type": "Container",
               "value": {
-                "node_id": "nav-docs",
-                "content": "Docs",
-                "font_size": { "value": 14, "unit": "Px" },
-                "color": { "r": 161, "g": 161, "b": 170, "a": 255 },
-                "href": "/docs"
-              }
-            },
-            {
-              "value_type": "TextNode",
-              "value": {
-                "node_id": "nav-playground",
-                "content": "Playground",
-                "font_size": { "value": 14, "unit": "Px" },
-                "color": { "r": 161, "g": 161, "b": 170, "a": 255 },
-                "href": "/playground"
-              }
-            },
-            {
-              "value_type": "TextNode",
-              "value": {
-                "node_id": "nav-github",
-                "content": "GitHub",
-                "font_size": { "value": 14, "unit": "Px" },
-                "color": { "r": 161, "g": 161, "b": 170, "a": 255 },
-                "href": "https://github.com/marc-pelland/voce-ir",
-                "target": "_blank"
+                "node_id": "nav-links",
+                "direction": "Row",
+                "cross_align": "Center",
+                "gap": { "value": 24, "unit": "Px" },
+                "children": [
+                  {
+                    "value_type": "TextNode",
+                    "value": {
+                      "node_id": "nav-docs",
+                      "content": "Docs",
+                      "font_size": { "value": 14, "unit": "Px" },
+                      "color": { "r": 161, "g": 161, "b": 170, "a": 255 },
+                      "href": "/docs"
+                    }
+                  },
+                  {
+                    "value_type": "TextNode",
+                    "value": {
+                      "node_id": "nav-playground",
+                      "content": "Playground",
+                      "font_size": { "value": 14, "unit": "Px" },
+                      "color": { "r": 161, "g": 161, "b": 170, "a": 255 },
+                      "href": "/playground"
+                    }
+                  },
+                  {
+                    "value_type": "TextNode",
+                    "value": {
+                      "node_id": "nav-github",
+                      "content": "GitHub",
+                      "font_size": { "value": 14, "unit": "Px" },
+                      "color": { "r": 161, "g": 161, "b": 170, "a": 255 },
+                      "href": "https://github.com/marc-pelland/voce-ir",
+                      "target": "_blank"
+                    }
+                  }
+                ]
               }
             }
           ]
