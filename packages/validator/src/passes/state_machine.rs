@@ -5,7 +5,7 @@
 
 use std::collections::{HashSet, VecDeque};
 
-use crate::errors::{CodeMeta, Diagnostic, Severity, ValidationResult};
+use crate::errors::{CodeMeta, Confidence, Diagnostic, Severity, ValidationResult};
 use crate::index::NodeIndex;
 use crate::ir::{ChildNode, StateMachine, VoceIr};
 use crate::passes::ValidationPass;
@@ -18,30 +18,35 @@ const CODES: &[CodeMeta] = &[
         summary: "StateMachine has no states defined",
         hint: "Add at least one entry to the `states` array. Each state needs a \
                unique `state_id`; one of them must be marked `initial: true`.",
+        fix_confidence: None,
     },
     CodeMeta {
         code: "STA002",
         summary: "StateMachine has no initial state, or has multiple",
         hint: "Set `initial: true` on exactly one state. If multiple states are \
                flagged initial, pick one to start in and unflag the others.",
+        fix_confidence: Some(Confidence::Suggested),
     },
     CodeMeta {
         code: "STA003",
         summary: "Transition declares an event already handled by another transition",
         hint: "Two transitions handle the same event from the same state. Consolidate \
                the logic or differentiate them with a `guard` condition.",
+        fix_confidence: None,
     },
     CodeMeta {
         code: "STA004",
         summary: "Effect references an undefined target node",
         hint: "The Effect's `target_node_id` doesn't match a real node. Update it \
                to point to an existing node, or remove the effect.",
+        fix_confidence: None,
     },
     CodeMeta {
         code: "REF004",
         summary: "Transition references a state_id that does not exist",
         hint: "The transition's `to_state` (or `from_state`) doesn't match any state \
                in the StateMachine. Check the name and confirm the state is declared.",
+        fix_confidence: None,
     },
 ];
 

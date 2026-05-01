@@ -3,7 +3,7 @@
 //! OWASP-informed checks. Mutations require CSRF, auth routes
 //! need redirects, HTTPS enforced.
 
-use crate::errors::{CodeMeta, Diagnostic, Severity, ValidationResult};
+use crate::errors::{CodeMeta, Confidence, Diagnostic, Severity, ValidationResult};
 use crate::index::NodeIndex;
 use crate::ir::{ChildNode, VoceIr};
 use crate::passes::ValidationPass;
@@ -17,18 +17,21 @@ const CODES: &[CodeMeta] = &[
         hint: "Routes with `requires_auth: true` need `redirect_on_fail` set. \
                Typical value is `/login` so unauthorized visitors land on the \
                sign-in page instead of seeing a permission error.",
+        fix_confidence: None,
     },
     CodeMeta {
         code: "SEC002",
         summary: "Action is missing an explicit allowed-origins list",
         hint: "ActionNodes posting to external endpoints need `allowed_origins`. \
                List specific domains; wildcard origins (`*`) defeat CORS protection.",
+        fix_confidence: None,
     },
     CodeMeta {
         code: "SEC003",
         summary: "Resource URL uses http:// — should use https:// for security",
         hint: "Change the URL to https://. Modern browsers block mixed content on \
                secure pages, so http:// resources won't load anyway.",
+        fix_confidence: Some(Confidence::Suggested),
     },
     CodeMeta {
         code: "SEC004",
@@ -36,6 +39,7 @@ const CODES: &[CodeMeta] = &[
         hint: "Set `autocomplete: NewPassword` on signup/reset forms, or \
                `CurrentPassword` on login forms. Password managers depend on \
                this hint to fill the right credential.",
+        fix_confidence: Some(Confidence::Suggested),
     },
 ];
 

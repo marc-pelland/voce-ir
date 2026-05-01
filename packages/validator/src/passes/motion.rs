@@ -4,7 +4,7 @@
 //! Missing ReducedMotion is a compile error — accessibility
 //! is non-negotiable.
 
-use crate::errors::{CodeMeta, Diagnostic, Severity, ValidationResult};
+use crate::errors::{CodeMeta, Confidence, Diagnostic, Severity, ValidationResult};
 use crate::index::NodeIndex;
 use crate::ir::{ChildNode, VoceIr};
 use crate::passes::ValidationPass;
@@ -18,12 +18,14 @@ const CODES: &[CodeMeta] = &[
         hint: "Set `reduced_motion` to one of `Remove`, `Simplify`, `ReduceDuration`, \
                or `Functional`. Voce honors prefers-reduced-motion as a compile error \
                — silent animation is not an option.",
+        fix_confidence: Some(Confidence::Safe),
     },
     CodeMeta {
         code: "MOT002",
         summary: "Sequence has no reduced_motion alternative",
         hint: "Multi-step Sequences need `reduced_motion` set. For most cases pick \
                `Simplify` (single-step transition) or `Remove` (instant final state).",
+        fix_confidence: Some(Confidence::Safe),
     },
     CodeMeta {
         code: "MOT003",
@@ -31,6 +33,7 @@ const CODES: &[CodeMeta] = &[
         hint: "Damping and stiffness must both be greater than 0. Negative or zero \
                values are physically meaningless and cause runtime layout breakage. \
                Typical values: damping 0.7-1.0, stiffness 100-400.",
+        fix_confidence: None,
     },
     CodeMeta {
         code: "MOT004",
@@ -38,6 +41,7 @@ const CODES: &[CodeMeta] = &[
         hint: "Animations longer than ~1000ms feel sluggish and delay user interaction. \
                Consider shortening, or split into a faster main motion + slower \
                secondary detail. Reserve long durations for hero/storytelling moments.",
+        fix_confidence: None,
     },
     CodeMeta {
         code: "MOT005",
@@ -45,6 +49,7 @@ const CODES: &[CodeMeta] = &[
         hint: "Scroll-driven animations can cause vestibular discomfort. Set \
                `reduced_motion` so users with the OS preference get a non-animated \
                version (typically `Remove` for parallax effects).",
+        fix_confidence: Some(Confidence::Safe),
     },
 ];
 

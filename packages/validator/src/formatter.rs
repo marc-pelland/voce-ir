@@ -5,7 +5,49 @@
 
 use colored::Colorize;
 
-use crate::errors::{Severity, ValidationResult};
+use crate::errors::{Diagnostic, FixPatch, Severity, ValidationResult};
+use crate::fixes::build_fix;
+
+/// Project a Diagnostic to JSON, including the auto-fix proposal when one
+/// is available for that code (S67 Day 4). Centralizing here keeps the two
+/// JSON output paths in sync.
+fn diagnostic_to_json(d: &Diagnostic) -> serde_json::Value {
+    let fix_value = build_fix(d).map(fix_to_json);
+    serde_json::json!({
+        "severity": d.severity.to_string(),
+        "code": d.code,
+        "message": d.message,
+        "path": d.node_path,
+        "pass": d.pass,
+        "hint": d.hint,
+        "fix": fix_value,
+    })
+}
+
+fn fix_to_json(fix: FixPatch) -> serde_json::Value {
+    let ops: Vec<serde_json::Value> = fix
+        .operations
+        .into_iter()
+        .map(|op| {
+            let mut obj = serde_json::Map::new();
+            obj.insert(
+                "op".to_string(),
+                serde_json::Value::String(op.op.to_string()),
+            );
+            obj.insert("path".to_string(), serde_json::Value::String(op.path));
+            if let Some(v) = op.value {
+                obj.insert("value".to_string(), v);
+            }
+            serde_json::Value::Object(obj)
+        })
+        .collect();
+    serde_json::json!({
+        "type": "json-patch",
+        "confidence": fix.confidence.to_string(),
+        "operations": ops,
+        "preview": fix.preview,
+    })
+}
 
 /// Print validation result as colored terminal output.
 pub fn print_terminal(file: &str, result: &ValidationResult) {
@@ -69,16 +111,7 @@ pub fn print_json(file: &str, result: &ValidationResult) -> Result<(), serde_jso
         "valid": !result.has_errors(),
         "errors": result.error_count(),
         "warnings": result.warning_count(),
-        "diagnostics": result.diagnostics.iter().map(|d| {
-            serde_json::json!({
-                "severity": d.severity.to_string(),
-                "code": d.code,
-                "message": d.message,
-                "path": d.node_path,
-                "pass": d.pass,
-                "hint": d.hint,
-            })
-        }).collect::<Vec<_>>(),
+        "diagnostics": result.diagnostics.iter().map(diagnostic_to_json).collect::<Vec<_>>(),
     });
 
     println!("{}", serde_json::to_string_pretty(&output)?);
@@ -109,16 +142,7 @@ pub fn print_json_verbose(file: &str, result: &ValidationResult) -> Result<(), s
         "valid": !result.has_errors(),
         "errors": result.error_count(),
         "warnings": result.warning_count(),
-        "diagnostics": result.diagnostics.iter().map(|d| {
-            serde_json::json!({
-                "severity": d.severity.to_string(),
-                "code": d.code,
-                "message": d.message,
-                "path": d.node_path,
-                "pass": d.pass,
-                "hint": d.hint,
-            })
-        }).collect::<Vec<_>>(),
+        "diagnostics": result.diagnostics.iter().map(diagnostic_to_json).collect::<Vec<_>>(),
         "passes": passes,
     });
 

@@ -3,7 +3,7 @@
 //! Accessibility is a compile error in Voce IR. Missing semantic
 //! information blocks compilation.
 
-use crate::errors::{CodeMeta, Diagnostic, Severity, ValidationResult};
+use crate::errors::{CodeMeta, Confidence, Diagnostic, Severity, ValidationResult};
 use crate::index::NodeIndex;
 use crate::ir::{ChildNode, VoceIr};
 use crate::passes::ValidationPass;
@@ -17,6 +17,7 @@ const CODES: &[CodeMeta] = &[
         hint: "Add a `SemanticNode` with the right `role` (`button`, `link`, `checkbox`, \
                etc.) and reference it via `semantic_node_id`. Voce treats accessibility \
                as a compile error — interactive nodes always need semantics.",
+        fix_confidence: None,
     },
     CodeMeta {
         code: "A11Y003",
@@ -24,6 +25,7 @@ const CODES: &[CodeMeta] = &[
         hint: "Set `alt` describing the image, OR add `semantic_node_id` referencing a \
                labeled SemanticNode, OR set `decorative: true` to mark it as purely \
                visual. Pick one — silence is not a valid option.",
+        fix_confidence: None,
     },
     CodeMeta {
         code: "A11Y004",
@@ -31,6 +33,7 @@ const CODES: &[CodeMeta] = &[
         hint: "Heading levels jumped (e.g. h1 → h3, skipping h2). Demote the heading \
                to maintain a continuous hierarchy, or add the missing intermediate \
                heading. Screen readers depend on this for navigation.",
+        fix_confidence: None,
     },
     CodeMeta {
         code: "A11Y005",
@@ -38,6 +41,7 @@ const CODES: &[CodeMeta] = &[
         hint: "Set a `label` string on the FormField. If the design doesn't show a \
                visible label, set `aria_label` instead so screen readers can announce \
                the field.",
+        fix_confidence: Some(Confidence::Suggested),
     },
     CodeMeta {
         code: "A11Y006",
@@ -45,6 +49,7 @@ const CODES: &[CodeMeta] = &[
         hint: "Add visible text content (a TextNode child) inside the interactive \
                element, OR set `semantic_node_id` referencing a SemanticNode with a \
                `label`. Icon-only buttons need explicit names.",
+        fix_confidence: None,
     },
 ];
 

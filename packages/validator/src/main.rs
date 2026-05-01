@@ -260,6 +260,7 @@ fn cmd_validate(
                     "pass": pass.name(),
                     "summary": meta.summary,
                     "hint": meta.hint,
+                    "fix_confidence": meta.fix_confidence.map(|c| c.to_string()),
                 }));
             }
         }

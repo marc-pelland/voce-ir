@@ -51,6 +51,50 @@ impl fmt::Display for Diagnostic {
     }
 }
 
+/// Confidence level of an auto-generated fix. Drives whether `voce fix` will
+/// apply it without prompting (`Safe`), apply with confirmation (`Suggested`),
+/// or never apply automatically (`Risky` — preview only).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Confidence {
+    /// Purely additive, no semantic change. Safe to apply without review.
+    Safe,
+    /// Opinionated default that may be wrong. Apply with confirmation.
+    Suggested,
+    /// Substantive change. Preview only; never auto-apply.
+    Risky,
+}
+
+impl fmt::Display for Confidence {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Confidence::Safe => write!(f, "safe"),
+            Confidence::Suggested => write!(f, "suggested"),
+            Confidence::Risky => write!(f, "risky"),
+        }
+    }
+}
+
+/// A single JSON Patch operation (RFC 6902 subset). Used inside FixPatch.
+#[derive(Debug, Clone)]
+pub struct PatchOp {
+    /// Operation kind: "add", "remove", "replace".
+    pub op: &'static str,
+    /// JSON Pointer path the op applies to.
+    pub path: String,
+    /// Value to add or replace (None for "remove").
+    pub value: Option<serde_json::Value>,
+}
+
+/// A proposed auto-fix for a Diagnostic. Computed lazily at serialization time
+/// from the diagnostic's code + node_path; not stored on Diagnostic itself.
+#[derive(Debug, Clone)]
+pub struct FixPatch {
+    pub confidence: Confidence,
+    pub operations: Vec<PatchOp>,
+    /// Human-readable description of what the patch does.
+    pub preview: String,
+}
+
 /// Static metadata for a single diagnostic code. Each pass declares the codes
 /// it can emit so consumers (CLI `--list-codes`, MCP tool descriptions, the
 /// docs site) can enumerate the rule catalogue without parsing source files.
@@ -64,6 +108,10 @@ pub struct CodeMeta {
     /// Surfaced on every emitted Diagnostic via the engine's hint-injection
     /// step. Plain English, target ≤ 280 chars.
     pub hint: &'static str,
+    /// Confidence of the auto-fix offered for this code, or `None` when no
+    /// fix is generated. Catalog metadata; the actual fix is computed
+    /// per-diagnostic by `crate::fixes::build_fix`.
+    pub fix_confidence: Option<Confidence>,
 }
 
 /// Per-pass execution metadata. Populated by the engine for every pass that

@@ -4,7 +4,7 @@
 
 use std::collections::HashSet;
 
-use crate::errors::{CodeMeta, Diagnostic, Severity, ValidationResult};
+use crate::errors::{CodeMeta, Confidence, Diagnostic, Severity, ValidationResult};
 use crate::index::NodeIndex;
 use crate::ir::{ChildNode, VoceIr};
 use crate::passes::ValidationPass;
@@ -17,18 +17,21 @@ const CODES: &[CodeMeta] = &[
         summary: "FormNode must have at least one field",
         hint: "Add at least one FormField to the `fields` array (text, email, \
                password, textarea, etc.). An empty form has nothing to submit.",
+        fix_confidence: None,
     },
     CodeMeta {
         code: "FRM002",
         summary: "FormNode is missing a submission configuration",
         hint: "Add `submission: { action_node_id, encoding, progressive }` to \
                the FormNode. Without it, submitted form data has nowhere to go.",
+        fix_confidence: None,
     },
     CodeMeta {
         code: "FRM003",
         summary: "Duplicate field name within the same FormNode",
         hint: "Two FormFields share the same `name`. Server-side handlers can't \
                distinguish them — rename one to be unique within the form.",
+        fix_confidence: None,
     },
     CodeMeta {
         code: "FRM004",
@@ -36,6 +39,7 @@ const CODES: &[CodeMeta] = &[
         hint: "Add `{ rule_type: \"Email\", message: \"...\" }` to the field's \
                `validations` array. The HTML input enforces format client-side, \
                but the validation rule produces server-side checks too.",
+        fix_confidence: Some(Confidence::Safe),
     },
     CodeMeta {
         code: "FRM009",
@@ -43,6 +47,7 @@ const CODES: &[CodeMeta] = &[
         hint: "Set a `label` string on the FormField. Required for screen readers \
                and helpful for users skimming the form. Don't rely on placeholder \
                text — placeholders disappear on focus.",
+        fix_confidence: Some(Confidence::Suggested),
     },
 ];
 

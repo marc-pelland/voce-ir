@@ -17,12 +17,14 @@ const CODES: &[CodeMeta] = &[
         hint: "Some TextNodes use `localized_content` (i18n keys), others use \
                plain `content`. Pick one approach for the document — mixing \
                makes adding new locales painful and error-prone.",
+        fix_confidence: None,
     },
     CodeMeta {
         code: "I18N002",
         summary: "LocalizedString has an empty or missing message_key",
         hint: "Set `message_key` on the LocalizedString (e.g. \"hero.cta\"). \
                The key is what looks up the translation in the message catalog.",
+        fix_confidence: None,
     },
     CodeMeta {
         code: "I18N003",
@@ -30,6 +32,7 @@ const CODES: &[CodeMeta] = &[
         hint: "Set `default_value` on the LocalizedString so the page renders \
                when a translation is missing. Use the source-language string \
                as the fallback.",
+        fix_confidence: None,
     },
 ];
 

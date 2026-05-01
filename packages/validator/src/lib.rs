@@ -14,6 +14,7 @@
 
 pub mod engine;
 pub mod errors;
+pub mod fixes;
 pub mod formatter;
 pub mod index;
 pub mod inspect;
@@ -24,3 +25,4 @@ pub mod report;
 
 pub use engine::validate;
 pub use errors::{Diagnostic, Severity, ValidationResult};
+pub use fixes::build_fix;

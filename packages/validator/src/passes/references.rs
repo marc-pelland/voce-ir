@@ -4,6 +4,8 @@
 //! existing nodes in the IR tree.
 
 use crate::errors::{CodeMeta, Diagnostic, Severity, ValidationResult};
+// References codes don't yet have auto-fixes — broken refs require user
+// intent to resolve. fix_confidence is None across the board for now.
 use crate::index::NodeIndex;
 use crate::ir::{ChildNode, VoceIr};
 use crate::passes::ValidationPass;
@@ -16,36 +18,42 @@ const CODES: &[CodeMeta] = &[
         summary: "Referenced node_id does not exist in this document",
         hint: "The `ref_id` (or referenced `node_id`) doesn't match any node. \
                Check the spelling and confirm the target node exists in the document.",
+        fix_confidence: None,
     },
     CodeMeta {
         code: "REF005",
         summary: "Reference target type does not match the expected type",
         hint: "The referenced node is the wrong type for this field. For example, \
                `semantic_node_id` must point to a SemanticNode, not a TextNode.",
+        fix_confidence: None,
     },
     CodeMeta {
         code: "REF006",
         summary: "Reference target was found but is not reachable from root",
         hint: "The referenced node exists but isn't in the `root.children` tree. \
                Move it into the tree or remove the dangling reference.",
+        fix_confidence: None,
     },
     CodeMeta {
         code: "REF007",
         summary: "Cyclic reference detected between nodes",
         hint: "Two or more nodes reference each other in a cycle. Break the cycle \
                by removing one reference or restructuring the relationship.",
+        fix_confidence: None,
     },
     CodeMeta {
         code: "REF008",
         summary: "ContextNode references an undefined provider",
         hint: "The ContextNode's `provider_id` doesn't match a defined provider. \
                Add the provider node, or fix the id to match an existing one.",
+        fix_confidence: None,
     },
     CodeMeta {
         code: "REF009",
         summary: "DataBinding references an unknown node or field",
         hint: "The binding string doesn't resolve to a real node or property. \
                Verify the path matches an actual field on a real node.",
+        fix_confidence: None,
     },
 ];
 

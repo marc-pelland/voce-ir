@@ -2,7 +2,7 @@
 //!
 //! Ensures IR produces search-engine-friendly output.
 
-use crate::errors::{CodeMeta, Diagnostic, Severity, ValidationResult};
+use crate::errors::{CodeMeta, Confidence, Diagnostic, Severity, ValidationResult};
 use crate::index::NodeIndex;
 use crate::ir::{ChildNode, VoceIr};
 use crate::passes::ValidationPass;
@@ -16,6 +16,7 @@ const CODES: &[CodeMeta] = &[
         hint: "Add a `metadata` object to root with at least a `title`. Title is \
                required for browser tabs, search results, and accessibility \
                (screen readers announce it on page load).",
+        fix_confidence: Some(Confidence::Suggested),
     },
     CodeMeta {
         code: "SEO002",
@@ -23,6 +24,7 @@ const CODES: &[CodeMeta] = &[
         hint: "Title should be 30-60 characters; description 120-160. Out-of-range \
                values get truncated by Google and Twitter. Aim for length that \
                communicates intent without padding.",
+        fix_confidence: None,
     },
     CodeMeta {
         code: "SEO003",
@@ -30,6 +32,7 @@ const CODES: &[CodeMeta] = &[
         hint: "Set `heading_level: 1` on exactly one TextNode (typically the page \
                title or hero headline). Multiple h1s confuse search engines; zero \
                h1s leaves screen readers without a primary anchor.",
+        fix_confidence: None,
     },
     CodeMeta {
         code: "SEO007",
@@ -37,6 +40,7 @@ const CODES: &[CodeMeta] = &[
         hint: "Add `image` to the `open_graph` object. Without it, links to this \
                page on social platforms render no thumbnail — visibly worse than \
                sharing the URL by itself.",
+        fix_confidence: Some(Confidence::Suggested),
     },
 ];
 
