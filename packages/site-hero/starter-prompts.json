@@ -1,0 +1,45 @@
+{
+  "$schema": "Manifest of starter prompts cached for the voce-ir.xyz live hero. Edit by hand; run build-fixtures.mjs to regenerate fixtures/.",
+  "prompts": [
+    {
+      "id": "hero-section",
+      "label": "A landing-page hero with headline, subtitle, and CTA",
+      "intentDir": "examples/intents/01-hero-section",
+      "available": true
+    },
+    {
+      "id": "contact-form",
+      "label": "A contact form with name, email, message, and validation",
+      "intentDir": "examples/intents/02-contact-form",
+      "available": true
+    },
+    {
+      "id": "pricing-table",
+      "label": "A pricing table for a developer tool",
+      "intentDir": null,
+      "available": false,
+      "pending": "Awaiting IR generation (S61 Day 1 deferred — no API key in environment)"
+    },
+    {
+      "id": "blog-index",
+      "label": "A blog index with a featured post",
+      "intentDir": null,
+      "available": false,
+      "pending": "Awaiting IR generation (S61 Day 1 deferred — no API key in environment)"
+    },
+    {
+      "id": "saas-dashboard",
+      "label": "A SaaS dashboard with a sparkline",
+      "intentDir": null,
+      "available": false,
+      "pending": "Awaiting IR generation (S61 Day 1 deferred — no API key in environment)"
+    },
+    {
+      "id": "faq-accordion",
+      "label": "An FAQ accordion",
+      "intentDir": null,
+      "available": false,
+      "pending": "Awaiting IR generation (S61 Day 1 deferred — no API key in environment)"
+    }
+  ]
+}

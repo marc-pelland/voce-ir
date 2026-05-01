@@ -71,7 +71,15 @@
       "Bash(grep:*)",
       "Bash(npm run:*)",
       "Bash(chmod +x /Users/marcpelland/Documents/Development/personal/voce-ir/packages/cli-chat/dist/index.js)",
-      "Bash(node packages/cli-chat/dist/index.js)"
+      "Bash(node packages/cli-chat/dist/index.js)",
+      "Bash(voce validate *)",
+      "Bash(voce compile *)",
+      "Read(//tmp/**)",
+      "Bash(node *)",
+      "Bash(npm --version)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(npx vite *)",
+      "Bash(echo \"tsc exit: $?\")"
     ]
   }
 }

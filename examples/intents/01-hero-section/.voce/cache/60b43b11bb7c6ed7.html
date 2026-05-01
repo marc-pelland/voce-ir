@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="X-Frame-Options" content="DENY">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Hero Section Example</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5}
+img{max-width:100%;height:auto;display:block}
+[data-voce-id="cta-button"]{transition:scale 200ms ease;}
+@media(prefers-reduced-motion:reduce){
+[data-voce-id="cta-button"]{transition:none!important;}
+}
+</style>
+</head>
+<body>
+  <div style="background-color:rgb(12,12,14);display:flex;flex-direction:column;justify-content:center;align-items:center;" role="main" aria-label="Hero section">
+    <h1 style="color:rgb(232,230,225);font-size:48px;font-weight:700;text-align:center;">Build extraordinary interfaces through conversation</h1>
+    <p style="color:rgb(155,154,148);font-size:18px;text-align:center;">AI generates typed binary IR. A compiler emits optimized output. No framework runtime.</p>
+    <div style="background-color:rgb(232,89,60);border-radius:8px 8px 8px 8px;padding:12px 24px 12px 24px;" role="button" aria-label="Get started" tabindex="0" data-voce-id="cta-button">
+      <p style="color:rgb(255,255,255);font-size:16px;font-weight:600;">Get Started</p>
+    </div>
+  </div>
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+  const el_cta_tap=document.querySelector('[data-voce-id="cta-button"]');
+  if(el_cta_tap){}
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="X-Frame-Options" content="DENY">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Contact Us</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5}
+img{max-width:100%;height:auto;display:block}
+</style>
+</head>
+<body>
+  <div style="display:flex;flex-direction:column;" role="main" aria-label="Contact form">
+    <h1 style="font-size:32px;font-weight:700;">Get in touch</h1>
+    <form id="contact-form" method="POST" action="contact-submit" novalidate>
+      <label for="contact-form-name">Your name</label>
+      <input id="contact-form-name" name="name" type="text" required aria-required="true" autocomplete="name">
+      <span id="contact-form-name-error" role="alert" aria-live="polite" hidden></span>
+      <label for="contact-form-email">Email address</label>
+      <input id="contact-form-email" name="email" type="email" required aria-required="true" autocomplete="email">
+      <span id="contact-form-email-error" role="alert" aria-live="polite" hidden></span>
+      <label for="contact-form-message">Message</label>
+      <textarea id="contact-form-message" name="message" required aria-required="true"></textarea>
+      <span id="contact-form-message-error" role="alert" aria-live="polite" hidden></span>
+      <button type="submit">Submit</button>
+    </form>
+  </div>
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+  const contact_form_form=document.getElementById('contact-form');
+  if(contact_form_form){contact_form_form.addEventListener('submit',(e)=>{
+    let valid=true;
+    const name=document.getElementById('contact-form-name');
+    const name_err=document.getElementById('contact-form-name-error');
+    if(!name.value.trim()){name_err.textContent='Name is required';name_err.hidden=false;valid=false;}else{name_err.hidden=true;}
+    const email=document.getElementById('contact-form-email');
+    const email_err=document.getElementById('contact-form-email-error');
+    if(!email.value.trim()){email_err.textContent='Email is required';email_err.hidden=false;valid=false;}else{email_err.hidden=true;}
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)){email_err.textContent='Please enter a valid email';email_err.hidden=false;valid=false;}else{email_err.hidden=true;}
+    const message=document.getElementById('contact-form-message');
+    const message_err=document.getElementById('contact-form-message-error');
+    if(!message.value.trim()){message_err.textContent='Message is required';message_err.hidden=false;valid=false;}else{message_err.hidden=true;}
+    if(message.value.length<10){message_err.textContent='Message must be at least 10 characters';message_err.hidden=false;valid=false;}else{message_err.hidden=true;}
+    if(!valid){e.preventDefault();}
+  })}
+});
+</script>
+</body>
+</html>

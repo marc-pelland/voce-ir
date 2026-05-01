@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voce IR — live pipeline</title>
+<style>
+  :root {
+    --bg: #0a0a0c;
+    --panel: #111114;
+    --panel-2: #15151a;
+    --border: #1f1f25;
+    --border-strong: #2a2a32;
+    --fg: #e8e8ec;
+    --fg-dim: #8b8b94;
+    --fg-faint: #4a4a52;
+    --accent: #818cf8;
+    --accent-soft: #5b67d6;
+    --ok: #4ade80;
+    --warn: #fbbf24;
+    --err: #f87171;
+    --mono: ui-monospace, "SF Mono", "Menlo", "Cascadia Mono", monospace;
+    --tx: cubic-bezier(.16, 1, .3, 1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--fg); }
+  body {
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    min-height: 100vh;
+    padding: 32px 24px 48px;
+  }
+
+  .wrap { max-width: 1280px; margin: 0 auto; }
+
+  header {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 28px; padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 {
+    font-size: 14px; font-weight: 600; letter-spacing: -0.01em;
+    color: var(--fg);
+  }
+  header .sub {
+    font: 12px/1 var(--mono); color: var(--fg-faint);
+  }
+  #status {
+    font: 12px/1.5 var(--mono); color: var(--fg-dim);
+    margin-bottom: 24px;
+  }
+  #status.ok { color: var(--ok); }
+  #status.err { color: var(--err); }
+
+  /* Prompt buttons */
+  .prompts {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin-bottom: 32px;
+  }
+  .prompt-btn {
+    font: inherit; font-size: 13px;
+    background: var(--panel); color: var(--fg-dim);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 9px 14px; cursor: pointer;
+    transition: all 160ms var(--tx);
+  }
+  .prompt-btn:hover:not(:disabled) {
+    color: var(--fg); border-color: var(--border-strong);
+    background: var(--panel-2);
+  }
+  .prompt-btn.active {
+    color: var(--fg); background: var(--accent-soft);
+    border-color: var(--accent-soft);
+  }
+  .prompt-btn:disabled {
+    opacity: 0.4; cursor: not-allowed;
+  }
+
+  /* Three-column visualization */
+  .columns {
+    display: grid;
+    grid-template-columns: minmax(280px, 1fr) minmax(280px, 1fr) minmax(320px, 1.2fr);
+    gap: 16px;
+    min-height: 520px;
+  }
+  @media (max-width: 960px) {
+    .columns { grid-template-columns: 1fr; }
+  }
+  .col {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .col-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: 12px 14px; gap: 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel-2);
+  }
+  .col-title {
+    font-size: 12px; font-weight: 600; color: var(--fg);
+    letter-spacing: 0.02em; text-transform: uppercase;
+  }
+  .col-meta {
+    font: 11px/1 var(--mono); color: var(--fg-dim);
+    white-space: nowrap;
+  }
+  .col-body {
+    padding: 14px;
+    flex: 1; overflow: auto;
+    min-height: 0;
+  }
+
+  /* Idle (pre-click) state */
+  .idle .col-body {
+    display: flex; align-items: center; justify-content: center;
+    color: var(--fg-faint); font: 12px/1.5 var(--mono);
+  }
+  .col:not(.idle) .placeholder { display: none; }
+  .col.idle .col-body > :not(.placeholder) { display: none; }
+
+  /* Column 1 — IR JSON */
+  pre.ir {
+    font: 12px/1.55 var(--mono);
+    color: var(--fg);
+    white-space: pre; overflow: auto;
+    opacity: 0; transition: opacity 800ms var(--tx);
+  }
+  pre.ir.visible { opacity: 1; }
+
+  /* Column 2 — validation pass list */
+  .passes { list-style: none; }
+  .passes li {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0;
+    font: 13px/1 var(--mono);
+    color: var(--fg-faint);
+    transition: color 220ms var(--tx);
+  }
+  .passes li::before {
+    content: "";
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--fg-faint);
+    flex-shrink: 0;
+    transition: background 220ms var(--tx), box-shadow 220ms var(--tx);
+  }
+  .passes li.running { color: var(--fg); }
+  .passes li.running::before {
+    background: var(--accent);
+    animation: pulse 900ms ease-in-out infinite;
+  }
+  .passes li.ok { color: var(--fg-dim); }
+  .passes li.ok::before { background: var(--ok); }
+  .passes li.warn { color: var(--warn); }
+  .passes li.warn::before { background: var(--warn); }
+  .passes li.err { color: var(--err); }
+  .passes li.err::before { background: var(--err); }
+  .pass-detail {
+    margin-left: auto; font-size: 11px; color: var(--fg-faint);
+  }
+  .passes li.warn .pass-detail { color: var(--warn); }
+  .passes li.err .pass-detail { color: var(--err); }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(129, 140, 248, 0.5); }
+    50% { box-shadow: 0 0 0 4px rgba(129, 140, 248, 0); }
+  }
+
+  .verdict {
+    margin-top: 14px; padding-top: 12px;
+    border-top: 1px dashed var(--border);
+    font: 12px/1.5 var(--mono);
+    color: var(--fg-faint);
+    opacity: 0; transition: opacity 400ms var(--tx);
+  }
+  .verdict.visible { opacity: 1; }
+  .verdict.ok { color: var(--ok); }
+  .verdict.err { color: var(--err); }
+
+  /* Column 3 — compiled render */
+  .render-frame {
+    width: 100%; height: 100%;
+    min-height: 380px;
+    border: none; background: white;
+    border-radius: 4px;
+    opacity: 0; transition: opacity 600ms var(--tx);
+  }
+  .render-frame.visible { opacity: 1; }
+
+  /* Skip control */
+  .skip {
+    margin-top: 20px;
+    font: 12px/1 var(--mono); color: var(--fg-faint);
+    background: transparent; border: none; cursor: pointer;
+    padding: 4px 0;
+  }
+  .skip:hover { color: var(--fg-dim); }
+  .skip[hidden] { display: none; }
+
+  /* Prompt label above columns */
+  .prompt-label {
+    font: 12px/1.5 var(--mono); color: var(--fg-dim);
+    margin-bottom: 14px; padding: 0 2px;
+    min-height: 18px;
+  }
+  .prompt-label .quote { color: var(--fg); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Voce IR — live pipeline</h1>
+  <div class="sub">site-hero · S61 day 3</div>
+</header>
+
+<div id="status">Loading WASM…</div>
+
+<div class="prompts" id="prompt-buttons"></div>
+
+<p class="prompt-label" id="prompt-label">&nbsp;</p>
+
+<div class="columns" id="columns">
+  <section class="col idle" id="col-ir">
+    <div class="col-head">
+      <span class="col-title">1 · IR</span>
+      <span class="col-meta" id="ir-meta">cached fixture</span>
+    </div>
+    <div class="col-body">
+      <pre class="ir" id="ir-out"></pre>
+      <span class="placeholder">pick a starter prompt above</span>
+    </div>
+  </section>
+
+  <section class="col idle" id="col-validate">
+    <div class="col-head">
+      <span class="col-title">2 · Validate</span>
+      <span class="col-meta" id="validate-meta">live · in browser</span>
+    </div>
+    <div class="col-body">
+      <ul class="passes" id="pass-list"></ul>
+      <div class="verdict" id="verdict"></div>
+      <span class="placeholder">9 passes will run here</span>
+    </div>
+  </section>
+
+  <section class="col idle" id="col-render">
+    <div class="col-head">
+      <span class="col-title">3 · Compile DOM</span>
+      <span class="col-meta" id="render-meta">live · in browser</span>
+    </div>
+    <div class="col-body">
+      <iframe class="render-frame" id="render-out"
+              sandbox="allow-same-origin"
+              referrerpolicy="no-referrer"
+              title="Compiled DOM output"></iframe>
+      <span class="placeholder">compiled HTML will render here</span>
+    </div>
+  </section>
+</div>
+
+<button class="skip" id="skip-btn" hidden>skip animation →</button>
+
+</div>
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+{
+  "generatedAt": "2026-05-01T14:33:17.531Z",
+  "prompts": [
+    {
+      "id": "hero-section",
+      "label": "A landing-page hero with headline, subtitle, and CTA",
+      "available": true,
+      "sizeBytes": 1870,
+      "validation": {
+        "valid": true,
+        "errors": 0,
+        "warnings": 0
+      },
+      "timings": {
+        "validateMs": 7,
+        "compileMs": 3
+      }
+    },
+    {
+      "id": "contact-form",
+      "label": "A contact form with name, email, message, and validation",
+      "available": true,
+      "sizeBytes": 3272,
+      "validation": {
+        "valid": true,
+        "errors": 0,
+        "warnings": 0
+      },
+      "timings": {
+        "validateMs": 2,
+        "compileMs": 3
+      }
+    },
+    {
+      "id": "pricing-table",
+      "label": "A pricing table for a developer tool",
+      "available": false,
+      "pending": "Awaiting IR generation (S61 Day 1 deferred — no API key in environment)"
+    },
+    {
+      "id": "blog-index",
+      "label": "A blog index with a featured post",
+      "available": false,
+      "pending": "Awaiting IR generation (S61 Day 1 deferred — no API key in environment)"
+    },
+    {
+      "id": "saas-dashboard",
+      "label": "A SaaS dashboard with a sparkline",
+      "available": false,
+      "pending": "Awaiting IR generation (S61 Day 1 deferred — no API key in environment)"
+    },
+    {
+      "id": "faq-accordion",
+      "label": "An FAQ accordion",
+      "available": false,
+      "pending": "Awaiting IR generation (S61 Day 1 deferred — no API key in environment)"
+    }
+  ]
+}
