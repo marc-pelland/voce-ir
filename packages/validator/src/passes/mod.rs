@@ -14,7 +14,7 @@ pub mod seo;
 pub mod state_machine;
 pub mod structural;
 
-use crate::errors::ValidationResult;
+use crate::errors::{CodeMeta, ValidationResult};
 use crate::index::NodeIndex;
 use crate::ir::VoceIr;
 
@@ -25,6 +25,13 @@ pub trait ValidationPass {
 
     /// Run the pass, appending diagnostics to the result.
     fn run(&self, ir: &VoceIr, index: &NodeIndex, result: &mut ValidationResult);
+
+    /// Static catalogue of diagnostic codes this pass can emit. Used by
+    /// `voce validate --list-codes`. Default empty for passes that haven't
+    /// declared their codes yet (S67 transition state).
+    fn codes(&self) -> &'static [CodeMeta] {
+        &[]
+    }
 }
 
 /// Return all registered validation passes in execution order.

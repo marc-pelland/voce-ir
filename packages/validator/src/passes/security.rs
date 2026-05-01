@@ -3,16 +3,39 @@
 //! OWASP-informed checks. Mutations require CSRF, auth routes
 //! need redirects, HTTPS enforced.
 
-use crate::errors::{Diagnostic, Severity, ValidationResult};
+use crate::errors::{CodeMeta, Diagnostic, Severity, ValidationResult};
 use crate::index::NodeIndex;
 use crate::ir::{ChildNode, VoceIr};
 use crate::passes::ValidationPass;
 
 pub struct SecurityPass;
 
+const CODES: &[CodeMeta] = &[
+    CodeMeta {
+        code: "SEC001",
+        summary: "Protected route is missing a redirect for unauthorized users",
+    },
+    CodeMeta {
+        code: "SEC002",
+        summary: "Action is missing an explicit allowed-origins list",
+    },
+    CodeMeta {
+        code: "SEC003",
+        summary: "Resource URL uses http:// — should use https:// for security",
+    },
+    CodeMeta {
+        code: "SEC004",
+        summary: "Password field is missing the appropriate autocomplete attribute",
+    },
+];
+
 impl ValidationPass for SecurityPass {
     fn name(&self) -> &'static str {
         "security"
+    }
+
+    fn codes(&self) -> &'static [CodeMeta] {
+        CODES
     }
 
     fn run(&self, ir: &VoceIr, _index: &NodeIndex, result: &mut ValidationResult) {

@@ -5,16 +5,43 @@
 
 use std::collections::{HashSet, VecDeque};
 
-use crate::errors::{Diagnostic, Severity, ValidationResult};
+use crate::errors::{CodeMeta, Diagnostic, Severity, ValidationResult};
 use crate::index::NodeIndex;
 use crate::ir::{ChildNode, StateMachine, VoceIr};
 use crate::passes::ValidationPass;
 
 pub struct StateMachinePass;
 
+const CODES: &[CodeMeta] = &[
+    CodeMeta {
+        code: "STA001",
+        summary: "StateMachine has no states defined",
+    },
+    CodeMeta {
+        code: "STA002",
+        summary: "StateMachine has no initial state, or has multiple",
+    },
+    CodeMeta {
+        code: "STA003",
+        summary: "Transition declares an event already handled by another transition",
+    },
+    CodeMeta {
+        code: "STA004",
+        summary: "Effect references an undefined target node",
+    },
+    CodeMeta {
+        code: "REF004",
+        summary: "Transition references a state_id that does not exist",
+    },
+];
+
 impl ValidationPass for StateMachinePass {
     fn name(&self) -> &'static str {
         "state-machine"
+    }
+
+    fn codes(&self) -> &'static [CodeMeta] {
+        CODES
     }
 
     fn run(&self, ir: &VoceIr, _index: &NodeIndex, result: &mut ValidationResult) {

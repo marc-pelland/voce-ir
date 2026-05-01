@@ -4,16 +4,43 @@
 //! Missing ReducedMotion is a compile error — accessibility
 //! is non-negotiable.
 
-use crate::errors::{Diagnostic, Severity, ValidationResult};
+use crate::errors::{CodeMeta, Diagnostic, Severity, ValidationResult};
 use crate::index::NodeIndex;
 use crate::ir::{ChildNode, VoceIr};
 use crate::passes::ValidationPass;
 
 pub struct MotionPass;
 
+const CODES: &[CodeMeta] = &[
+    CodeMeta {
+        code: "MOT001",
+        summary: "AnimationTransition has no reduced_motion alternative",
+    },
+    CodeMeta {
+        code: "MOT002",
+        summary: "Sequence has no reduced_motion alternative",
+    },
+    CodeMeta {
+        code: "MOT003",
+        summary: "Spring physics has invalid damping or stiffness (must be > 0)",
+    },
+    CodeMeta {
+        code: "MOT004",
+        summary: "Animation duration exceeds the recommended UX threshold",
+    },
+    CodeMeta {
+        code: "MOT005",
+        summary: "ScrollBinding has no reduced_motion alternative",
+    },
+];
+
 impl ValidationPass for MotionPass {
     fn name(&self) -> &'static str {
         "motion"
+    }
+
+    fn codes(&self) -> &'static [CodeMeta] {
+        CODES
     }
 
     fn run(&self, ir: &VoceIr, _index: &NodeIndex, result: &mut ValidationResult) {

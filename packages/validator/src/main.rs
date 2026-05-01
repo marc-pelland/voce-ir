@@ -34,8 +34,8 @@ enum OutputFormat {
 enum Commands {
     /// Validate an IR file against all quality rules
     Validate {
-        /// Path to the IR file (.voce.json)
-        file: PathBuf,
+        /// Path to the IR file (.voce.json). Optional when --list-passes is used.
+        file: Option<PathBuf>,
 
         /// Output format
         #[arg(long, default_value = "terminal")]
@@ -44,6 +44,18 @@ enum Commands {
         /// Treat warnings as errors
         #[arg(long)]
         warn_as_error: bool,
+
+        /// Include per-pass timing and outcome in JSON output (requires --format json)
+        #[arg(long)]
+        verbose_passes: bool,
+
+        /// Print the canonical list of validation passes (in execution order) and exit
+        #[arg(long, conflicts_with_all = ["format", "warn_as_error", "verbose_passes"])]
+        list_passes: bool,
+
+        /// Print the catalogue of diagnostic codes (with pass + summary) and exit
+        #[arg(long, conflicts_with_all = ["format", "warn_as_error", "verbose_passes", "list_passes"])]
+        list_codes: bool,
     },
 
     /// Inspect an IR file (human-readable summary, not code)
@@ -180,7 +192,17 @@ fn run(cli: Cli) -> Result<i32> {
             file,
             format,
             warn_as_error,
-        } => cmd_validate(&file, &format, warn_as_error),
+            verbose_passes,
+            list_passes,
+            list_codes,
+        } => cmd_validate(
+            file.as_ref(),
+            &format,
+            warn_as_error,
+            verbose_passes,
+            list_passes,
+            list_codes,
+        ),
         Commands::Inspect { file } => cmd_inspect(&file),
         Commands::Json2bin { input, output } => cmd_json2bin(&input, output.as_deref()),
         Commands::Bin2json { input, output } => cmd_bin2json(&input, output.as_deref()),
@@ -211,7 +233,46 @@ fn run(cli: Cli) -> Result<i32> {
     }
 }
 
-fn cmd_validate(file: &PathBuf, format: &OutputFormat, warn_as_error: bool) -> Result<i32> {
+fn cmd_validate(
+    file: Option<&PathBuf>,
+    format: &OutputFormat,
+    warn_as_error: bool,
+    verbose_passes: bool,
+    list_passes: bool,
+    list_codes: bool,
+) -> Result<i32> {
+    if list_passes {
+        let names: Vec<&'static str> = voce_validator::passes::all_passes()
+            .iter()
+            .map(|p| p.name())
+            .collect();
+        let out = serde_json::json!({ "passes": names });
+        println!("{}", serde_json::to_string_pretty(&out)?);
+        return Ok(0);
+    }
+
+    if list_codes {
+        let mut entries: Vec<serde_json::Value> = Vec::new();
+        for pass in voce_validator::passes::all_passes() {
+            for meta in pass.codes() {
+                entries.push(serde_json::json!({
+                    "code": meta.code,
+                    "pass": pass.name(),
+                    "summary": meta.summary,
+                }));
+            }
+        }
+        let out = serde_json::json!({ "codes": entries });
+        println!("{}", serde_json::to_string_pretty(&out)?);
+        return Ok(0);
+    }
+
+    let file = file.ok_or_else(|| {
+        anyhow::anyhow!(
+            "validate: missing IR file path (or use --list-passes / --list-codes to enumerate)"
+        )
+    })?;
+
     let json = std::fs::read_to_string(file)
         .with_context(|| format!("Failed to read {}", file.display()))?;
 
@@ -221,11 +282,19 @@ fn cmd_validate(file: &PathBuf, format: &OutputFormat, warn_as_error: bool) -> R
 
     match format {
         OutputFormat::Terminal => {
+            if verbose_passes {
+                eprintln!("voce validate: --verbose-passes only affects --format json; ignoring");
+            }
             voce_validator::formatter::print_terminal(&file_str, &result);
         }
         OutputFormat::Json => {
-            voce_validator::formatter::print_json(&file_str, &result)
-                .map_err(|e| anyhow::anyhow!("JSON output error: {e}"))?;
+            if verbose_passes {
+                voce_validator::formatter::print_json_verbose(&file_str, &result)
+                    .map_err(|e| anyhow::anyhow!("JSON output error: {e}"))?;
+            } else {
+                voce_validator::formatter::print_json(&file_str, &result)
+                    .map_err(|e| anyhow::anyhow!("JSON output error: {e}"))?;
+            }
         }
     }
 

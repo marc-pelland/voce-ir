@@ -3,16 +3,47 @@
 //! Validates that all cross-node references (string IDs) point to
 //! existing nodes in the IR tree.
 
-use crate::errors::{Diagnostic, Severity, ValidationResult};
+use crate::errors::{CodeMeta, Diagnostic, Severity, ValidationResult};
 use crate::index::NodeIndex;
 use crate::ir::{ChildNode, VoceIr};
 use crate::passes::ValidationPass;
 
 pub struct ReferencesPass;
 
+const CODES: &[CodeMeta] = &[
+    CodeMeta {
+        code: "REF001",
+        summary: "Referenced node_id does not exist in this document",
+    },
+    CodeMeta {
+        code: "REF005",
+        summary: "Reference target type does not match the expected type",
+    },
+    CodeMeta {
+        code: "REF006",
+        summary: "Reference target was found but is not reachable from root",
+    },
+    CodeMeta {
+        code: "REF007",
+        summary: "Cyclic reference detected between nodes",
+    },
+    CodeMeta {
+        code: "REF008",
+        summary: "ContextNode references an undefined provider",
+    },
+    CodeMeta {
+        code: "REF009",
+        summary: "DataBinding references an unknown node or field",
+    },
+];
+
 impl ValidationPass for ReferencesPass {
     fn name(&self) -> &'static str {
         "references"
+    }
+
+    fn codes(&self) -> &'static [CodeMeta] {
+        CODES
     }
 
     fn run(&self, ir: &VoceIr, index: &NodeIndex, result: &mut ValidationResult) {

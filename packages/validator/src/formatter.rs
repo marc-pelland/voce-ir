@@ -83,3 +83,43 @@ pub fn print_json(file: &str, result: &ValidationResult) -> Result<(), serde_jso
     println!("{}", serde_json::to_string_pretty(&output)?);
     Ok(())
 }
+
+/// Print validation result as JSON with per-pass execution metadata.
+/// Used by `voce validate --format json --verbose-passes`. Output is a
+/// superset of `print_json` — adds a `passes` array describing each pass's
+/// timing, error/warning counts, and the distinct codes it emitted.
+pub fn print_json_verbose(file: &str, result: &ValidationResult) -> Result<(), serde_json::Error> {
+    let passes: Vec<_> = result
+        .passes
+        .iter()
+        .map(|p| {
+            serde_json::json!({
+                "name": p.name,
+                "duration_us": p.duration_us,
+                "errors": p.error_count,
+                "warnings": p.warning_count,
+                "codes": p.codes,
+            })
+        })
+        .collect();
+
+    let output = serde_json::json!({
+        "file": file,
+        "valid": !result.has_errors(),
+        "errors": result.error_count(),
+        "warnings": result.warning_count(),
+        "diagnostics": result.diagnostics.iter().map(|d| {
+            serde_json::json!({
+                "severity": d.severity.to_string(),
+                "code": d.code,
+                "message": d.message,
+                "path": d.node_path,
+                "pass": d.pass,
+            })
+        }).collect::<Vec<_>>(),
+        "passes": passes,
+    });
+
+    println!("{}", serde_json::to_string_pretty(&output)?);
+    Ok(())
+}

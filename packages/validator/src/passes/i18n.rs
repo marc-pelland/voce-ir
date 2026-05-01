@@ -3,16 +3,35 @@
 //! Validates internationalization completeness: localized strings
 //! have valid keys, default values, and consistent usage.
 
-use crate::errors::{Diagnostic, Severity, ValidationResult};
+use crate::errors::{CodeMeta, Diagnostic, Severity, ValidationResult};
 use crate::index::NodeIndex;
 use crate::ir::{ChildNode, VoceIr};
 use crate::passes::ValidationPass;
 
 pub struct I18nPass;
 
+const CODES: &[CodeMeta] = &[
+    CodeMeta {
+        code: "I18N001",
+        summary: "TextNodes mix localized_content and plain content inconsistently",
+    },
+    CodeMeta {
+        code: "I18N002",
+        summary: "LocalizedString has an empty or missing message_key",
+    },
+    CodeMeta {
+        code: "I18N003",
+        summary: "LocalizedString has no default_value fallback",
+    },
+];
+
 impl ValidationPass for I18nPass {
     fn name(&self) -> &'static str {
         "i18n"
+    }
+
+    fn codes(&self) -> &'static [CodeMeta] {
+        CODES
     }
 
     fn run(&self, ir: &VoceIr, _index: &NodeIndex, result: &mut ValidationResult) {

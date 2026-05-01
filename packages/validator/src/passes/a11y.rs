@@ -3,16 +3,43 @@
 //! Accessibility is a compile error in Voce IR. Missing semantic
 //! information blocks compilation.
 
-use crate::errors::{Diagnostic, Severity, ValidationResult};
+use crate::errors::{CodeMeta, Diagnostic, Severity, ValidationResult};
 use crate::index::NodeIndex;
 use crate::ir::{ChildNode, VoceIr};
 use crate::passes::ValidationPass;
 
 pub struct AccessibilityPass;
 
+const CODES: &[CodeMeta] = &[
+    CodeMeta {
+        code: "A11Y001",
+        summary: "Interactive node has no SemanticNode for screen readers",
+    },
+    CodeMeta {
+        code: "A11Y003",
+        summary: "MediaNode is missing alt text and is not marked decorative",
+    },
+    CodeMeta {
+        code: "A11Y004",
+        summary: "Heading hierarchy skips a level (e.g. h1 → h3)",
+    },
+    CodeMeta {
+        code: "A11Y005",
+        summary: "Form field is missing a label or aria-label",
+    },
+    CodeMeta {
+        code: "A11Y006",
+        summary: "Link or button has no accessible text content",
+    },
+];
+
 impl ValidationPass for AccessibilityPass {
     fn name(&self) -> &'static str {
         "accessibility"
+    }
+
+    fn codes(&self) -> &'static [CodeMeta] {
+        CODES
     }
 
     fn run(&self, ir: &VoceIr, _index: &NodeIndex, result: &mut ValidationResult) {

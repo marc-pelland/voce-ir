@@ -2,16 +2,39 @@
 //!
 //! Ensures IR produces search-engine-friendly output.
 
-use crate::errors::{Diagnostic, Severity, ValidationResult};
+use crate::errors::{CodeMeta, Diagnostic, Severity, ValidationResult};
 use crate::index::NodeIndex;
 use crate::ir::{ChildNode, VoceIr};
 use crate::passes::ValidationPass;
 
 pub struct SeoPass;
 
+const CODES: &[CodeMeta] = &[
+    CodeMeta {
+        code: "SEO001",
+        summary: "Page is missing PageMetadata or has no title",
+    },
+    CodeMeta {
+        code: "SEO002",
+        summary: "PageMetadata title or description length is outside the recommended range",
+    },
+    CodeMeta {
+        code: "SEO003",
+        summary: "Page has zero or multiple h1 headings (recommended: exactly 1)",
+    },
+    CodeMeta {
+        code: "SEO007",
+        summary: "OpenGraph data is present but missing og:image",
+    },
+];
+
 impl ValidationPass for SeoPass {
     fn name(&self) -> &'static str {
         "seo"
+    }
+
+    fn codes(&self) -> &'static [CodeMeta] {
+        CODES
     }
 
     fn run(&self, ir: &VoceIr, _index: &NodeIndex, result: &mut ValidationResult) {

@@ -51,11 +51,43 @@ impl fmt::Display for Diagnostic {
     }
 }
 
+/// Static metadata for a single diagnostic code. Each pass declares the codes
+/// it can emit so consumers (CLI `--list-codes`, MCP tool descriptions, the
+/// docs site) can enumerate the rule catalogue without parsing source files.
+#[derive(Debug, Clone, Copy)]
+pub struct CodeMeta {
+    /// Stable diagnostic code (e.g., "STR001"). Matches `Diagnostic.code`.
+    pub code: &'static str,
+    /// One-line summary of what the rule checks. Plain English, ≤ 120 chars.
+    pub summary: &'static str,
+}
+
+/// Per-pass execution metadata. Populated by the engine for every pass that
+/// runs. Surfaced via `voce validate --verbose-passes` so consumers (the
+/// site-hero visualization, the MCP server, the AI bridge) can show real
+/// per-pass timing and outcome instead of synthesizing it.
+#[derive(Debug, Clone)]
+pub struct PassResult {
+    /// Pass name as returned by `ValidationPass::name()`.
+    pub name: String,
+    /// Wall-clock time the pass took, in microseconds.
+    pub duration_us: u64,
+    /// Number of Error-severity diagnostics this pass emitted.
+    pub error_count: usize,
+    /// Number of Warning-severity diagnostics this pass emitted.
+    pub warning_count: usize,
+    /// Distinct error codes this pass emitted (deduplicated, in order seen).
+    pub codes: Vec<String>,
+}
+
 /// Result of running all validation passes on an IR blob.
 #[derive(Debug, Default)]
 pub struct ValidationResult {
     /// All diagnostics from all passes.
     pub diagnostics: Vec<Diagnostic>,
+    /// Per-pass execution metadata, in execution order. Empty if the engine
+    /// didn't record it (e.g., older callers using `validate()` directly).
+    pub passes: Vec<PassResult>,
 }
 
 impl ValidationResult {

@@ -3,16 +3,39 @@
 //! Checks that required fields are present, node IDs are unique,
 //! and the basic tree structure is valid.
 
-use crate::errors::{Diagnostic, Severity, ValidationResult};
+use crate::errors::{CodeMeta, Diagnostic, Severity, ValidationResult};
 use crate::index::NodeIndex;
 use crate::ir::{ChildNode, VoceIr};
 use crate::passes::ValidationPass;
 
 pub struct StructuralPass;
 
+const CODES: &[CodeMeta] = &[
+    CodeMeta {
+        code: "STR001",
+        summary: "Document root is missing or has no node_id",
+    },
+    CodeMeta {
+        code: "STR002",
+        summary: "Node is missing a node_id, or two nodes share the same id",
+    },
+    CodeMeta {
+        code: "STR004",
+        summary: "Container is missing required structural fields (e.g. direction)",
+    },
+    CodeMeta {
+        code: "STR005",
+        summary: "MediaNode is missing required src field",
+    },
+];
+
 impl ValidationPass for StructuralPass {
     fn name(&self) -> &'static str {
         "structural"
+    }
+
+    fn codes(&self) -> &'static [CodeMeta] {
+        CODES
     }
 
     fn run(&self, ir: &VoceIr, index: &NodeIndex, result: &mut ValidationResult) {

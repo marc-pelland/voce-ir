@@ -4,16 +4,43 @@
 
 use std::collections::HashSet;
 
-use crate::errors::{Diagnostic, Severity, ValidationResult};
+use crate::errors::{CodeMeta, Diagnostic, Severity, ValidationResult};
 use crate::index::NodeIndex;
 use crate::ir::{ChildNode, VoceIr};
 use crate::passes::ValidationPass;
 
 pub struct FormsPass;
 
+const CODES: &[CodeMeta] = &[
+    CodeMeta {
+        code: "FRM001",
+        summary: "FormNode must have at least one field",
+    },
+    CodeMeta {
+        code: "FRM002",
+        summary: "FormNode is missing a submission configuration",
+    },
+    CodeMeta {
+        code: "FRM003",
+        summary: "Duplicate field name within the same FormNode",
+    },
+    CodeMeta {
+        code: "FRM004",
+        summary: "Email field is missing an Email validation rule",
+    },
+    CodeMeta {
+        code: "FRM009",
+        summary: "FormField has no label, breaking screen-reader accessibility",
+    },
+];
+
 impl ValidationPass for FormsPass {
     fn name(&self) -> &'static str {
         "forms"
+    }
+
+    fn codes(&self) -> &'static [CodeMeta] {
+        CODES
     }
 
     fn run(&self, ir: &VoceIr, _index: &NodeIndex, result: &mut ValidationResult) {
