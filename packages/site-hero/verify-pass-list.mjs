@@ -3,37 +3,55 @@
 // canonical pass list (order + names). Catches drift between
 // packages/validator/src/passes/* and packages/site-hero/src/types.ts.
 //
+// Uses `voce validate --list-passes` (S67 Day 1) as the authoritative source
+// instead of parsing Rust source files — robust to refactors, formatting, or
+// any future changes that don't alter the actual pass enumeration.
+//
 // Run from packages/site-hero:   node verify-pass-list.mjs
 
-import { readFileSync, readdirSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, "..", "..");
-const PASSES_DIR = join(REPO_ROOT, "packages/validator/src/passes");
 const TYPES_PATH = join(HERE, "src/types.ts");
 
-// Engine: parse mod.rs::all_passes() to extract the module-name execution order
-const modSource = readFileSync(join(PASSES_DIR, "mod.rs"), "utf8");
-const orderMatches = [...modSource.matchAll(/Box::new\((\w+)::/g)];
-if (orderMatches.length === 0) {
-  console.error("Could not parse all_passes() — no Box::new(...::...) entries found");
-  process.exit(1);
-}
-const moduleOrder = orderMatches.map((m) => m[1]);
+const LOCAL_VOCE = join(REPO_ROOT, "target/release/voce");
+const VOCE = existsSync(LOCAL_VOCE) ? LOCAL_VOCE : "voce";
 
-// For each module, parse `fn name(...) -> &'static str { "..." }` to get the canonical name
-const engineList = moduleOrder.map((mod) => {
-  const path = join(PASSES_DIR, `${mod}.rs`);
-  const src = readFileSync(path, "utf8");
-  const m = src.match(/fn name\([^)]*\)\s*->\s*&'static str\s*\{\s*"([^"]+)"\s*\}/);
-  if (!m) {
-    console.error(`Could not extract pass name from ${path}`);
+// Engine: ask the CLI directly. Falls back to source-parsing if the CLI is
+// older than S67 Day 1 (doesn't recognize --list-passes).
+let engineList;
+try {
+  const out = execFileSync(VOCE, ["validate", "--list-passes"], { encoding: "utf8" });
+  engineList = JSON.parse(out).passes;
+  if (!Array.isArray(engineList)) throw new Error("expected { passes: [...] }");
+} catch (err) {
+  // Detect "unknown argument" failures so we can fall back gracefully on older binaries
+  const probe = spawnSync(VOCE, ["validate", "--list-passes"], { encoding: "utf8" });
+  const looksLikeUnknownArg = (probe.stderr ?? "").includes("--list-passes");
+  if (!looksLikeUnknownArg) {
+    console.error(`voce --list-passes failed: ${err.message}`);
     process.exit(1);
   }
-  return m[1];
-});
+  console.warn(
+    "warning: voce CLI predates --list-passes flag (S67 Day 1). Falling back to source parsing."
+  );
+  const PASSES_DIR = join(REPO_ROOT, "packages/validator/src/passes");
+  const modSource = readFileSync(join(PASSES_DIR, "mod.rs"), "utf8");
+  const orderMatches = [...modSource.matchAll(/Box::new\((\w+)::/g)];
+  engineList = orderMatches
+    .map((m) => m[1])
+    .map((mod) => {
+      const src = readFileSync(join(PASSES_DIR, `${mod}.rs`), "utf8");
+      const nameMatch = src.match(
+        /fn name\([^)]*\)\s*->\s*&'static str\s*\{\s*"([^"]+)"\s*\}/
+      );
+      return nameMatch?.[1] ?? mod;
+    });
+}
 
 // Front-end: parse types.ts::VALIDATION_PASSES
 const typesSource = readFileSync(TYPES_PATH, "utf8");

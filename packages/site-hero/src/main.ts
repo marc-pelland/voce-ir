@@ -11,10 +11,10 @@ import type {
   Fixture,
   FixtureIndex,
   FixtureIndexEntry,
-  ValidationDiagnostic,
+  PassTelemetry,
   VoceWasm,
   WasmCompileResult,
-  WasmValidateResult,
+  WasmValidateVerboseResult,
 } from "./types.js";
 import { VALIDATION_PASSES } from "./types.js";
 
@@ -109,30 +109,34 @@ function resetColumns(): void {
 
 interface PassStatus {
   pass: string;
-  errors: ValidationDiagnostic[];
-  warnings: ValidationDiagnostic[];
+  durationUs: number;
+  errors: number;
+  warnings: number;
+  codes: string[];
   result: "ok" | "warn" | "err";
 }
 
-function groupByPass(v: WasmValidateResult): PassStatus[] {
-  const map = new Map<string, PassStatus>();
-  for (const p of VALIDATION_PASSES) {
-    map.set(p, { pass: p, errors: [], warnings: [], result: "ok" });
-  }
-  for (const e of v.errors) {
-    const slot = map.get(e.pass) ?? { pass: e.pass, errors: [], warnings: [], result: "ok" };
-    slot.errors.push(e);
-    slot.result = "err";
-    map.set(e.pass, slot);
-  }
-  for (const w of v.warnings) {
-    const slot = map.get(w.pass) ?? { pass: w.pass, errors: [], warnings: [], result: "ok" };
-    slot.warnings.push(w);
-    if (slot.result !== "err") slot.result = "warn";
-    map.set(w.pass, slot);
-  }
-  // Preserve canonical order
-  return VALIDATION_PASSES.map((p) => map.get(p)!);
+/** Convert per-pass telemetry (from validate_verbose) into UI status rows. */
+function passStatuses(passes: PassTelemetry[]): PassStatus[] {
+  const seen = new Map<string, PassTelemetry>();
+  for (const p of passes) seen.set(p.name, p);
+  return VALIDATION_PASSES.map((name) => {
+    const t = seen.get(name);
+    if (!t) {
+      return { pass: name, durationUs: 0, errors: 0, warnings: 0, codes: [], result: "ok" };
+    }
+    let result: PassStatus["result"] = "ok";
+    if (t.errors > 0) result = "err";
+    else if (t.warnings > 0) result = "warn";
+    return {
+      pass: name,
+      durationUs: t.durationUs,
+      errors: t.errors,
+      warnings: t.warnings,
+      codes: t.codes,
+      result,
+    };
+  });
 }
 
 // ── Animation primitives ──────────────────────────────────────────────────────
@@ -153,15 +157,14 @@ function delay(ms: number, signal: AbortSignal): Promise<void> {
 }
 
 function describeStatus(s: PassStatus): string {
+  const parts: string[] = [];
+  if (s.durationUs > 0) parts.push(`${s.durationUs}µs`);
   if (s.result === "err") {
-    const n = s.errors.length;
-    return `${n} error${n === 1 ? "" : "s"}`;
+    parts.push(`${s.errors} error${s.errors === 1 ? "" : "s"}`);
+  } else if (s.result === "warn") {
+    parts.push(`${s.warnings} warning${s.warnings === 1 ? "" : "s"}`);
   }
-  if (s.result === "warn") {
-    const n = s.warnings.length;
-    return `${n} warning${n === 1 ? "" : "s"}`;
-  }
-  return "ok";
+  return parts.join(" · ");
 }
 
 // ── Main flow ─────────────────────────────────────────────────────────────────
@@ -185,9 +188,8 @@ async function onPromptClick(entry: FixtureIndexEntry): Promise<void> {
   // not the execution.
   const irJsonString = JSON.stringify(fixture.ir);
 
-  const validateStart = performance.now();
-  const validation = JSON.parse(wasm.validate(irJsonString)) as WasmValidateResult;
-  const validateMs = performance.now() - validateStart;
+  const validation = JSON.parse(wasm.validate_verbose(irJsonString)) as WasmValidateVerboseResult;
+  const totalValidateUs = validation.passes.reduce((acc, p) => acc + p.durationUs, 0);
 
   const compileStart = performance.now();
   const compile = JSON.parse(wasm.compile_dom(irJsonString)) as WasmCompileResult;
@@ -197,13 +199,13 @@ async function onPromptClick(entry: FixtureIndexEntry): Promise<void> {
   irOut.textContent = JSON.stringify(fixture.ir, null, 2);
   irMeta.textContent = `${fixture.sizeBytes} B output · ${countLines(irOut.textContent)} lines`;
 
-  const passes = groupByPass(validation);
+  const passes = passStatuses(validation.passes);
   passList.innerHTML = "";
   for (const p of passes) {
     const li = document.createElement("li");
     li.dataset.pass = p.pass;
     li.dataset.final = p.result;
-    li.dataset.detail = p.result === "ok" ? "" : describeStatus(p);
+    li.dataset.detail = describeStatus(p);
     li.innerHTML = `<span class="pass-name">${p.pass}</span><span class="pass-detail" hidden></span>`;
     passList.appendChild(li);
   }
@@ -216,7 +218,7 @@ async function onPromptClick(entry: FixtureIndexEntry): Promise<void> {
   renderMeta.textContent = compile.ok
     ? `${compile.sizeBytes} B · ${compileMs.toFixed(1)} ms`
     : `compile failed`;
-  validateMeta.textContent = `9 passes · ${validateMs.toFixed(1)} ms`;
+  validateMeta.textContent = `9 passes · ${totalValidateUs}µs total`;
 
   // Pre-populate verdict text so skip can show it without waiting for stage D
   const errCount = validation.errors.length;
@@ -262,8 +264,9 @@ async function runAnimation(passes: PassStatus[], signal: AbortSignal): Promise<
     li.classList.remove("running");
     li.classList.add(status.result);
     const detail = li.querySelector<HTMLSpanElement>(".pass-detail")!;
-    if (status.result !== "ok") {
-      detail.textContent = describeStatus(status);
+    const detailText = li.dataset.detail ?? "";
+    if (detailText) {
+      detail.textContent = detailText;
       detail.hidden = false;
     }
   }

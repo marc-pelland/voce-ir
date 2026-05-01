@@ -41,11 +41,22 @@ export interface ValidationReport {
 }
 
 /** Subset of the playground-wasm API used by site-hero. Each function returns
- * a JSON-encoded envelope string — see WasmCompileResult / WasmValidateResult. */
+ * a JSON-encoded envelope string — see WasmCompileResult / WasmValidateResult.
+ * `validate_verbose` (S67) is preferred where per-pass telemetry is needed. */
 export interface VoceWasm {
   validate(irJson: string): string;
+  validate_verbose(irJson: string): string;
   compile_dom(irJson: string): string;
   inspect(irJson: string): string;
+}
+
+/** Per-pass telemetry from `validate_verbose`. Real numbers, not synthesized. */
+export interface PassTelemetry {
+  name: string;
+  durationUs: number;
+  errors: number;
+  warnings: number;
+  codes: string[];
 }
 
 /** Envelope shape returned by playground-wasm's compile_dom / compile_email.
@@ -66,6 +77,11 @@ export interface WasmValidateResult {
   valid: boolean;
   errors: ValidationDiagnostic[];
   warnings: ValidationDiagnostic[];
+}
+
+/** Verbose envelope from `validate_verbose` — superset of WasmValidateResult. */
+export interface WasmValidateVerboseResult extends WasmValidateResult {
+  passes: PassTelemetry[];
 }
 
 /** Canonical list of validation passes, mirroring `passes/mod.rs::all_passes()`
