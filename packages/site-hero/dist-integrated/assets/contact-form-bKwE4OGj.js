@@ -1,4 +1,4 @@
-const e="contact-form",t="A contact form with name, email, message, and validation",n="A contact form with name, email, and message fields. All fields are required. The email field should validate email format. Include a submit button that posts to an API endpoint. The form should work without JavaScript (progressive enhancement).",a={schema_version_major:0,schema_version_minor:1,root:{node_id:"root",document_language:"en",metadata:{title:"Contact Us"},semantic_nodes:[{node_id:"sem-main",role:"main",label:"Contact form"},{node_id:"sem-form",role:"form",label:"Contact form"}],children:[{value_type:"Container",value:{node_id:"contact-page",layout:"Stack",direction:"Column",semantic_node_id:"sem-main",children:[{value_type:"TextNode",value:{node_id:"heading",content:"Get in touch",font_size:{value:32,unit:"Px"},font_weight:"Bold",heading_level:1}},{value_type:"FormNode",value:{node_id:"contact-form",semantic_node_id:"sem-form",validation_mode:"OnBlurThenChange",fields:[{name:"name",field_type:"Text",label:"Your name",validations:[{rule_type:"Required",message:"Name is required"}],autocomplete:"Name"},{name:"email",field_type:"Email",label:"Email address",validations:[{rule_type:"Required",message:"Email is required"},{rule_type:"Email",message:"Please enter a valid email"}],autocomplete:"Email"},{name:"message",field_type:"Textarea",label:"Message",validations:[{rule_type:"Required",message:"Message is required"},{rule_type:"MinLength",value:"10",message:"Message must be at least 10 characters"}]}],submission:{action_node_id:"contact-submit",encoding:"Json",progressive:!0}}},{value_type:"ActionNode",value:{node_id:"contact-submit",source:{endpoint:"/api/contact",provider:"Rest"},method:"POST",csrf_protected:!0}}]}}]}},o={diagnostics:[],errors:0,valid:!0,warnings:0},r=`<!DOCTYPE html>
+const e="contact-form",t="A contact form with name, email, message, and validation",o="A contact form with name, email, and message fields. All fields are required. The email field should validate email format. Include a submit button that posts to an API endpoint. The form should work without JavaScript (progressive enhancement).",n={schema_version_major:0,schema_version_minor:1,root:{node_id:"root",document_language:"en",metadata:{title:"Contact Us"},semantic_nodes:[{node_id:"sem-main",role:"main",label:"Contact form"},{node_id:"sem-form",role:"form",label:"Contact form"}],children:[{value_type:"Container",value:{node_id:"contact-page",layout:"Stack",direction:"Column",semantic_node_id:"sem-main",children:[{value_type:"TextNode",value:{node_id:"heading",content:"Get in touch",font_size:{value:32,unit:"Px"},font_weight:"Bold",heading_level:1}},{value_type:"FormNode",value:{node_id:"contact-form",semantic_node_id:"sem-form",validation_mode:"OnBlurThenChange",fields:[{name:"name",field_type:"Text",label:"Your name",validations:[{rule_type:"Required",message:"Name is required"}],autocomplete:"Name"},{name:"email",field_type:"Email",label:"Email address",validations:[{rule_type:"Required",message:"Email is required"},{rule_type:"Email",message:"Please enter a valid email"}],autocomplete:"Email"},{name:"message",field_type:"Textarea",label:"Message",validations:[{rule_type:"Required",message:"Message is required"},{rule_type:"MinLength",value:"10",message:"Message must be at least 10 characters"}]}],submission:{action_node_id:"contact-submit",encoding:"Json",progressive:!0}}},{value_type:"ActionNode",value:{node_id:"contact-submit",source:{endpoint:"/api/contact",provider:"Rest"},method:"POST",csrf_protected:!0}}]}}]}},a={diagnostics:[],errors:0,valid:!0,warnings:0},r=`<!DOCTYPE html>
 <html lang="en" dir="ltr">
 <head>
 <meta charset="UTF-8">
@@ -9,9 +9,25 @@ const e="contact-form",t="A contact form with name, email, message, and validati
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Contact Us</title>
 <style>
+:root{--voce-fg:#111;--voce-bg:#fff;--voce-muted-fg:#666;--voce-border:rgba(127,127,127,.25);--voce-surface:rgba(127,127,127,.04);--voce-primary:#6366f1;--voce-primary-hover:#818cf8;--voce-error:#ef4444;--voce-warning:#f59e0b;--voce-success:#10b981}
+@media (prefers-color-scheme:dark){:root{--voce-fg:#e8e8ec;--voce-bg:#0a0a0c;--voce-muted-fg:#8b8b94;--voce-border:rgba(255,255,255,.12);--voce-surface:rgba(255,255,255,.04)}}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5;background:var(--voce-bg);color:var(--voce-fg)}
 img{max-width:100%;height:auto;display:block}
+h1,h2,h3,h4,h5,h6{line-height:1.2;margin-bottom:.5em}
+p{line-height:1.6;margin-bottom:1em}
+p:last-child,li:last-child{margin-bottom:0}
+ul,ol{margin:0 0 1em 1.5em;padding-left:.5em}
+li{line-height:1.6;margin-bottom:.25em}
+code{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-size:.92em;background:var(--voce-surface);padding:.15em .35em;border-radius:4px}
+pre{background:var(--voce-surface);border:1px solid var(--voce-border);border-radius:6px;padding:12px 14px;overflow-x:auto;margin:0 0 1em}
+pre code{background:transparent;padding:0;border-radius:0;font-size:.95em}
+blockquote{margin:0 0 1em;padding:.25em 1em;border-left:3px solid var(--voce-primary);color:var(--voce-muted-fg);font-style:italic}
+hr{border:none;border-top:1px solid var(--voce-border);margin:1.5em 0}
+table{border-collapse:collapse;width:100%;margin-bottom:1em}
+th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--voce-border)}
+th{font-weight:600}
+tbody tr:nth-child(even){background:var(--voce-surface)}
 a{transition:opacity .15s}
 a:hover{opacity:.8}
 a:focus-visible{outline:2px solid var(--voce-primary,#6366f1);outline-offset:2px;border-radius:2px}
@@ -72,4 +88,4 @@ document.addEventListener('DOMContentLoaded',()=>{
 <\/script>
 </body>
 </html>
-`,i=5058,s={id:e,label:t,prompt:n,ir:a,validation:o,html:r,sizeBytes:i};export{s as default,r as html,e as id,a as ir,t as label,n as prompt,i as sizeBytes,o as validation};
+`,i=6541,s={id:e,label:t,prompt:o,ir:n,validation:a,html:r,sizeBytes:i};export{s as default,r as html,e as id,n as ir,t as label,o as prompt,i as sizeBytes,a as validation};

@@ -15,9 +15,25 @@ expression: html
 <meta name="description" content="Media node with responsive image.">
 <link rel="preload" as="image" href="/images/hero.jpg" fetchpriority="high">
 <style>
+:root{--voce-fg:#111;--voce-bg:#fff;--voce-muted-fg:#666;--voce-border:rgba(127,127,127,.25);--voce-surface:rgba(127,127,127,.04);--voce-primary:#6366f1;--voce-primary-hover:#818cf8;--voce-error:#ef4444;--voce-warning:#f59e0b;--voce-success:#10b981}
+@media (prefers-color-scheme:dark){:root{--voce-fg:#e8e8ec;--voce-bg:#0a0a0c;--voce-muted-fg:#8b8b94;--voce-border:rgba(255,255,255,.12);--voce-surface:rgba(255,255,255,.04)}}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5;background:var(--voce-bg);color:var(--voce-fg)}
 img{max-width:100%;height:auto;display:block}
+h1,h2,h3,h4,h5,h6{line-height:1.2;margin-bottom:.5em}
+p{line-height:1.6;margin-bottom:1em}
+p:last-child,li:last-child{margin-bottom:0}
+ul,ol{margin:0 0 1em 1.5em;padding-left:.5em}
+li{line-height:1.6;margin-bottom:.25em}
+code{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-size:.92em;background:var(--voce-surface);padding:.15em .35em;border-radius:4px}
+pre{background:var(--voce-surface);border:1px solid var(--voce-border);border-radius:6px;padding:12px 14px;overflow-x:auto;margin:0 0 1em}
+pre code{background:transparent;padding:0;border-radius:0;font-size:.95em}
+blockquote{margin:0 0 1em;padding:.25em 1em;border-left:3px solid var(--voce-primary);color:var(--voce-muted-fg);font-style:italic}
+hr{border:none;border-top:1px solid var(--voce-border);margin:1.5em 0}
+table{border-collapse:collapse;width:100%;margin-bottom:1em}
+th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--voce-border)}
+th{font-weight:600}
+tbody tr:nth-child(even){background:var(--voce-surface)}
 a{transition:opacity .15s}
 a:hover{opacity:.8}
 a:focus-visible{outline:2px solid var(--voce-primary,#6366f1);outline-offset:2px;border-radius:2px}

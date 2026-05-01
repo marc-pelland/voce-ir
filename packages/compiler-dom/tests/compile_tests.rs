@@ -229,12 +229,17 @@ fn security_headers_always_present() {
 // ─── Landing Page End-to-End ────────────────────────────────────
 
 #[test]
-fn landing_page_compiles_under_10kb() {
+fn landing_page_compiles_under_12kb() {
+    // Budget bumped from 10 KB → 12 KB in S64. The compiler now emits
+    // baseline typography/list/code/blockquote/hr/table CSS plus a fallback
+    // theme palette with prefers-color-scheme; ~1.7 KB of additional stylesheet
+    // applies to every compiled page. Trade-off explicitly accepted: the
+    // budget grew, but every output now looks presentable by default.
     let json = load_example("examples/landing-page/landing-page.voce.json");
     let result = compile(&json, &CompileOptions::default()).unwrap();
     assert!(
-        result.size_bytes < 10_000,
-        "Landing page should be under 10KB, got {} bytes",
+        result.size_bytes < 12_000,
+        "Landing page should be under 12KB, got {} bytes",
         result.size_bytes
     );
 }

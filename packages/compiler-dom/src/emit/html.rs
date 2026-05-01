@@ -151,7 +151,13 @@ fn emit_head(
     // Styles
     html.push_str("<style>\n");
 
-    // Theme CSS custom properties
+    // S64: fallback theme palette. IRs that don't declare theme.colors still
+    // get sensible light/dark colors via prefers-color-scheme. IR-defined
+    // theme_vars (emitted below) override these.
+    html.push_str(":root{--voce-fg:#111;--voce-bg:#fff;--voce-muted-fg:#666;--voce-border:rgba(127,127,127,.25);--voce-surface:rgba(127,127,127,.04);--voce-primary:#6366f1;--voce-primary-hover:#818cf8;--voce-error:#ef4444;--voce-warning:#f59e0b;--voce-success:#10b981}\n");
+    html.push_str("@media (prefers-color-scheme:dark){:root{--voce-fg:#e8e8ec;--voce-bg:#0a0a0c;--voce-muted-fg:#8b8b94;--voce-border:rgba(255,255,255,.12);--voce-surface:rgba(255,255,255,.04)}}\n");
+
+    // Theme CSS custom properties (IR-defined; overrides the fallback above)
     if !ir.meta.theme_vars.is_empty() {
         html.push_str(":root{");
         for (name, value) in &ir.meta.theme_vars {
@@ -161,8 +167,34 @@ fn emit_head(
     }
 
     html.push_str("*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}\n");
-    html.push_str("body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5}\n");
+    html.push_str("body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5;background:var(--voce-bg);color:var(--voce-fg)}\n");
     html.push_str("img{max-width:100%;height:auto;display:block}\n");
+
+    // S64: typography rhythm. Headings get tight line-height + bottom margin;
+    // paragraphs and list items get a comfortable rhythm. Last-child resets
+    // prevent extra trailing space when nested inside a Container.
+    html.push_str("h1,h2,h3,h4,h5,h6{line-height:1.2;margin-bottom:.5em}\n");
+    html.push_str("p{line-height:1.6;margin-bottom:1em}\n");
+    html.push_str("p:last-child,li:last-child{margin-bottom:0}\n");
+
+    // S64: lists
+    html.push_str("ul,ol{margin:0 0 1em 1.5em;padding-left:.5em}\n");
+    html.push_str("li{line-height:1.6;margin-bottom:.25em}\n");
+
+    // S64: inline code + block code
+    html.push_str("code{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-size:.92em;background:var(--voce-surface);padding:.15em .35em;border-radius:4px}\n");
+    html.push_str("pre{background:var(--voce-surface);border:1px solid var(--voce-border);border-radius:6px;padding:12px 14px;overflow-x:auto;margin:0 0 1em}\n");
+    html.push_str("pre code{background:transparent;padding:0;border-radius:0;font-size:.95em}\n");
+
+    // S64: blockquote + hr
+    html.push_str("blockquote{margin:0 0 1em;padding:.25em 1em;border-left:3px solid var(--voce-primary);color:var(--voce-muted-fg);font-style:italic}\n");
+    html.push_str("hr{border:none;border-top:1px solid var(--voce-border);margin:1.5em 0}\n");
+
+    // S64: tables
+    html.push_str("table{border-collapse:collapse;width:100%;margin-bottom:1em}\n");
+    html.push_str("th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--voce-border)}\n");
+    html.push_str("th{font-weight:600}\n");
+    html.push_str("tbody tr:nth-child(even){background:var(--voce-surface)}\n");
 
     // Interactive states for links, buttons, and form inputs
     html.push_str("a{transition:opacity .15s}\n");
