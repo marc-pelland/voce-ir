@@ -49,6 +49,9 @@ fn apply_add(root: &mut Value, segs: &[String], value: Option<Value>) -> Result<
     }
     let (last, parents) = segs.split_last().unwrap();
     let parent = walk_to(root, parents)?;
+    // F-026: if the parent is a union wrapper and we're adding a regular
+    // field, the field belongs on the inner value (e.g. node_id, direction).
+    let parent = auto_descend_wrapper(parent, last);
     match parent {
         Value::Object(map) => {
             map.insert(last.clone(), value);
@@ -84,6 +87,7 @@ fn apply_replace(root: &mut Value, segs: &[String], value: Option<Value>) -> Res
     }
     let (last, parents) = segs.split_last().unwrap();
     let parent = walk_to(root, parents)?;
+    let parent = auto_descend_wrapper(parent, last);
     match parent {
         Value::Object(map) => {
             if !map.contains_key(last) {
@@ -115,6 +119,7 @@ fn apply_remove(root: &mut Value, segs: &[String]) -> Result<(), String> {
     }
     let (last, parents) = segs.split_last().unwrap();
     let parent = walk_to(root, parents)?;
+    let parent = auto_descend_wrapper(parent, last);
     match parent {
         Value::Object(map) => {
             if map.remove(last).is_none() {
@@ -139,9 +144,36 @@ fn apply_remove(root: &mut Value, segs: &[String]) -> Result<(), String> {
     }
 }
 
+/// Auto-descend through a `{value_type, value}` ChildUnion wrapper when the
+/// next segment is addressing the inner value. Validator diagnostics use the
+/// abstract IR tree (without `/value` wrappers); JSON Pointer needs them.
+/// F-026: bridges those two path conventions.
+///
+/// Returns the inner `value` if `current` is a wrapper and `seg` isn't
+/// explicitly addressing the wrapper itself; otherwise returns `current`
+/// unchanged.
+fn auto_descend_wrapper<'a>(current: &'a mut Value, seg: &str) -> &'a mut Value {
+    if seg == "value" || seg == "value_type" || seg == "ref_id" {
+        return current;
+    }
+    let is_wrapper = matches!(
+        current,
+        Value::Object(m) if m.contains_key("value_type") && m.contains_key("value")
+    );
+    if !is_wrapper {
+        return current;
+    }
+    match current {
+        Value::Object(map) => map.get_mut("value").unwrap(),
+        _ => unreachable!("checked above"),
+    }
+}
+
 fn walk_to<'a>(root: &'a mut Value, segs: &[String]) -> Result<&'a mut Value, String> {
     let mut current = root;
     for seg in segs {
+        // F-026: descend through union wrappers transparently.
+        current = auto_descend_wrapper(current, seg);
         current = match current {
             Value::Object(map) => map
                 .get_mut(seg)
@@ -473,6 +505,40 @@ mod tests {
         apply_op(&mut v, &op).unwrap();
         assert!(v.as_object().unwrap().get("tmp").is_none());
         assert_eq!(v["keep"], json!(2));
+    }
+
+    /// F-026: validator paths skip the union `value` wrapper. apply_op must
+    /// auto-descend through `{value_type, value}` wrappers when the segment
+    /// being addressed isn't `value`/`value_type` itself.
+    #[test]
+    fn apply_op_descends_through_union_wrapper() {
+        let mut v = json!({
+            "root": {
+                "children": [
+                    {
+                        "value_type": "Container",
+                        "value": {
+                            "node_id": "container",
+                            "children": [
+                                { "ref_id": "ghost" }
+                            ]
+                        }
+                    }
+                ]
+            }
+        });
+        let op = PatchOp {
+            op: "add",
+            // Validator-style path (no /value segment) — STR002 would emit
+            // exactly this for the missing-node_id leaf.
+            path: "/root/children/0/children/0/node_id".to_string(),
+            value: Some(json!("auto-id")),
+        };
+        apply_op(&mut v, &op).unwrap();
+        assert_eq!(
+            v["root"]["children"][0]["value"]["children"][0]["node_id"],
+            json!("auto-id")
+        );
     }
 
     #[test]
