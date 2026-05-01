@@ -192,7 +192,9 @@ fn emit_head(
 
     // S64: tables
     html.push_str("table{border-collapse:collapse;width:100%;margin-bottom:1em}\n");
-    html.push_str("th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--voce-border)}\n");
+    html.push_str(
+        "th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--voce-border)}\n",
+    );
     html.push_str("th{font-weight:600}\n");
     html.push_str("tbody tr:nth-child(even){background:var(--voce-surface)}\n");
 

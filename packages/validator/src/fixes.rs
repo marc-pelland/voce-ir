@@ -109,7 +109,7 @@ fn apply_replace(root: &mut Value, segs: &[String], value: Option<Value>) -> Res
             arr[idx] = value;
             Ok(())
         }
-        _ => Err(format!("cannot replace in non-object/array")),
+        _ => Err("cannot replace in non-object/array".to_string()),
     }
 }
 

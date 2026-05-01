@@ -35,6 +35,7 @@ insta.workspace = true
 assert_cmd = "2"
 predicates = "3"
 criterion.workspace = true
+proptest = "1.5"
 voce-compiler-email = { path = "../compiler-email", version = "0.1.0" }
 voce-compiler-ios = { path = "../compiler-ios", version = "0.1.0" }
 voce-compiler-android = { path = "../compiler-android", version = "0.1.0" }

@@ -4,7 +4,7 @@
       "id": "hero-section",
       "label": "A landing-page hero with headline, subtitle, and CTA",
       "available": true,
-      "sizeBytes": 3656,
+      "sizeBytes": 5139,
       "validation": {
         "valid": true,
         "errors": 0,
@@ -15,7 +15,7 @@
       "id": "contact-form",
       "label": "A contact form with name, email, message, and validation",
       "available": true,
-      "sizeBytes": 5058,
+      "sizeBytes": 6541,
       "validation": {
         "valid": true,
         "errors": 0,
