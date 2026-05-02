@@ -26,6 +26,15 @@ import { writeFileSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import chalk from "chalk";
+import { listDecisions, readBrief } from "@voce-ir/mcp-server/memory";
+import { parseArgs } from "./cli-args.js";
+import { buildSystemPrompt } from "./prompt.js";
+import {
+  logAssistantTurn,
+  logSystemEvent,
+  logUserTurn,
+  resolveSession,
+} from "./session-manager.js";
 
 // ── Config ──────────────────────────────────────────────────────
 
@@ -60,29 +69,6 @@ function loadSchemaContext(): string {
   return context || "Schema docs not found.";
 }
 
-const SYSTEM_PROMPT = `You are Voce IR, an AI-native UI generation system. You help users build user interfaces through conversation.
-
-When the user describes what they want, you:
-1. Ask clarifying questions (one at a time) to understand their needs
-2. Generate Voce IR JSON that implements their request
-3. Explain what you built and suggest improvements
-
-IMPORTANT RULES:
-- Always output valid Voce IR JSON when generating UI
-- Wrap generated IR in a \`\`\`json code fence
-- Include schema_version_major: 1, schema_version_minor: 0
-- Every node needs a unique node_id
-- Use SemanticNode roles for nav, main, footer
-- Add href fields to TextNode/Surface for links
-- Include metadata (title, description) in the root
-
-When the user says something vague, ask ONE clarifying question. Don't generate until you understand what they want.
-
-After generating IR, tell the user they can type /compile to see the HTML output, /validate to check for issues, or /save to save the IR.
-
-Available node types: Container (layout), Surface (cards/backgrounds), TextNode (text with optional href), MediaNode (images/video), FormNode (forms), SemanticNode (a11y roles), StateMachine (state), GestureHandler (interactions).
-`;
-
 // ── State ───────────────────────────────────────────────────────
 
 interface Message {
@@ -93,6 +79,8 @@ interface Message {
 let conversationHistory: Message[] = [];
 let currentIr: string | null = null;
 let client: Anthropic | null = null;
+let sessionId: string = ""; // assigned in main() after resolveSession
+let systemPromptCache: string = ""; // built once per process; brief/decisions are stable per-session
 
 // ── Commands ────────────────────────────────────────────────────
 
@@ -235,13 +223,14 @@ async function chat(userMessage: string): Promise<string> {
   if (!client) throw new Error("API client not initialized");
 
   conversationHistory.push({ role: "user", content: userMessage });
+  logUserTurn(sessionId, userMessage);
 
   process.stdout.write(chalk.cyan("\nvoce "));
 
   const stream = client.messages.stream({
     model: MODEL,
     max_tokens: 4096,
-    system: SYSTEM_PROMPT,
+    system: systemPromptCache,
     messages: conversationHistory,
   });
 
@@ -261,15 +250,19 @@ async function chat(userMessage: string): Promise<string> {
 
   conversationHistory.push({ role: "assistant", content: fullResponse });
 
-  // Extract IR if present
+  // Extract IR if present — passed as ir_snapshot so voce_session_resume
+  // surfaces it as current_ir for any subsequent invocation or MCP client.
   const ir = extractIrFromResponse(fullResponse);
   if (ir) {
     currentIr = ir;
+    logAssistantTurn(sessionId, fullResponse, ir);
     console.log(
       chalk.dim(
         "\nIR captured. Type /compile to see HTML, /validate to check, /save to save."
       )
     );
+  } else {
+    logAssistantTurn(sessionId, fullResponse);
   }
 
   return fullResponse;
@@ -280,6 +273,41 @@ async function chat(userMessage: string): Promise<string> {
 async function main() {
   console.log(chalk.bold.cyan("\n  Voce IR"));
   console.log(chalk.dim("  The code is gone. The experience remains.\n"));
+
+  // Parse argv first so the resume flag is honored before any IO.
+  const args = parseArgs(process.argv.slice(2));
+
+  // Resolve / open a session and hydrate the system prompt from the .voce/
+  // store. Both happen even without an API key so /compile, /validate still
+  // get a session log.
+  const session = resolveSession({ resume: args.resume });
+  sessionId = session.id;
+
+  systemPromptCache = buildSystemPrompt({
+    brief: readBrief(),
+    recentDecisions: listDecisions().slice(-20),
+  });
+
+  // Replay prior text turns into conversationHistory so the model sees the
+  // same context as before. System / tool entries are skipped — only the
+  // user/assistant ledger is part of the chat completion contract.
+  for (const entry of session.history) {
+    if (entry.role === "user" || entry.role === "assistant") {
+      conversationHistory.push({ role: entry.role, content: entry.content });
+      if (entry.role === "assistant" && entry.ir_snapshot !== undefined) {
+        currentIr = entry.ir_snapshot;
+      }
+    }
+  }
+
+  if (session.resumed) {
+    console.log(
+      chalk.dim(`  Resumed session ${session.id.slice(0, 8)} — ${session.history.length} prior entries.`),
+    );
+    logSystemEvent(sessionId, "voce-chat resumed");
+  } else {
+    logSystemEvent(sessionId, "voce-chat started");
+  }
 
   if (!API_KEY) {
     console.log(chalk.yellow("  Set ANTHROPIC_API_KEY to enable AI generation."));
@@ -292,9 +320,8 @@ async function main() {
   }
 
   // Handle initial prompt from args
-  const initialPrompt = process.argv.slice(2).join(" ");
-  if (initialPrompt && client) {
-    await chat(initialPrompt);
+  if (args.initialPrompt && client) {
+    await chat(args.initialPrompt);
   }
 
   // Interactive REPL

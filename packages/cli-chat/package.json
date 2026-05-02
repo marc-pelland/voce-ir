@@ -9,16 +9,20 @@
   },
   "scripts": {
     "build": "tsup",
-    "dev": "tsx src/index.ts"
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.52.0",
+    "@voce-ir/mcp-server": "file:../mcp-server",
     "chalk": "^5.3.0"
   },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "tsup": "^8.0.0",
     "tsx": "^4.0.0",
     "typescript": "~5.7.0",
-    "@types/node": "^20.0.0"
+    "vitest": "^3.2.4"
   }
 }

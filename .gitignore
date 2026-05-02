@@ -34,3 +34,6 @@ Thumbs.db
 # Voce local state
 .voce/sessions/
 .voce/snapshots/
+# Sub-packages auto-create .voce/ when tools run from inside them.
+**/.voce/sessions/
+**/.voce/snapshots/

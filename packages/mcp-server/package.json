@@ -4,6 +4,20 @@
   "description": "Voce IR MCP server — exposes IR tools for Claude Code and MCP clients",
   "type": "module",
   "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./memory": {
+      "types": "./dist/memory.d.ts",
+      "default": "./dist/memory.js"
+    },
+    "./workflow": {
+      "types": "./dist/workflow.d.ts",
+      "default": "./dist/workflow.js"
+    }
+  },
   "bin": {
     "voce-mcp": "dist/index.js"
   },

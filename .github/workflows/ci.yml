@@ -91,6 +91,35 @@ jobs:
         working-directory: packages/mcp-server
         run: npm run build
 
+  cli-chat:
+    name: cli-chat (vitest, S66 Day 1)
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      # cli-chat depends on @voce-ir/mcp-server via a file: link, so the
+      # mcp-server bundle must exist before npm install.
+      - name: Build mcp-server (provides core sub-path exports)
+        working-directory: packages/mcp-server
+        run: |
+          npm ci || npm install
+          npm run build
+      - name: Install cli-chat deps
+        working-directory: packages/cli-chat
+        run: npm install
+      - name: Type check
+        working-directory: packages/cli-chat
+        run: npx tsc --noEmit
+      - name: Vitest
+        working-directory: packages/cli-chat
+        run: npm test
+      - name: Build dist
+        working-directory: packages/cli-chat
+        run: npm run build
+
   frontend-verify:
     name: Site-hero verifiers (round-trip + pass-list drift)
     needs: check
