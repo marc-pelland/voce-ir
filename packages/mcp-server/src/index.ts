@@ -26,10 +26,11 @@ import {
   ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { execSync } from "node:child_process";
-import { readFileSync, existsSync, readdirSync, writeFileSync, unlinkSync } from "node:fs";
+import { readFileSync, existsSync, writeFileSync, unlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { listDecisions, listDrift, readBrief } from "./memory/index.js";
 
 // Find the voce binary — check local workspace build first, then PATH
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -175,13 +176,25 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => ({
     {
       uri: "voce://brief",
       name: "Project Brief",
-      description: "The current project brief (north star)",
-      mimeType: "text/yaml",
+      description: "The project's north-star brief — every generation is checked against it.",
+      mimeType: "text/markdown",
+    },
+    {
+      uri: "voce://decisions",
+      name: "Decision Log",
+      description: "Append-only log of design / architecture decisions, oldest first.",
+      mimeType: "application/jsonl",
+    },
+    {
+      uri: "voce://drift-warnings",
+      name: "Drift Warnings",
+      description: "Detected conflicts between proposed IR and prior decisions.",
+      mimeType: "application/jsonl",
     },
     {
       uri: "voce://status",
       name: "Project Status",
-      description: "Current project health: brief, decisions, drift score",
+      description: "Snapshot of brief presence, decision count, and pending drift.",
       mimeType: "text/plain",
     },
   ],
@@ -192,15 +205,22 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
 
   switch (uri) {
     case "voce://brief": {
-      const briefPath = ".voce/brief.yaml";
-      const content = existsSync(briefPath)
-        ? readFileSync(briefPath, "utf-8")
-        : "No brief found. Run 'voce design' to create one.";
-      return { contents: [{ uri, mimeType: "text/yaml", text: content }] };
+      const brief = readBrief();
+      const text = brief?.content ?? "No brief yet. Use voce_brief_set to author one (S65 Day 3).";
+      return { contents: [{ uri, mimeType: "text/markdown", text }] };
+    }
+    case "voce://decisions": {
+      const lines = listDecisions().map((d) => JSON.stringify(d));
+      const text = lines.length > 0 ? lines.join("\n") : "";
+      return { contents: [{ uri, mimeType: "application/jsonl", text }] };
+    }
+    case "voce://drift-warnings": {
+      const lines = listDrift().map((d) => JSON.stringify(d));
+      const text = lines.length > 0 ? lines.join("\n") : "";
+      return { contents: [{ uri, mimeType: "application/jsonl", text }] };
     }
     case "voce://status": {
-      const status = getProjectStatus();
-      return { contents: [{ uri, mimeType: "text/plain", text: status }] };
+      return { contents: [{ uri, mimeType: "text/plain", text: getProjectStatus() }] };
     }
     default:
       return { contents: [{ uri, mimeType: "text/plain", text: `Unknown resource: ${uri}` }] };
@@ -317,17 +337,19 @@ function generateIr(prompt: string): { content: Array<{ type: "text"; text: stri
 function getProjectStatus(): string {
   const lines: string[] = ["Voce IR Project Status\n"];
 
-  if (existsSync(".voce/brief.yaml")) {
-    lines.push("Brief: found (.voce/brief.yaml)");
+  const brief = readBrief();
+  if (brief) {
+    lines.push(`Brief: present (${brief.content.length} chars, last modified ${brief.last_modified})`);
   } else {
-    lines.push("Brief: not created (run 'voce design')");
+    lines.push("Brief: not authored (use voce_brief_set)");
   }
 
-  const decDir = ".voce/decisions";
-  if (existsSync(decDir)) {
-    const count = readdirSync(decDir).filter((f: string) => f.endsWith(".yaml")).length;
-    lines.push(`Decisions: ${count} recorded`);
-  }
+  const decisions = listDecisions();
+  lines.push(`Decisions: ${decisions.length} recorded`);
+
+  const drift = listDrift();
+  const pending = drift.filter((d) => d.resolution === "pending").length;
+  lines.push(`Drift warnings: ${drift.length} total, ${pending} pending`);
 
   return lines.join("\n");
 }
