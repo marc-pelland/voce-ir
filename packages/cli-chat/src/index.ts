@@ -26,7 +26,8 @@ import { writeFileSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import chalk from "chalk";
-import { listDecisions, readBrief } from "@voce-ir/mcp-server/memory";
+import { listDecisions, readBrief, appendSession } from "@voce-ir/mcp-server/memory";
+import { TOOL_DEFINITIONS, executeTool } from "@voce-ir/mcp-server/tools";
 import { parseArgs } from "./cli-args.js";
 import { buildSystemPrompt } from "./prompt.js";
 import {
@@ -35,6 +36,8 @@ import {
   logUserTurn,
   resolveSession,
 } from "./session-manager.js";
+import { runToolLoop } from "./tool-loop.js";
+import type { LoopMessage } from "./tool-loop.js";
 
 // ── Config ──────────────────────────────────────────────────────
 
@@ -71,12 +74,7 @@ function loadSchemaContext(): string {
 
 // ── State ───────────────────────────────────────────────────────
 
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-}
-
-let conversationHistory: Message[] = [];
+let conversationHistory: LoopMessage[] = [];
 let currentIr: string | null = null;
 let client: Anthropic | null = null;
 let sessionId: string = ""; // assigned in main() after resolveSession
@@ -201,71 +199,67 @@ function validateIr() {
   }
 }
 
-// ── Extract IR from AI response ─────────────────────────────────
-
-function extractIrFromResponse(response: string): string | null {
-  // Look for JSON code fences
-  const jsonMatch = response.match(/```json\s*\n([\s\S]*?)\n```/);
-  if (jsonMatch) {
-    try {
-      JSON.parse(jsonMatch[1]);
-      return jsonMatch[1];
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
-
 // ── Chat ────────────────────────────────────────────────────────
 
 async function chat(userMessage: string): Promise<string> {
   if (!client) throw new Error("API client not initialized");
 
-  conversationHistory.push({ role: "user", content: userMessage });
+  conversationHistory.push({
+    role: "user",
+    content: [{ type: "text", text: userMessage }],
+  });
   logUserTurn(sessionId, userMessage);
 
   process.stdout.write(chalk.cyan("\nvoce "));
 
-  const stream = client.messages.stream({
+  const result = await runToolLoop({
+    client,
     model: MODEL,
-    max_tokens: 4096,
     system: systemPromptCache,
     messages: conversationHistory,
+    tools: TOOL_DEFINITIONS,
+    executor: executeTool,
+    onText: (text) => process.stdout.write(text),
+    onToolUse: (event) => {
+      // Compact tool-use indicator on its own line, dim so it doesn't
+      // dominate the model's prose.
+      process.stdout.write(chalk.dim(`\n  ↳ ${event.name}\n  `));
+    },
+    onToolResult: (event) => {
+      // Persist the tool call as a session entry so resume/replay can see it.
+      appendSession(sessionId, {
+        role: "tool",
+        tool: event.name,
+        content: JSON.stringify({
+          input: event.input,
+          result: event.result.content[0]?.text ?? "",
+          isError: event.result.isError ?? false,
+        }),
+      });
+    },
   });
 
-  let fullResponse = "";
+  console.log(); // newline after final text
 
-  for await (const event of stream) {
-    if (
-      event.type === "content_block_delta" &&
-      event.delta.type === "text_delta"
-    ) {
-      process.stdout.write(event.delta.text);
-      fullResponse += event.delta.text;
-    }
-  }
-
-  console.log(); // newline after streaming
-
-  conversationHistory.push({ role: "assistant", content: fullResponse });
-
-  // Extract IR if present — passed as ir_snapshot so voce_session_resume
-  // surfaces it as current_ir for any subsequent invocation or MCP client.
-  const ir = extractIrFromResponse(fullResponse);
-  if (ir) {
-    currentIr = ir;
-    logAssistantTurn(sessionId, fullResponse, ir);
+  // The model may have proposed IR via tool args (propose/refine) OR by
+  // emitting a ```json fence — the loop captures both into capturedIr.
+  if (result.capturedIr !== null) {
+    currentIr = result.capturedIr;
+    logAssistantTurn(sessionId, result.finalText, result.capturedIr);
     console.log(
       chalk.dim(
-        "\nIR captured. Type /compile to see HTML, /validate to check, /save to save."
-      )
+        "\nIR captured. Type /compile to see HTML, /validate to check, /save to save.",
+      ),
     );
   } else {
-    logAssistantTurn(sessionId, fullResponse);
+    logAssistantTurn(sessionId, result.finalText);
   }
 
-  return fullResponse;
+  if (!result.completed) {
+    console.log(chalk.yellow("Tool-use loop hit its turn cap. Reply to continue."));
+  }
+
+  return result.finalText;
 }
 
 // ── Main ────────────────────────────────────────────────────────
@@ -293,7 +287,10 @@ async function main() {
   // user/assistant ledger is part of the chat completion contract.
   for (const entry of session.history) {
     if (entry.role === "user" || entry.role === "assistant") {
-      conversationHistory.push({ role: entry.role, content: entry.content });
+      conversationHistory.push({
+        role: entry.role,
+        content: [{ type: "text", text: entry.content }],
+      });
       if (entry.role === "assistant" && entry.ir_snapshot !== undefined) {
         currentIr = entry.ir_snapshot;
       }

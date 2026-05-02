@@ -16,6 +16,10 @@
     "./workflow": {
       "types": "./dist/workflow.d.ts",
       "default": "./dist/workflow.js"
+    },
+    "./tools": {
+      "types": "./dist/tools.d.ts",
+      "default": "./dist/tools.js"
     }
   },
   "bin": {

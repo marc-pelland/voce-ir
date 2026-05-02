@@ -9,6 +9,7 @@ export default defineConfig({
     index: "src/index.ts",
     memory: "src/memory/index.ts",
     workflow: "src/workflow/index.ts",
+    tools: "src/tools/index.ts",
   },
   format: ["esm"],
   target: "node20",
