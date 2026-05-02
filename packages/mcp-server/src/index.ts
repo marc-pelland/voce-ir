@@ -52,22 +52,28 @@ const server = new Server(
 
 // ── Tools ────────────────────────────────────────────────────────
 
+// Tool descriptions encode Voce's conversational pillars — every MCP client
+// inherits the right behavior without client-side prompting. Total budget
+// across all `description` fields stays under ~1 KB to keep token cost low
+// on every model turn that lists tools.
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     {
       name: "voce_validate",
-      description: "Validate a Voce IR JSON file against all quality rules (a11y, security, SEO, forms, etc.)",
+      description:
+        "Validate a Voce IR document. Returns per-pass diagnostics (severity, code, path, hint). Run before compile — a11y, security, SEO are errors in Voce, not warnings. Fix every error before declaring IR done.",
       inputSchema: {
         type: "object" as const,
         properties: {
-          ir_json: { type: "string", description: "Voce IR JSON content to validate" },
+          ir_json: { type: "string", description: "Voce IR JSON to validate" },
         },
         required: ["ir_json"],
       },
     },
     {
       name: "voce_compile",
-      description: "Compile Voce IR JSON to HTML output. Returns the compiled HTML string.",
+      description:
+        "Compile validated Voce IR to HTML. Run only after voce_validate passes — never present output from invalid IR as final. Result has zero runtime JS.",
       inputSchema: {
         type: "object" as const,
         properties: {
@@ -78,7 +84,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "voce_inspect",
-      description: "Get a structured summary of a Voce IR document (node counts, types, features)",
+      description:
+        "Structured summary of an IR document — node counts, semantic tree, features. Run before compile to confirm intent and spot missing pillars (semantics, error/loading/empty states).",
       inputSchema: {
         type: "object" as const,
         properties: {
@@ -89,31 +96,43 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "voce_schema",
-      description: "Get the Voce IR schema documentation for a specific node type or all types",
+      description:
+        "Schema docs for a Voce IR node type, or all types if omitted. Covers layout, state, motion, navigation, a11y, theming, data, forms, SEO, i18n.",
       inputSchema: {
         type: "object" as const,
         properties: {
-          node_type: { type: "string", description: "Node type to get schema for (e.g., 'Container', 'FormNode'). Omit for full schema." },
+          node_type: {
+            type: "string",
+            description: "Node type, e.g. Container, FormNode. Omit for the overview.",
+          },
         },
       },
     },
     {
       name: "voce_examples",
-      description: "List available example IR files or retrieve a specific one",
+      description:
+        "List or retrieve reference IR that compiles and validates cleanly. Start from an example and modify, rather than authoring from scratch.",
       inputSchema: {
         type: "object" as const,
         properties: {
-          name: { type: "string", description: "Example name to retrieve (e.g., 'landing-page'). Omit to list all." },
+          name: {
+            type: "string",
+            description: "Example name, e.g. landing-page. Omit to list all.",
+          },
         },
       },
     },
     {
       name: "voce_generate",
-      description: "Generate Voce IR from a natural language description. Requires ANTHROPIC_API_KEY.",
+      description:
+        "Generate IR from natural language. Voce rejects vibe-coding — do NOT call with a vague brief. Discovery first: ask one question at a time, building context. Result must pass voce_validate before final.",
       inputSchema: {
         type: "object" as const,
         properties: {
-          prompt: { type: "string", description: "Natural language description of what to build" },
+          prompt: {
+            type: "string",
+            description: "Concrete brief built from prior discovery turns",
+          },
         },
         required: ["prompt"],
       },
