@@ -67,8 +67,13 @@ on it.
   role: "user" | "assistant" | "system" | "tool";
   content: string;
   tool?: string;                                          // When role === "tool"
+  ir_snapshot?: string;                                   // Optional IR JSON at this turn
 }
 ```
+
+`ir_snapshot` is set by the agent on turns that produced or modified IR.
+`voce_session_resume` returns the most recent `ir_snapshot` as `current_ir`
+so a resumed session picks up exactly where the prior one left off.
 
 ## Legacy
 

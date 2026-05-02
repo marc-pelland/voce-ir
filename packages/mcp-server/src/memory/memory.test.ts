@@ -11,7 +11,7 @@ import { atomicWriteFile, appendJsonlLine, readJsonlFile } from "./atomic.js";
 import { readBrief, writeBrief } from "./brief.js";
 import { getDecision, listDecisions, logDecision } from "./decisions.js";
 import { listDrift, logDrift } from "./drift.js";
-import { appendSession, listSessions, newSessionId, readSession } from "./session.js";
+import { appendSession, latestIrSnapshot, listSessions, newSessionId, readSession } from "./session.js";
 import { PATHS } from "./store.js";
 import { validateDecision, validateDriftWarning, validateSessionEntry } from "./types.js";
 
@@ -212,6 +212,32 @@ describe("session", () => {
         content: "x",
       }),
     ).toThrow(/role must be one of/);
+  });
+
+  it("preserves and surfaces ir_snapshot via latestIrSnapshot", () => {
+    const id = newSessionId();
+    appendSession(id, { role: "user", content: "make a hero" });
+    appendSession(id, {
+      role: "assistant",
+      content: "draft 1",
+      ir_snapshot: JSON.stringify({ version: 1 }),
+    });
+    appendSession(id, { role: "user", content: "swap headline" });
+    appendSession(id, {
+      role: "assistant",
+      content: "draft 2",
+      ir_snapshot: JSON.stringify({ version: 2 }),
+    });
+    appendSession(id, { role: "system", content: "validated" });
+
+    expect(latestIrSnapshot(id)).toBe(JSON.stringify({ version: 2 }));
+  });
+
+  it("latestIrSnapshot returns null when no entry has one", () => {
+    const id = newSessionId();
+    appendSession(id, { role: "user", content: "hi" });
+    appendSession(id, { role: "assistant", content: "hello" });
+    expect(latestIrSnapshot(id)).toBeNull();
   });
 });
 

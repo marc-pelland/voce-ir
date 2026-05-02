@@ -21,9 +21,13 @@ export { listDrift, logDrift } from "./drift.js";
 export type { AppendSessionInput, SessionSummary } from "./session.js";
 export {
   appendSession,
+  latestIrSnapshot,
   listSessions,
   newSessionId,
   readSession,
 } from "./session.js";
 
 export { PATHS, ensureVoceDir, voceDir } from "./store.js";
+
+export type { DriftCheckResult, DriftReport } from "./drift-check.js";
+export { detectDrift } from "./drift-check.js";

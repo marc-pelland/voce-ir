@@ -30,6 +30,13 @@ export interface SessionEntry {
   content: string;
   /** Optional: tool name when role === "tool". */
   tool?: string;
+  /**
+   * Optional: a snapshot of the proposed IR at this turn. Set by the agent
+   * (typically on assistant turns that emit IR). voce_session_resume returns
+   * the most recent ir_snapshot as `current_ir` so a fresh session can pick
+   * up exactly where the prior one left off.
+   */
+  ir_snapshot?: string;
 }
 
 // ─── Runtime validators ───────────────────────────────────────────
@@ -69,6 +76,7 @@ export function validateSessionEntry(value: unknown): string | null {
   }
   if (typeof v.content !== "string") return "content must be a string";
   if (v.tool !== undefined && typeof v.tool !== "string") return "tool must be a string";
+  if (v.ir_snapshot !== undefined && typeof v.ir_snapshot !== "string") return "ir_snapshot must be a string";
   return null;
 }
 

@@ -13,6 +13,7 @@ export interface AppendSessionInput {
   role: SessionEntry["role"];
   content: string;
   tool?: string;
+  ir_snapshot?: string;
   timestamp?: string;
 }
 
@@ -29,6 +30,7 @@ export function appendSession(sessionId: string, input: AppendSessionInput): Ses
     role: input.role,
     content: input.content,
     ...(input.tool !== undefined ? { tool: input.tool } : {}),
+    ...(input.ir_snapshot !== undefined ? { ir_snapshot: input.ir_snapshot } : {}),
   };
   const reason = validateSessionEntry(entry);
   if (reason !== null) {
@@ -41,6 +43,20 @@ export function appendSession(sessionId: string, input: AppendSessionInput): Ses
 export function readSession(sessionId: string): SessionEntry[] {
   const { entries } = readJsonlFile<SessionEntry>(PATHS.session(sessionId), validateSessionEntry);
   return entries;
+}
+
+/**
+ * Returns the most recent ir_snapshot stored in this session, or null if
+ * none of the entries carry one. Used by voce_session_resume to surface
+ * `current_ir` so a resumed session can pick up where the prior one left off.
+ */
+export function latestIrSnapshot(sessionId: string): string | null {
+  const entries = readSession(sessionId);
+  for (let i = entries.length - 1; i >= 0; i--) {
+    const snap = entries[i]?.ir_snapshot;
+    if (typeof snap === "string") return snap;
+  }
+  return null;
 }
 
 export interface SessionSummary {
