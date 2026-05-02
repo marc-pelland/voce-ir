@@ -48,6 +48,8 @@ import {
   recordFinalization,
   recordProposal,
   recordRefinement,
+  scoreCompleteness,
+  scoreReadiness,
   startGeneration,
 } from "./workflow/index.js";
 
@@ -292,6 +294,31 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ["session_id"],
       },
     },
+    // ── Quality gates as standalone tools (S65 Day 5) ────────────
+    {
+      name: "voce_generation_readiness",
+      description:
+        "Score how ready a session is to propose IR (0–100). Same gate voce_generate_propose enforces — call this proactively to know whether more discovery is needed.",
+      inputSchema: {
+        type: "object" as const,
+        properties: {
+          session_id: { type: "string", description: "Session id from voce_generate_start" },
+        },
+        required: ["session_id"],
+      },
+    },
+    {
+      name: "voce_feature_completeness",
+      description:
+        "Check an IR for missing pillars (a11y, validation, error/loading/empty states, SEO). Same gate voce_generate_finalize enforces — run between propose and finalize to surface gaps early.",
+      inputSchema: {
+        type: "object" as const,
+        properties: {
+          ir_json: { type: "string", description: "Voce IR JSON to inspect" },
+        },
+        required: ["ir_json"],
+      },
+    },
   ],
 }));
 
@@ -348,6 +375,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         );
       case "voce_generate_finalize":
         return generateFinalize(args?.session_id as string);
+      case "voce_generation_readiness":
+        return generationReadiness(args?.session_id as string);
+      case "voce_feature_completeness":
+        return featureCompleteness(args?.ir_json as string);
       default:
         return { content: [{ type: "text" as const, text: `Unknown tool: ${name}` }], isError: true };
     }
@@ -758,11 +789,52 @@ function getProjectStatus(): string {
   return lines.join("\n");
 }
 
-// ── Start ────────────────────────────────────────────────────────
+// ── Quality gate tools (S65 Day 5) ───────────────────────────────
+
+function generationReadiness(sessionId: string): ToolResult {
+  if (!sessionId) {
+    return {
+      content: [{ type: "text", text: "voce_generation_readiness: session_id is required" }],
+      isError: true,
+    };
+  }
+  const state = getWorkflowState(sessionId);
+  if (state.phase === "not_started") {
+    return {
+      content: [{ type: "text", text: "voce_generation_readiness: session not found" }],
+      isError: true,
+    };
+  }
+  return jsonResult(scoreReadiness(state, { briefPresent: readBrief() !== null }));
+}
+
+function featureCompleteness(irJson: string): ToolResult {
+  if (typeof irJson !== "string" || irJson.length === 0) {
+    return {
+      content: [{ type: "text", text: "voce_feature_completeness: ir_json is required" }],
+      isError: true,
+    };
+  }
+  return jsonResult(scoreCompleteness(irJson));
+}
+
+// ── Exports + entry ──────────────────────────────────────────────
+
+/** Exposed so tests (and any embedder) can attach a non-stdio transport. */
+export { server };
 
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
 
-main().catch(console.error);
+// Run main() only when this file is the process entry point. Importing the
+// module — which the integration tests do — must not steal stdio.
+const isMain = import.meta.url === `file://${process.argv[1]}`;
+if (isMain) {
+  main().catch((err) => {
+    // eslint-disable-next-line no-console -- entry point, no logger available
+    console.error(err);
+    process.exit(1);
+  });
+}
