@@ -51,6 +51,18 @@ export interface LoopOpts {
   /** Safety cap so a runaway loop terminates. Default 12 — enough for the full
    *  start → 5 answers → propose → finalize chain plus a few sanity checks. */
   maxTurns?: number;
+  /** Abort the in-flight request when the user hits Ctrl+C. The loop also
+   *  short-circuits between turns so an abort fired during tool execution
+   *  is honored on the next iteration. */
+  signal?: AbortSignal;
+}
+
+/** Marker thrown when the loop is aborted. Callers re-prompt; do not crash. */
+export class ToolLoopAborted extends Error {
+  constructor() {
+    super("voce-chat tool-use loop aborted");
+    this.name = "ToolLoopAborted";
+  }
 }
 
 export interface LoopResult {
@@ -79,18 +91,23 @@ export async function runToolLoop(opts: LoopOpts): Promise<LoopResult> {
   let capturedIr: string | null = null;
 
   for (let turn = 0; turn < maxTurns; turn++) {
+    if (opts.signal?.aborted) throw new ToolLoopAborted();
+
     // The Anthropic SDK accepts content arrays directly — our LoopMessage
     // shape is structurally identical aside from the tool_result branch.
-    const response = await opts.client.messages.create({
-      model: opts.model,
-      max_tokens: 4096,
-      system: opts.system,
-      tools,
-      // Cast: SDK types include extra block variants we don't emit.
-      messages: opts.messages as unknown as Parameters<
-        typeof opts.client.messages.create
-      >[0]["messages"],
-    });
+    const response = await opts.client.messages.create(
+      {
+        model: opts.model,
+        max_tokens: 4096,
+        system: opts.system,
+        tools,
+        // Cast: SDK types include extra block variants we don't emit.
+        messages: opts.messages as unknown as Parameters<
+          typeof opts.client.messages.create
+        >[0]["messages"],
+      },
+      opts.signal !== undefined ? { signal: opts.signal } : undefined,
+    );
 
     const assistantBlocks: ContentBlock[] = [];
     const toolResults: ContentBlock[] = [];
@@ -137,6 +154,7 @@ export async function runToolLoop(opts: LoopOpts): Promise<LoopResult> {
       return { finalText, capturedIr, toolEvents: events, completed: true };
     }
 
+    if (opts.signal?.aborted) throw new ToolLoopAborted();
     opts.messages.push({ role: "user", content: toolResults });
   }
 

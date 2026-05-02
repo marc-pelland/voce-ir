@@ -1,33 +1,29 @@
 #!/usr/bin/env node
 /**
- * Voce IR Conversational CLI
+ * Voce IR Conversational CLI — voce-chat.
  *
- * An interactive prompt where you describe what you want to build
- * and Voce IR generates, validates, and compiles it for you.
+ * Tool-use loop (S66 Day 2) backed by .voce/ persistence (Day 1) and a
+ * pluggable slash command surface (Day 3). Multi-line input via trailing
+ * `\`. Ctrl+C cancels in-flight model responses without killing the process.
  *
  * Usage:
- *   voce-chat                    # Start interactive session
- *   voce-chat "build a nav bar"  # Start with an initial prompt
+ *   voce-chat                          Start a fresh session
+ *   voce-chat "build a nav bar"        Start with an initial prompt
+ *   voce-chat --resume                 Resume the most recent session
+ *   voce-chat --resume <session-id>    Resume a specific session
  *
- * Commands:
- *   /help          Show available commands
- *   /compile       Compile the current IR to HTML
- *   /validate      Validate the current IR
- *   /save <file>   Save the current IR to a file
- *   /show          Show the current IR
- *   /clear         Clear conversation and start over
- *   /exit          Exit the CLI
+ * Type /help in the REPL to list commands.
  */
 
 import Anthropic from "@anthropic-ai/sdk";
 import { createInterface } from "node:readline";
-import { execSync } from "node:child_process";
-import { writeFileSync, readFileSync, existsSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import chalk from "chalk";
-import { listDecisions, readBrief, appendSession } from "@voce-ir/mcp-server/memory";
+
+import { appendSession, listDecisions, readBrief } from "@voce-ir/mcp-server/memory";
 import { TOOL_DEFINITIONS, executeTool } from "@voce-ir/mcp-server/tools";
+
 import { parseArgs } from "./cli-args.js";
 import { buildSystemPrompt } from "./prompt.js";
 import {
@@ -36,16 +32,18 @@ import {
   logUserTurn,
   resolveSession,
 } from "./session-manager.js";
-import { runToolLoop } from "./tool-loop.js";
+import { runToolLoop, ToolLoopAborted } from "./tool-loop.js";
 import type { LoopMessage } from "./tool-loop.js";
+import { clearPending, createAccumulator, feedLine } from "./multi-line.js";
+import { buildRegistry, type ChatState, type CommandContext } from "./commands/index.js";
+import { pushIrHistory } from "./commands/ir.js";
 
 // ── Config ──────────────────────────────────────────────────────
 
-const MODEL = process.env.VOCE_MODEL || "claude-sonnet-4-20250514";
+const DEFAULT_MODEL = process.env.VOCE_MODEL || "claude-sonnet-4-20250514";
 const API_KEY = process.env.ANTHROPIC_API_KEY;
 
-// Find voce binary
-function findVoce(): string {
+function findVoceBin(): string {
   const candidates = [
     join(process.cwd(), "target/release/voce"),
     join(process.cwd(), "target/debug/voce"),
@@ -55,211 +53,93 @@ function findVoce(): string {
   }
   return "voce";
 }
-const VOCE_BIN = findVoce();
-
-// ── Schema Context ──────────────────────────────────────────────
-
-function loadSchemaContext(): string {
-  const schemaDir = join(process.cwd(), "docs/site/src/schema");
-  const files = ["overview.md", "layout.md", "state.md", "forms.md"];
-  let context = "";
-  for (const f of files) {
-    const path = join(schemaDir, f);
-    if (existsSync(path)) {
-      context += readFileSync(path, "utf-8") + "\n\n";
-    }
-  }
-  return context || "Schema docs not found.";
-}
 
 // ── State ───────────────────────────────────────────────────────
 
-let conversationHistory: LoopMessage[] = [];
-let currentIr: string | null = null;
+const state: ChatState = {
+  conversationHistory: [],
+  currentIr: null,
+  irHistory: [],
+  sessionId: "", // assigned after resolveSession
+  model: DEFAULT_MODEL,
+  systemPrompt: "",
+  tokenUsage: { input: 0, output: 0, cache_read: 0, cache_creation: 0 },
+};
+
 let client: Anthropic | null = null;
-let sessionId: string = ""; // assigned in main() after resolveSession
-let systemPromptCache: string = ""; // built once per process; brief/decisions are stable per-session
-
-// ── Commands ────────────────────────────────────────────────────
-
-function handleCommand(input: string): boolean {
-  const parts = input.trim().split(/\s+/);
-  const cmd = parts[0].toLowerCase();
-
-  switch (cmd) {
-    case "/help":
-      console.log(chalk.cyan("\nCommands:"));
-      console.log("  /help          Show this help");
-      console.log("  /compile       Compile the current IR to HTML");
-      console.log("  /validate      Validate the current IR");
-      console.log("  /save <file>   Save the current IR to a file");
-      console.log("  /show          Show the current IR");
-      console.log("  /clear         Clear conversation and start over");
-      console.log("  /exit          Exit\n");
-      return true;
-
-    case "/compile":
-      if (!currentIr) {
-        console.log(chalk.yellow("No IR generated yet. Describe what you want to build first."));
-        return true;
-      }
-      compileIr();
-      return true;
-
-    case "/validate":
-      if (!currentIr) {
-        console.log(chalk.yellow("No IR generated yet. Describe what you want to build first."));
-        return true;
-      }
-      validateIr();
-      return true;
-
-    case "/save": {
-      if (!currentIr) {
-        console.log(chalk.yellow("No IR generated yet."));
-        return true;
-      }
-      const filename = parts[1] || "generated.voce.json";
-      writeFileSync(filename, currentIr);
-      console.log(chalk.green(`Saved to ${filename}`));
-      return true;
-    }
-
-    case "/show":
-      if (!currentIr) {
-        console.log(chalk.yellow("No IR generated yet."));
-      } else {
-        console.log(chalk.dim(currentIr));
-      }
-      return true;
-
-    case "/clear":
-      conversationHistory = [];
-      currentIr = null;
-      console.log(chalk.cyan("Conversation cleared."));
-      return true;
-
-    case "/exit":
-    case "/quit":
-      process.exit(0);
-
-    default:
-      return false;
-  }
-}
-
-function compileIr() {
-  if (!currentIr) return;
-  const tmpFile = join(tmpdir(), `voce-chat-${Date.now()}.voce.json`);
-  const outFile = join(tmpdir(), `voce-chat-${Date.now()}.html`);
-
-  try {
-    writeFileSync(tmpFile, currentIr);
-    execSync(`"${VOCE_BIN}" compile "${tmpFile}" -o "${outFile}" --skip-fonts --no-cache`, {
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    const html = readFileSync(outFile, "utf-8");
-    console.log(chalk.green(`\nCompiled (${html.length} bytes):`));
-    // Show first 20 lines
-    const lines = html.split("\n");
-    console.log(chalk.dim(lines.slice(0, 20).join("\n")));
-    if (lines.length > 20) {
-      console.log(chalk.dim(`... (${lines.length - 20} more lines)`));
-    }
-    console.log(chalk.green(`\nFull output saved to: ${outFile}`));
-  } catch (error: unknown) {
-    const err = error as { stderr?: string };
-    console.log(chalk.red("Compilation failed:"), err.stderr || "Unknown error");
-  }
-}
-
-function validateIr() {
-  if (!currentIr) return;
-  const tmpFile = join(tmpdir(), `voce-chat-${Date.now()}.voce.json`);
-
-  try {
-    writeFileSync(tmpFile, currentIr);
-    const output = execSync(`"${VOCE_BIN}" validate --format json "${tmpFile}"`, {
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    console.log(chalk.green("\nValidation passed:"), output.trim());
-  } catch (error: unknown) {
-    const err = error as { stdout?: string; stderr?: string };
-    const output = err.stdout || err.stderr || "";
-    console.log(chalk.yellow("\nValidation results:"));
-    console.log(output);
-  } finally {
-    try {
-      execSync(`rm "${tmpFile}"`, { stdio: "ignore" });
-    } catch {
-      /* ignore */
-    }
-  }
-}
+let activeAbort: AbortController | null = null;
+let chatBusy = false;
 
 // ── Chat ────────────────────────────────────────────────────────
 
-async function chat(userMessage: string): Promise<string> {
+async function chat(userMessage: string): Promise<void> {
   if (!client) throw new Error("API client not initialized");
 
-  conversationHistory.push({
+  state.conversationHistory.push({
     role: "user",
     content: [{ type: "text", text: userMessage }],
   });
-  logUserTurn(sessionId, userMessage);
+  logUserTurn(state.sessionId, userMessage);
 
   process.stdout.write(chalk.cyan("\nvoce "));
 
-  const result = await runToolLoop({
-    client,
-    model: MODEL,
-    system: systemPromptCache,
-    messages: conversationHistory,
-    tools: TOOL_DEFINITIONS,
-    executor: executeTool,
-    onText: (text) => process.stdout.write(text),
-    onToolUse: (event) => {
-      // Compact tool-use indicator on its own line, dim so it doesn't
-      // dominate the model's prose.
-      process.stdout.write(chalk.dim(`\n  ↳ ${event.name}\n  `));
-    },
-    onToolResult: (event) => {
-      // Persist the tool call as a session entry so resume/replay can see it.
-      appendSession(sessionId, {
-        role: "tool",
-        tool: event.name,
-        content: JSON.stringify({
-          input: event.input,
-          result: event.result.content[0]?.text ?? "",
-          isError: event.result.isError ?? false,
-        }),
-      });
-    },
-  });
+  const abort = new AbortController();
+  activeAbort = abort;
+  chatBusy = true;
 
-  console.log(); // newline after final text
+  try {
+    const result = await runToolLoop({
+      client,
+      model: state.model,
+      system: state.systemPrompt,
+      messages: state.conversationHistory as LoopMessage[],
+      tools: TOOL_DEFINITIONS,
+      executor: executeTool,
+      signal: abort.signal,
+      onText: (text) => process.stdout.write(text),
+      onToolUse: (event) => {
+        process.stdout.write(chalk.dim(`\n  ↳ ${event.name}\n  `));
+      },
+      onToolResult: (event) => {
+        appendSession(state.sessionId, {
+          role: "tool",
+          tool: event.name,
+          content: JSON.stringify({
+            input: event.input,
+            result: event.result.content[0]?.text ?? "",
+            isError: event.result.isError ?? false,
+          }),
+        });
+      },
+    });
 
-  // The model may have proposed IR via tool args (propose/refine) OR by
-  // emitting a ```json fence — the loop captures both into capturedIr.
-  if (result.capturedIr !== null) {
-    currentIr = result.capturedIr;
-    logAssistantTurn(sessionId, result.finalText, result.capturedIr);
-    console.log(
-      chalk.dim(
-        "\nIR captured. Type /compile to see HTML, /validate to check, /save to save.",
-      ),
-    );
-  } else {
-    logAssistantTurn(sessionId, result.finalText);
+    console.log(); // newline after final text
+
+    if (result.capturedIr !== null) {
+      pushIrHistory({ state }, result.capturedIr);
+      logAssistantTurn(state.sessionId, result.finalText, result.capturedIr);
+      console.log(
+        chalk.dim(
+          "\nIR captured. /compile, /validate, /save, /preview, /diff, /undo.",
+        ),
+      );
+    } else {
+      logAssistantTurn(state.sessionId, result.finalText);
+    }
+
+    if (!result.completed) {
+      console.log(chalk.yellow("Tool-use loop hit its turn cap. Reply to continue."));
+    }
+  } catch (err) {
+    if (err instanceof ToolLoopAborted) {
+      console.log(chalk.yellow("\n(cancelled — back to prompt)"));
+    } else {
+      console.log(chalk.red("\nError:"), (err as Error).message);
+    }
+  } finally {
+    activeAbort = null;
+    chatBusy = false;
   }
-
-  if (!result.completed) {
-    console.log(chalk.yellow("Tool-use loop hit its turn cap. Reply to continue."));
-  }
-
-  return result.finalText;
 }
 
 // ── Main ────────────────────────────────────────────────────────
@@ -268,31 +148,24 @@ async function main() {
   console.log(chalk.bold.cyan("\n  Voce IR"));
   console.log(chalk.dim("  The code is gone. The experience remains.\n"));
 
-  // Parse argv first so the resume flag is honored before any IO.
   const args = parseArgs(process.argv.slice(2));
 
-  // Resolve / open a session and hydrate the system prompt from the .voce/
-  // store. Both happen even without an API key so /compile, /validate still
-  // get a session log.
   const session = resolveSession({ resume: args.resume });
-  sessionId = session.id;
+  state.sessionId = session.id;
 
-  systemPromptCache = buildSystemPrompt({
+  state.systemPrompt = buildSystemPrompt({
     brief: readBrief(),
     recentDecisions: listDecisions().slice(-20),
   });
 
-  // Replay prior text turns into conversationHistory so the model sees the
-  // same context as before. System / tool entries are skipped — only the
-  // user/assistant ledger is part of the chat completion contract.
   for (const entry of session.history) {
     if (entry.role === "user" || entry.role === "assistant") {
-      conversationHistory.push({
+      state.conversationHistory.push({
         role: entry.role,
         content: [{ type: "text", text: entry.content }],
       });
       if (entry.role === "assistant" && entry.ir_snapshot !== undefined) {
-        currentIr = entry.ir_snapshot;
+        state.currentIr = entry.ir_snapshot;
       }
     }
   }
@@ -301,69 +174,113 @@ async function main() {
     console.log(
       chalk.dim(`  Resumed session ${session.id.slice(0, 8)} — ${session.history.length} prior entries.`),
     );
-    logSystemEvent(sessionId, "voce-chat resumed");
+    logSystemEvent(state.sessionId, "voce-chat resumed");
   } else {
-    logSystemEvent(sessionId, "voce-chat started");
+    logSystemEvent(state.sessionId, "voce-chat started");
   }
 
   if (!API_KEY) {
     console.log(chalk.yellow("  Set ANTHROPIC_API_KEY to enable AI generation."));
-    console.log(chalk.dim("  Without it, you can still use /compile, /validate on .voce.json files.\n"));
+    console.log(chalk.dim("  Without it, slash commands still work on the loaded IR.\n"));
     console.log(chalk.dim("  export ANTHROPIC_API_KEY=sk-ant-...\n"));
   } else {
     client = new Anthropic({ apiKey: API_KEY });
-    console.log(chalk.dim(`  Model: ${MODEL}`));
+    console.log(chalk.dim(`  Model: ${state.model}`));
     console.log(chalk.dim("  Type what you want to build, or /help for commands.\n"));
   }
 
-  // Handle initial prompt from args
+  const registry = buildRegistry();
+  const ctx: CommandContext = {
+    state,
+    client,
+    voceBin: findVoceBin(),
+    log: (msg) => console.log(msg),
+    exit: (code = 0) => process.exit(code),
+  };
+
   if (args.initialPrompt && client) {
     await chat(args.initialPrompt);
   }
 
-  // Interactive REPL
   const rl = createInterface({
     input: process.stdin,
     output: process.stdout,
     prompt: chalk.gray("you > "),
     historySize: 100,
   });
-
+  const acc = createAccumulator();
   rl.prompt();
 
   rl.on("line", async (line: string) => {
-    const input = line.trim();
-    if (!input) {
+    const fed = feedLine(acc, line);
+    if (fed.kind === "continue") {
+      // Show a continuation prompt so the user knows to keep typing.
+      rl.setPrompt(chalk.gray("    > "));
+      rl.prompt();
+      return;
+    }
+    if (fed.kind === "empty") {
+      rl.setPrompt(chalk.gray("you > "));
       rl.prompt();
       return;
     }
 
-    // Handle slash commands
+    rl.setPrompt(chalk.gray("you > "));
+    const input = fed.text.trim();
+
     if (input.startsWith("/")) {
-      const handled = handleCommand(input);
-      if (handled) {
+      try {
+        const result = await registry.dispatch(input, ctx);
+        if (result.handled) {
+          if ("submitText" in result && result.submitText !== undefined) {
+            // /explain (or any future command) can ask the chat to handle text.
+            if (client) {
+              await chat(result.submitText);
+            } else {
+              ctx.log(chalk.yellow("Set ANTHROPIC_API_KEY to use this command."));
+            }
+          }
+          rl.prompt();
+          return;
+        }
+        ctx.log(chalk.yellow(`Unknown command: ${input}. Try /help.`));
+        rl.prompt();
+        return;
+      } catch (err) {
+        ctx.log(chalk.red(`Command failed: ${(err as Error).message}`));
         rl.prompt();
         return;
       }
     }
 
-    // If no API key, only commands work
     if (!client) {
-      console.log(
-        chalk.yellow("Set ANTHROPIC_API_KEY to chat. Use /help for available commands.")
-      );
+      console.log(chalk.yellow("Set ANTHROPIC_API_KEY to chat. /help for slash commands."));
       rl.prompt();
       return;
     }
 
-    try {
-      await chat(input);
-    } catch (error: unknown) {
-      const err = error as Error;
-      console.log(chalk.red("Error:"), err.message);
-    }
-
+    await chat(input);
     rl.prompt();
+  });
+
+  // Ctrl+C handler:
+  //   1) If a multi-line message is being typed, drop it and re-prompt.
+  //   2) If a request is in flight, abort it and re-prompt.
+  //   3) Otherwise, exit.
+  rl.on("SIGINT", () => {
+    if (clearPending(acc)) {
+      console.log(chalk.yellow("\n(cleared pending input)"));
+      rl.setPrompt(chalk.gray("you > "));
+      rl.prompt();
+      return;
+    }
+    if (chatBusy && activeAbort !== null) {
+      activeAbort.abort();
+      // The chat() catch block prints the cancellation notice + re-prompts.
+      return;
+    }
+    console.log(chalk.dim("\nGoodbye."));
+    process.exit(0);
   });
 
   rl.on("close", () => {
@@ -372,7 +289,10 @@ async function main() {
   });
 }
 
-main().catch((err) => {
-  console.error(chalk.red("Fatal:"), err.message);
-  process.exit(1);
-});
+const isMain = import.meta.url === `file://${process.argv[1]}`;
+if (isMain) {
+  main().catch((err) => {
+    console.error(chalk.red("Fatal:"), err.message);
+    process.exit(1);
+  });
+}

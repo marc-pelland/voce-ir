@@ -2,7 +2,7 @@
 // Anthropic client + a deterministic executor — no network, no real model.
 
 import { describe, expect, it, vi } from "vitest";
-import { runToolLoop, type LoopMessage } from "./tool-loop.js";
+import { runToolLoop, ToolLoopAborted, type LoopMessage } from "./tool-loop.js";
 import type { ToolDefinition, ToolResult } from "@voce-ir/mcp-server/tools";
 
 interface ScriptedMessage {
@@ -212,6 +212,68 @@ describe("runToolLoop", () => {
     expect(result.completed).toBe(false);
     expect(client.callCount()).toBe(3);
     expect(exec.calls).toHaveLength(3);
+  });
+
+  it("throws ToolLoopAborted when signal is already aborted", async () => {
+    const client = mockClient([
+      { content: [{ type: "text", text: "should not reach" }] },
+    ]);
+    const exec = mockExecutor();
+    const abort = new AbortController();
+    abort.abort();
+
+    await expect(
+      runToolLoop({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        client: client as any,
+        model: "claude-test",
+        system: "system",
+        messages: [{ role: "user", content: [{ type: "text", text: "x" }] }],
+        tools: TOOLS,
+        executor: exec.fn,
+        signal: abort.signal,
+      }),
+    ).rejects.toBeInstanceOf(ToolLoopAborted);
+
+    expect(client.callCount()).toBe(0);
+  });
+
+  it("aborts mid-flight when the controller fires between turns", async () => {
+    const abort = new AbortController();
+    const client = {
+      messages: {
+        create: vi.fn(async () => {
+          // First call: return a tool_use to keep the loop going. Trigger
+          // the abort *after* this turn returns so the loop hits the check
+          // at the top of iteration 2.
+          abort.abort();
+          return {
+            content: [
+              {
+                type: "tool_use",
+                id: "tu_1",
+                name: "voce_generation_readiness",
+                input: { session_id: "x" },
+              },
+            ],
+          };
+        }),
+      },
+    };
+    const exec = mockExecutor();
+
+    await expect(
+      runToolLoop({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        client: client as any,
+        model: "claude-test",
+        system: "system",
+        messages: [{ role: "user", content: [{ type: "text", text: "x" }] }],
+        tools: TOOLS,
+        executor: exec.fn,
+        signal: abort.signal,
+      }),
+    ).rejects.toBeInstanceOf(ToolLoopAborted);
   });
 
   it("invokes onText, onToolUse, and onToolResult hooks", async () => {
