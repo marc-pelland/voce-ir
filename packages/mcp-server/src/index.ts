@@ -41,6 +41,15 @@ import {
   readSession,
   writeBrief,
 } from "./memory/index.js";
+import {
+  gateFinalize,
+  getWorkflowState,
+  recordAnswer,
+  recordFinalization,
+  recordProposal,
+  recordRefinement,
+  startGeneration,
+} from "./workflow/index.js";
 
 // Find the voce binary — check local workspace build first, then PATH
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -136,7 +145,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "voce_generate",
       description:
-        "Generate IR from natural language. Voce rejects vibe-coding — do NOT call with a vague brief. Discovery first: ask one question at a time, building context. Result must pass voce_validate before final.",
+        "One-shot legacy entry. Prefer the workflow: voce_generate_start → answer (×N) → propose → refine → finalize. Skipping discovery violates the conversational pillars.",
       inputSchema: {
         type: "object" as const,
         properties: {
@@ -216,6 +225,73 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ["proposed_ir"],
       },
     },
+    // ── Generation workflow (S65 Day 4) ───────────────────────────
+    {
+      name: "voce_generate_start",
+      description:
+        "Open a generation session. Records user_intent, returns session_id. Use this BEFORE asking any discovery questions — every subsequent phase tool needs the session_id.",
+      inputSchema: {
+        type: "object" as const,
+        properties: {
+          user_intent: { type: "string", description: "The user's initial brief, verbatim" },
+        },
+        required: ["user_intent"],
+      },
+    },
+    {
+      name: "voce_generate_answer",
+      description:
+        "Record one (question, answer) discovery turn. Pass ready: true when you have enough context to propose an IR. Server does not auto-flip ready — that's your call.",
+      inputSchema: {
+        type: "object" as const,
+        properties: {
+          session_id: { type: "string", description: "Session id from voce_generate_start" },
+          question: { type: "string", description: "The question you asked the user" },
+          answer: { type: "string", description: "The user's answer, verbatim" },
+          ready: { type: "boolean", description: "True when discovery is complete" },
+        },
+        required: ["session_id", "question", "answer", "ready"],
+      },
+    },
+    {
+      name: "voce_generate_propose",
+      description:
+        "Submit your generated IR for review. BLOCKS if readiness < 70 — keep doing discovery first. Returns readiness, completeness pillar check, and records the IR as the session's current snapshot.",
+      inputSchema: {
+        type: "object" as const,
+        properties: {
+          session_id: { type: "string", description: "Session id" },
+          ir_json: { type: "string", description: "The IR JSON you generated" },
+        },
+        required: ["session_id", "ir_json"],
+      },
+    },
+    {
+      name: "voce_generate_refine",
+      description:
+        "Apply user feedback to a proposed IR. Records the feedback turn and updates the snapshot. Run completeness checks after — the new IR has to clear the same gates as the original proposal.",
+      inputSchema: {
+        type: "object" as const,
+        properties: {
+          session_id: { type: "string", description: "Session id" },
+          feedback: { type: "string", description: "The user's feedback" },
+          ir_json: { type: "string", description: "Updated IR JSON" },
+        },
+        required: ["session_id", "feedback", "ir_json"],
+      },
+    },
+    {
+      name: "voce_generate_finalize",
+      description:
+        "Validate, compile, and seal the session. BLOCKS on missing pillars or any validation error — full-stack-completeness gate. Returns html, validation summary, and deployment hints.",
+      inputSchema: {
+        type: "object" as const,
+        properties: {
+          session_id: { type: "string", description: "Session id" },
+        },
+        required: ["session_id"],
+      },
+    },
   ],
 }));
 
@@ -253,6 +329,25 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return sessionResume(args?.session_id as string | undefined);
       case "voce_check_drift":
         return checkDrift(args?.proposed_ir as string);
+      case "voce_generate_start":
+        return generateStart(args?.user_intent as string);
+      case "voce_generate_answer":
+        return generateAnswer({
+          session_id: args?.session_id as string,
+          question: args?.question as string,
+          answer: args?.answer as string,
+          ready: args?.ready as boolean,
+        });
+      case "voce_generate_propose":
+        return generatePropose(args?.session_id as string, args?.ir_json as string);
+      case "voce_generate_refine":
+        return generateRefine(
+          args?.session_id as string,
+          args?.feedback as string,
+          args?.ir_json as string,
+        );
+      case "voce_generate_finalize":
+        return generateFinalize(args?.session_id as string);
       default:
         return { content: [{ type: "text" as const, text: `Unknown tool: ${name}` }], isError: true };
     }
@@ -520,6 +615,127 @@ function checkDrift(proposedIr: string): ToolResult {
     };
   }
   return jsonResult(detectDrift(proposedIr, listDecisions()));
+}
+
+// ── Generation workflow tools (S65 Day 4) ────────────────────────
+
+function generateStart(userIntent: string): ToolResult {
+  if (typeof userIntent !== "string" || userIntent.trim().length === 0) {
+    return {
+      content: [{ type: "text", text: "voce_generate_start: user_intent is required" }],
+      isError: true,
+    };
+  }
+  const result = startGeneration(userIntent);
+  return jsonResult(result);
+}
+
+function generateAnswer(input: {
+  session_id: string;
+  question: string;
+  answer: string;
+  ready: boolean;
+}): ToolResult {
+  if (!input.session_id) {
+    return { content: [{ type: "text", text: "voce_generate_answer: session_id is required" }], isError: true };
+  }
+  if (!input.question || !input.answer) {
+    return { content: [{ type: "text", text: "voce_generate_answer: question and answer are required" }], isError: true };
+  }
+  if (typeof input.ready !== "boolean") {
+    return { content: [{ type: "text", text: "voce_generate_answer: ready (boolean) is required" }], isError: true };
+  }
+  return jsonResult(recordAnswer(input.session_id, input.question, input.answer, input.ready));
+}
+
+function generatePropose(sessionId: string, irJson: string): ToolResult {
+  if (!sessionId || !irJson) {
+    return {
+      content: [{ type: "text", text: "voce_generate_propose: session_id and ir_json are required" }],
+      isError: true,
+    };
+  }
+  const briefPresent = readBrief() !== null;
+  const result = recordProposal(sessionId, irJson, { briefPresent });
+  if (!result.ok) {
+    // Soft failure — the agent gets a clear next-step message but the call
+    // doesn't bubble up as an MCP error (the workflow gate is the contract,
+    // not an exception).
+    return jsonResult(result);
+  }
+  return jsonResult(result);
+}
+
+function generateRefine(sessionId: string, feedback: string, irJson: string): ToolResult {
+  if (!sessionId || !feedback || !irJson) {
+    return {
+      content: [{ type: "text", text: "voce_generate_refine: session_id, feedback, and ir_json are required" }],
+      isError: true,
+    };
+  }
+  return jsonResult(recordRefinement(sessionId, feedback, irJson));
+}
+
+function generateFinalize(sessionId: string): ToolResult {
+  if (!sessionId) {
+    return {
+      content: [{ type: "text", text: "voce_generate_finalize: session_id is required" }],
+      isError: true,
+    };
+  }
+  const ir = latestIrSnapshot(sessionId);
+  if (ir === null) {
+    return {
+      content: [{ type: "text", text: "voce_generate_finalize: no proposal found — call voce_generate_propose first" }],
+      isError: true,
+    };
+  }
+  const gate = gateFinalize(sessionId, ir);
+  if (!gate.ok) {
+    return jsonResult(gate);
+  }
+
+  // Validate via the voce CLI. We re-use runVoceCommand which already has
+  // the temp-file shuffle, but in JSON mode for structured output.
+  const validation = runVoceCommand("validate", ir);
+  const validationText = validation.content[0]?.text ?? "";
+  let validationParsed: unknown = validationText;
+  try { validationParsed = JSON.parse(validationText); } catch { /* keep raw */ }
+  if (validation.isError) {
+    return jsonResult({
+      ok: false,
+      message: "Validation failed — call voce_generate_refine with the corrected IR.",
+      validation: validationParsed,
+      gate,
+    });
+  }
+
+  // Compile to HTML.
+  const compile = runVoceCommand("compile", ir);
+  if (compile.isError) {
+    return jsonResult({
+      ok: false,
+      message: "Compile failed.",
+      compile_output: compile.content[0]?.text ?? "",
+      gate,
+    });
+  }
+
+  recordFinalization(sessionId);
+
+  return jsonResult({
+    ok: true,
+    state: getWorkflowState(sessionId),
+    ir_json: ir,
+    validation: validationParsed,
+    html: compile.content[0]?.text ?? "",
+    deployment_hints: [
+      "voce-adapter-vercel — git-push deploy with Edge runtime",
+      "voce-adapter-netlify — Netlify Functions + CDN",
+      "voce-adapter-cloudflare — Workers + Pages",
+      "voce-adapter-static — single-file HTML for any static host",
+    ],
+  });
 }
 
 function getProjectStatus(): string {
