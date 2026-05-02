@@ -474,6 +474,8 @@ fn extract_form(value: &Value) -> Option<CompiledForm> {
                         })
                         .unwrap_or_default();
 
+                    let style = f.get("style").and_then(extract_form_field_style);
+
                     Some(CompiledFormField {
                         name,
                         field_type,
@@ -483,6 +485,7 @@ fn extract_form(value: &Value) -> Option<CompiledForm> {
                         validations,
                         description,
                         options,
+                        style,
                     })
                 })
                 .collect()
@@ -500,13 +503,148 @@ fn extract_form(value: &Value) -> Option<CompiledForm> {
         .and_then(|v| v.as_bool())
         .unwrap_or(true);
 
+    let layout = value.get("layout").and_then(extract_form_layout);
+
     Some(CompiledForm {
         id,
         fields,
         action_endpoint,
         action_method: "POST".to_string(),
         progressive,
+        layout,
     })
+}
+
+/// Convert a FormFieldStyle JSON object to its compiler-IR mirror.
+/// Returns `None` only if the input is unstructured (e.g., not an
+/// object); otherwise the result is `Some` even if every field is empty
+/// — that lets the emitter distinguish "author declared style" from
+/// "author omitted style and accepts the default".
+fn extract_form_field_style(value: &Value) -> Option<crate::compiler_ir::CompiledFormFieldStyle> {
+    let obj = value.as_object()?;
+    Some(crate::compiler_ir::CompiledFormFieldStyle {
+        padding: obj.get("padding").and_then(edge_insets_to_css),
+        border: obj.get("border").and_then(border_sides_to_css),
+        corner_radius: obj.get("corner_radius").and_then(corner_radii_to_css),
+        background: obj.get("background").and_then(color_to_css),
+        text_color: obj.get("text_color").and_then(color_to_css),
+        placeholder_color: obj.get("placeholder_color").and_then(color_to_css),
+        font_family: obj
+            .get("font_family")
+            .and_then(|v| v.as_str())
+            .map(String::from),
+        font_size: obj.get("font_size").map(|v| length_to_css(Some(v))),
+        font_weight: obj
+            .get("font_weight")
+            .and_then(|v| v.as_str())
+            .map(String::from),
+        line_height: obj.get("line_height").map(|v| length_to_css(Some(v))),
+        focus_style: obj
+            .get("focus_style")
+            .and_then(extract_form_field_style)
+            .map(Box::new),
+        error_style: obj
+            .get("error_style")
+            .and_then(extract_form_field_style)
+            .map(Box::new),
+        disabled_style: obj
+            .get("disabled_style")
+            .and_then(extract_form_field_style)
+            .map(Box::new),
+    })
+}
+
+/// Convert a FormLayout JSON object to its compiler-IR mirror.
+fn extract_form_layout(value: &Value) -> Option<crate::compiler_ir::CompiledFormLayout> {
+    let obj = value.as_object()?;
+    Some(crate::compiler_ir::CompiledFormLayout {
+        direction: obj
+            .get("direction")
+            .and_then(|v| v.as_str())
+            .map(String::from),
+        gap: obj.get("gap").map(|v| length_to_css(Some(v))),
+        max_width: obj.get("max_width").map(|v| length_to_css(Some(v))),
+        padding: obj.get("padding").and_then(edge_insets_to_css),
+        wrap: obj.get("wrap").and_then(|v| v.as_bool()).unwrap_or(false),
+        button_alignment: obj
+            .get("button_alignment")
+            .and_then(|v| v.as_str())
+            .map(String::from),
+    })
+}
+
+/// Convert a FlatBuffers Color (`{r,g,b,a}` 0-255) to a CSS color
+/// string. `a == 255` (or absent) emits `rgb()`; anything lower emits
+/// `rgba()`.
+fn color_to_css(value: &Value) -> Option<String> {
+    let r = value.get("r").and_then(|v| v.as_u64())? as u8;
+    let g = value.get("g").and_then(|v| v.as_u64())? as u8;
+    let b = value.get("b").and_then(|v| v.as_u64())? as u8;
+    let a = value.get("a").and_then(|v| v.as_u64()).unwrap_or(255) as u8;
+    if a == 255 {
+        Some(format!("rgb({r},{g},{b})"))
+    } else {
+        let af = f64::from(a) / 255.0;
+        Some(format!("rgba({r},{g},{b},{af:.2})"))
+    }
+}
+
+/// Convert an EdgeInsets table to a CSS `padding`/`margin` shorthand.
+fn edge_insets_to_css(value: &Value) -> Option<String> {
+    let top = length_to_css(value.get("top"));
+    let right = length_to_css(value.get("right"));
+    let bottom = length_to_css(value.get("bottom"));
+    let left = length_to_css(value.get("left"));
+    if top.is_empty() && right.is_empty() && bottom.is_empty() && left.is_empty() {
+        return None;
+    }
+    let part = |s: String| if s.is_empty() { "0".to_string() } else { s };
+    Some(format!(
+        "{} {} {} {}",
+        part(top),
+        part(right),
+        part(bottom),
+        part(left)
+    ))
+}
+
+/// Convert a CornerRadii table to a CSS `border-radius` shorthand.
+fn corner_radii_to_css(value: &Value) -> Option<String> {
+    let tl = length_to_css(value.get("top_left"));
+    let tr = length_to_css(value.get("top_right"));
+    let br = length_to_css(value.get("bottom_right"));
+    let bl = length_to_css(value.get("bottom_left"));
+    if tl.is_empty() && tr.is_empty() && br.is_empty() && bl.is_empty() {
+        return None;
+    }
+    let part = |s: String| if s.is_empty() { "0".to_string() } else { s };
+    Some(format!(
+        "{} {} {} {}",
+        part(tl),
+        part(tr),
+        part(br),
+        part(bl)
+    ))
+}
+
+/// Convert a BorderSides table to a CSS `border` shorthand using the
+/// top side as the canonical value. Per-side variation isn't expressible
+/// in a single shorthand; if all four sides are equal we collapse, else
+/// we still emit the top side (with a TODO once `border-top`/`-right`/
+/// etc. are wired through the emit pass).
+fn border_sides_to_css(value: &Value) -> Option<String> {
+    let top = value.get("top")?;
+    let width = length_to_css(top.get("width"));
+    let style = top
+        .get("style")
+        .and_then(|v| v.as_str())
+        .unwrap_or("Solid")
+        .to_lowercase();
+    let color = top.get("color").and_then(color_to_css).unwrap_or_default();
+    if width.is_empty() && color.is_empty() {
+        return None;
+    }
+    Some(format!("{width} {style} {color}").trim().to_string())
 }
 
 /// Extract an AnimationTransition with compile-time spring solving.

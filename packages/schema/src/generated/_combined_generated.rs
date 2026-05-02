@@ -4495,6 +4495,100 @@ impl<'a> flatbuffers::Verifiable for ValidationType {
 
 impl flatbuffers::SimpleToVerifyInSlice for ValidationType {}
 #[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
+pub const ENUM_MIN_FORM_BUTTON_ALIGNMENT: i8 = 0;
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
+pub const ENUM_MAX_FORM_BUTTON_ALIGNMENT: i8 = 3;
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
+#[allow(non_camel_case_types)]
+pub const ENUM_VALUES_FORM_BUTTON_ALIGNMENT: [FormButtonAlignment; 4] = [
+  FormButtonAlignment::Start,
+  FormButtonAlignment::Center,
+  FormButtonAlignment::End,
+  FormButtonAlignment::Stretch,
+];
+
+/// Submit-button placement relative to the field stack.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[repr(transparent)]
+pub struct FormButtonAlignment(pub i8);
+#[allow(non_upper_case_globals)]
+impl FormButtonAlignment {
+  pub const Start: Self = Self(0);
+  pub const Center: Self = Self(1);
+  pub const End: Self = Self(2);
+  pub const Stretch: Self = Self(3);
+
+  pub const ENUM_MIN: i8 = 0;
+  pub const ENUM_MAX: i8 = 3;
+  pub const ENUM_VALUES: &'static [Self] = &[
+    Self::Start,
+    Self::Center,
+    Self::End,
+    Self::Stretch,
+  ];
+  /// Returns the variant's name or "" if unknown.
+  pub fn variant_name(self) -> Option<&'static str> {
+    match self {
+      Self::Start => Some("Start"),
+      Self::Center => Some("Center"),
+      Self::End => Some("End"),
+      Self::Stretch => Some("Stretch"),
+      _ => None,
+    }
+  }
+}
+impl core::fmt::Debug for FormButtonAlignment {
+  fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+    if let Some(name) = self.variant_name() {
+      f.write_str(name)
+    } else {
+      f.write_fmt(format_args!("<UNKNOWN {:?}>", self.0))
+    }
+  }
+}
+impl<'a> flatbuffers::Follow<'a> for FormButtonAlignment {
+  type Inner = Self;
+  #[inline]
+  unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    let b = flatbuffers::read_scalar_at::<i8>(buf, loc);
+    Self(b)
+  }
+}
+
+impl flatbuffers::Push for FormButtonAlignment {
+    type Output = FormButtonAlignment;
+    #[inline]
+    unsafe fn push(&self, dst: &mut [u8], _written_len: usize) {
+        flatbuffers::emplace_scalar::<i8>(dst, self.0);
+    }
+}
+
+impl flatbuffers::EndianScalar for FormButtonAlignment {
+  type Scalar = i8;
+  #[inline]
+  fn to_little_endian(self) -> i8 {
+    self.0.to_le()
+  }
+  #[inline]
+  #[allow(clippy::wrong_self_convention)]
+  fn from_little_endian(v: i8) -> Self {
+    let b = i8::from_le(v);
+    Self(b)
+  }
+}
+
+impl<'a> flatbuffers::Verifiable for FormButtonAlignment {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    i8::run_verifier(v, pos)
+  }
+}
+
+impl flatbuffers::SimpleToVerifyInSlice for FormButtonAlignment {}
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
 pub const ENUM_MIN_CONTAINER_LAYOUT: i8 = 0;
 #[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
 pub const ENUM_MAX_CONTAINER_LAYOUT: i8 = 3;
@@ -19656,6 +19750,327 @@ impl core::fmt::Debug for SelectOption<'_> {
       ds.finish()
   }
 }
+pub enum FormFieldStyleOffset {}
+#[derive(Copy, Clone, PartialEq)]
+
+/// Visual styling for an individual FormField. All fields are optional —
+/// the compiler falls back to its baseline form CSS for any unset
+/// property. Per-state overrides (focus_style, error_style,
+/// disabled_style) inherit from the base style and override only the
+/// properties they declare. Closes the biggest single gap surfaced by
+/// the S72 schema completeness audit (S72 §1).
+pub struct FormFieldStyle<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for FormFieldStyle<'a> {
+  type Inner = FormFieldStyle<'a>;
+  #[inline]
+  unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    Self { _tab: flatbuffers::Table::new(buf, loc) }
+  }
+}
+
+impl<'a> FormFieldStyle<'a> {
+  pub const VT_PADDING: flatbuffers::VOffsetT = 4;
+  pub const VT_BORDER: flatbuffers::VOffsetT = 6;
+  pub const VT_CORNER_RADIUS: flatbuffers::VOffsetT = 8;
+  pub const VT_BACKGROUND: flatbuffers::VOffsetT = 10;
+  pub const VT_TEXT_COLOR: flatbuffers::VOffsetT = 12;
+  pub const VT_PLACEHOLDER_COLOR: flatbuffers::VOffsetT = 14;
+  pub const VT_FONT_FAMILY: flatbuffers::VOffsetT = 16;
+  pub const VT_FONT_SIZE: flatbuffers::VOffsetT = 18;
+  pub const VT_FONT_WEIGHT: flatbuffers::VOffsetT = 20;
+  pub const VT_LINE_HEIGHT: flatbuffers::VOffsetT = 22;
+  pub const VT_FOCUS_STYLE: flatbuffers::VOffsetT = 24;
+  pub const VT_ERROR_STYLE: flatbuffers::VOffsetT = 26;
+  pub const VT_DISABLED_STYLE: flatbuffers::VOffsetT = 28;
+
+  #[inline]
+  pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+    FormFieldStyle { _tab: table }
+  }
+  #[allow(unused_mut)]
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+    args: &'args FormFieldStyleArgs<'args>
+  ) -> flatbuffers::WIPOffset<FormFieldStyle<'bldr>> {
+    let mut builder = FormFieldStyleBuilder::new(_fbb);
+    if let Some(x) = args.disabled_style { builder.add_disabled_style(x); }
+    if let Some(x) = args.error_style { builder.add_error_style(x); }
+    if let Some(x) = args.focus_style { builder.add_focus_style(x); }
+    if let Some(x) = args.line_height { builder.add_line_height(x); }
+    if let Some(x) = args.font_weight { builder.add_font_weight(x); }
+    if let Some(x) = args.font_size { builder.add_font_size(x); }
+    if let Some(x) = args.font_family { builder.add_font_family(x); }
+    if let Some(x) = args.placeholder_color { builder.add_placeholder_color(x); }
+    if let Some(x) = args.text_color { builder.add_text_color(x); }
+    if let Some(x) = args.background { builder.add_background(x); }
+    if let Some(x) = args.corner_radius { builder.add_corner_radius(x); }
+    if let Some(x) = args.border { builder.add_border(x); }
+    if let Some(x) = args.padding { builder.add_padding(x); }
+    builder.finish()
+  }
+
+
+  /// Inner padding (between border and content).
+  #[inline]
+  pub fn padding(&self) -> Option<EdgeInsets<'a>> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<EdgeInsets>>(FormFieldStyle::VT_PADDING, None)}
+  }
+  /// Border on all four sides.
+  #[inline]
+  pub fn border(&self) -> Option<BorderSides<'a>> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<BorderSides>>(FormFieldStyle::VT_BORDER, None)}
+  }
+  /// Rounded corners on the input itself.
+  #[inline]
+  pub fn corner_radius(&self) -> Option<CornerRadii<'a>> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<CornerRadii>>(FormFieldStyle::VT_CORNER_RADIUS, None)}
+  }
+  /// Background fill for the input.
+  #[inline]
+  pub fn background(&self) -> Option<&'a Color> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<Color>(FormFieldStyle::VT_BACKGROUND, None)}
+  }
+  /// Text color for the value the user types.
+  #[inline]
+  pub fn text_color(&self) -> Option<&'a Color> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<Color>(FormFieldStyle::VT_TEXT_COLOR, None)}
+  }
+  /// Placeholder color (shown when input is empty).
+  #[inline]
+  pub fn placeholder_color(&self) -> Option<&'a Color> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<Color>(FormFieldStyle::VT_PLACEHOLDER_COLOR, None)}
+  }
+  /// Font family — references a typography token; opaque to the schema.
+  #[inline]
+  pub fn font_family(&self) -> Option<&'a str> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(FormFieldStyle::VT_FONT_FAMILY, None)}
+  }
+  /// Font size as a length (px, rem, em).
+  #[inline]
+  pub fn font_size(&self) -> Option<Length<'a>> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<Length>>(FormFieldStyle::VT_FONT_SIZE, None)}
+  }
+  /// Font weight (100-900, "normal", "bold").
+  #[inline]
+  pub fn font_weight(&self) -> Option<&'a str> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(FormFieldStyle::VT_FONT_WEIGHT, None)}
+  }
+  /// Line height as a length.
+  #[inline]
+  pub fn line_height(&self) -> Option<Length<'a>> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<Length>>(FormFieldStyle::VT_LINE_HEIGHT, None)}
+  }
+  /// Style override applied while the input has focus.
+  /// Inherits from the base style; only declared properties override.
+  #[inline]
+  pub fn focus_style(&self) -> Option<FormFieldStyle<'a>> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<FormFieldStyle>>(FormFieldStyle::VT_FOCUS_STYLE, None)}
+  }
+  /// Style override applied when the field has a validation error.
+  #[inline]
+  pub fn error_style(&self) -> Option<FormFieldStyle<'a>> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<FormFieldStyle>>(FormFieldStyle::VT_ERROR_STYLE, None)}
+  }
+  /// Style override applied when the field is disabled.
+  #[inline]
+  pub fn disabled_style(&self) -> Option<FormFieldStyle<'a>> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<FormFieldStyle>>(FormFieldStyle::VT_DISABLED_STYLE, None)}
+  }
+}
+
+impl flatbuffers::Verifiable for FormFieldStyle<'_> {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.visit_table(pos)?
+     .visit_field::<flatbuffers::ForwardsUOffset<EdgeInsets>>("padding", Self::VT_PADDING, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<BorderSides>>("border", Self::VT_BORDER, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<CornerRadii>>("corner_radius", Self::VT_CORNER_RADIUS, false)?
+     .visit_field::<Color>("background", Self::VT_BACKGROUND, false)?
+     .visit_field::<Color>("text_color", Self::VT_TEXT_COLOR, false)?
+     .visit_field::<Color>("placeholder_color", Self::VT_PLACEHOLDER_COLOR, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("font_family", Self::VT_FONT_FAMILY, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<Length>>("font_size", Self::VT_FONT_SIZE, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("font_weight", Self::VT_FONT_WEIGHT, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<Length>>("line_height", Self::VT_LINE_HEIGHT, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<FormFieldStyle>>("focus_style", Self::VT_FOCUS_STYLE, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<FormFieldStyle>>("error_style", Self::VT_ERROR_STYLE, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<FormFieldStyle>>("disabled_style", Self::VT_DISABLED_STYLE, false)?
+     .finish();
+    Ok(())
+  }
+}
+pub struct FormFieldStyleArgs<'a> {
+    pub padding: Option<flatbuffers::WIPOffset<EdgeInsets<'a>>>,
+    pub border: Option<flatbuffers::WIPOffset<BorderSides<'a>>>,
+    pub corner_radius: Option<flatbuffers::WIPOffset<CornerRadii<'a>>>,
+    pub background: Option<&'a Color>,
+    pub text_color: Option<&'a Color>,
+    pub placeholder_color: Option<&'a Color>,
+    pub font_family: Option<flatbuffers::WIPOffset<&'a str>>,
+    pub font_size: Option<flatbuffers::WIPOffset<Length<'a>>>,
+    pub font_weight: Option<flatbuffers::WIPOffset<&'a str>>,
+    pub line_height: Option<flatbuffers::WIPOffset<Length<'a>>>,
+    pub focus_style: Option<flatbuffers::WIPOffset<FormFieldStyle<'a>>>,
+    pub error_style: Option<flatbuffers::WIPOffset<FormFieldStyle<'a>>>,
+    pub disabled_style: Option<flatbuffers::WIPOffset<FormFieldStyle<'a>>>,
+}
+impl<'a> Default for FormFieldStyleArgs<'a> {
+  #[inline]
+  fn default() -> Self {
+    FormFieldStyleArgs {
+      padding: None,
+      border: None,
+      corner_radius: None,
+      background: None,
+      text_color: None,
+      placeholder_color: None,
+      font_family: None,
+      font_size: None,
+      font_weight: None,
+      line_height: None,
+      focus_style: None,
+      error_style: None,
+      disabled_style: None,
+    }
+  }
+}
+
+pub struct FormFieldStyleBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> FormFieldStyleBuilder<'a, 'b, A> {
+  #[inline]
+  pub fn add_padding(&mut self, padding: flatbuffers::WIPOffset<EdgeInsets<'b >>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<EdgeInsets>>(FormFieldStyle::VT_PADDING, padding);
+  }
+  #[inline]
+  pub fn add_border(&mut self, border: flatbuffers::WIPOffset<BorderSides<'b >>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<BorderSides>>(FormFieldStyle::VT_BORDER, border);
+  }
+  #[inline]
+  pub fn add_corner_radius(&mut self, corner_radius: flatbuffers::WIPOffset<CornerRadii<'b >>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<CornerRadii>>(FormFieldStyle::VT_CORNER_RADIUS, corner_radius);
+  }
+  #[inline]
+  pub fn add_background(&mut self, background: &Color) {
+    self.fbb_.push_slot_always::<&Color>(FormFieldStyle::VT_BACKGROUND, background);
+  }
+  #[inline]
+  pub fn add_text_color(&mut self, text_color: &Color) {
+    self.fbb_.push_slot_always::<&Color>(FormFieldStyle::VT_TEXT_COLOR, text_color);
+  }
+  #[inline]
+  pub fn add_placeholder_color(&mut self, placeholder_color: &Color) {
+    self.fbb_.push_slot_always::<&Color>(FormFieldStyle::VT_PLACEHOLDER_COLOR, placeholder_color);
+  }
+  #[inline]
+  pub fn add_font_family(&mut self, font_family: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(FormFieldStyle::VT_FONT_FAMILY, font_family);
+  }
+  #[inline]
+  pub fn add_font_size(&mut self, font_size: flatbuffers::WIPOffset<Length<'b >>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<Length>>(FormFieldStyle::VT_FONT_SIZE, font_size);
+  }
+  #[inline]
+  pub fn add_font_weight(&mut self, font_weight: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(FormFieldStyle::VT_FONT_WEIGHT, font_weight);
+  }
+  #[inline]
+  pub fn add_line_height(&mut self, line_height: flatbuffers::WIPOffset<Length<'b >>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<Length>>(FormFieldStyle::VT_LINE_HEIGHT, line_height);
+  }
+  #[inline]
+  pub fn add_focus_style(&mut self, focus_style: flatbuffers::WIPOffset<FormFieldStyle<'b >>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<FormFieldStyle>>(FormFieldStyle::VT_FOCUS_STYLE, focus_style);
+  }
+  #[inline]
+  pub fn add_error_style(&mut self, error_style: flatbuffers::WIPOffset<FormFieldStyle<'b >>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<FormFieldStyle>>(FormFieldStyle::VT_ERROR_STYLE, error_style);
+  }
+  #[inline]
+  pub fn add_disabled_style(&mut self, disabled_style: flatbuffers::WIPOffset<FormFieldStyle<'b >>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<FormFieldStyle>>(FormFieldStyle::VT_DISABLED_STYLE, disabled_style);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> FormFieldStyleBuilder<'a, 'b, A> {
+    let start = _fbb.start_table();
+    FormFieldStyleBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<FormFieldStyle<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
+impl core::fmt::Debug for FormFieldStyle<'_> {
+  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    let mut ds = f.debug_struct("FormFieldStyle");
+      ds.field("padding", &self.padding());
+      ds.field("border", &self.border());
+      ds.field("corner_radius", &self.corner_radius());
+      ds.field("background", &self.background());
+      ds.field("text_color", &self.text_color());
+      ds.field("placeholder_color", &self.placeholder_color());
+      ds.field("font_family", &self.font_family());
+      ds.field("font_size", &self.font_size());
+      ds.field("font_weight", &self.font_weight());
+      ds.field("line_height", &self.line_height());
+      ds.field("focus_style", &self.focus_style());
+      ds.field("error_style", &self.error_style());
+      ds.field("disabled_style", &self.disabled_style());
+      ds.finish()
+  }
+}
 pub enum FormFieldOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
@@ -19689,6 +20104,7 @@ impl<'a> FormField<'a> {
   pub const VT_MULTIPLE: flatbuffers::VOffsetT = 32;
   pub const VT_STEP: flatbuffers::VOffsetT = 34;
   pub const VT_SEMANTIC_NODE_ID: flatbuffers::VOffsetT = 36;
+  pub const VT_STYLE: flatbuffers::VOffsetT = 38;
 
   #[inline]
   pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
@@ -19700,6 +20116,7 @@ impl<'a> FormField<'a> {
     args: &'args FormFieldArgs<'args>
   ) -> flatbuffers::WIPOffset<FormField<'bldr>> {
     let mut builder = FormFieldBuilder::new(_fbb);
+    if let Some(x) = args.style { builder.add_style(x); }
     if let Some(x) = args.semantic_node_id { builder.add_semantic_node_id(x); }
     builder.add_step(args.step);
     builder.add_max_file_size(args.max_file_size);
@@ -19855,6 +20272,16 @@ impl<'a> FormField<'a> {
     // which contains a valid value in this slot
     unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(FormField::VT_SEMANTIC_NODE_ID, None)}
   }
+  /// Visual styling for the field. Optional — when absent, the compiler
+  /// emits its baseline form CSS. Closes the visual customization gap
+  /// surfaced by the S72 schema completeness audit (S72 §1).
+  #[inline]
+  pub fn style(&self) -> Option<FormFieldStyle<'a>> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<FormFieldStyle>>(FormField::VT_STYLE, None)}
+  }
 }
 
 impl flatbuffers::Verifiable for FormField<'_> {
@@ -19881,6 +20308,7 @@ impl flatbuffers::Verifiable for FormField<'_> {
      .visit_field::<bool>("multiple", Self::VT_MULTIPLE, false)?
      .visit_field::<f32>("step", Self::VT_STEP, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<&str>>("semantic_node_id", Self::VT_SEMANTIC_NODE_ID, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<FormFieldStyle>>("style", Self::VT_STYLE, false)?
      .finish();
     Ok(())
   }
@@ -19903,6 +20331,7 @@ pub struct FormFieldArgs<'a> {
     pub multiple: bool,
     pub step: f32,
     pub semantic_node_id: Option<flatbuffers::WIPOffset<&'a str>>,
+    pub style: Option<flatbuffers::WIPOffset<FormFieldStyle<'a>>>,
 }
 impl<'a> Default for FormFieldArgs<'a> {
   #[inline]
@@ -19925,6 +20354,7 @@ impl<'a> Default for FormFieldArgs<'a> {
       multiple: false,
       step: 0.0,
       semantic_node_id: None,
+      style: None,
     }
   }
 }
@@ -20003,6 +20433,10 @@ impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> FormFieldBuilder<'a, 'b, A> {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(FormField::VT_SEMANTIC_NODE_ID, semantic_node_id);
   }
   #[inline]
+  pub fn add_style(&mut self, style: flatbuffers::WIPOffset<FormFieldStyle<'b >>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<FormFieldStyle>>(FormField::VT_STYLE, style);
+  }
+  #[inline]
   pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> FormFieldBuilder<'a, 'b, A> {
     let start = _fbb.start_table();
     FormFieldBuilder {
@@ -20039,6 +20473,7 @@ impl core::fmt::Debug for FormField<'_> {
       ds.field("multiple", &self.multiple());
       ds.field("step", &self.step());
       ds.field("semantic_node_id", &self.semantic_node_id());
+      ds.field("style", &self.style());
       ds.finish()
   }
 }
@@ -20499,6 +20934,200 @@ impl core::fmt::Debug for AutosaveConfig<'_> {
       ds.finish()
   }
 }
+pub enum FormLayoutOffset {}
+#[derive(Copy, Clone, PartialEq)]
+
+/// Layout knobs for the form as a whole. Optional — the compiler falls
+/// back to the S61 baseline (column, gap 14px, max-width 520px) when
+/// absent. Lets authors choose stacked vs. inline forms without
+/// overriding the global stylesheet (which the IR doesn't support).
+/// Added in S72 §2 to close the gap surfaced by the audit.
+pub struct FormLayout<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for FormLayout<'a> {
+  type Inner = FormLayout<'a>;
+  #[inline]
+  unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    Self { _tab: flatbuffers::Table::new(buf, loc) }
+  }
+}
+
+impl<'a> FormLayout<'a> {
+  pub const VT_DIRECTION: flatbuffers::VOffsetT = 4;
+  pub const VT_GAP: flatbuffers::VOffsetT = 6;
+  pub const VT_MAX_WIDTH: flatbuffers::VOffsetT = 8;
+  pub const VT_PADDING: flatbuffers::VOffsetT = 10;
+  pub const VT_WRAP: flatbuffers::VOffsetT = 12;
+  pub const VT_BUTTON_ALIGNMENT: flatbuffers::VOffsetT = 14;
+
+  #[inline]
+  pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+    FormLayout { _tab: table }
+  }
+  #[allow(unused_mut)]
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+    args: &'args FormLayoutArgs<'args>
+  ) -> flatbuffers::WIPOffset<FormLayout<'bldr>> {
+    let mut builder = FormLayoutBuilder::new(_fbb);
+    if let Some(x) = args.padding { builder.add_padding(x); }
+    if let Some(x) = args.max_width { builder.add_max_width(x); }
+    if let Some(x) = args.gap { builder.add_gap(x); }
+    builder.add_button_alignment(args.button_alignment);
+    builder.add_wrap(args.wrap);
+    builder.add_direction(args.direction);
+    builder.finish()
+  }
+
+
+  /// Field flow direction (Row = inline, Column = stacked).
+  #[inline]
+  pub fn direction(&self) -> LayoutDirection {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<LayoutDirection>(FormLayout::VT_DIRECTION, Some(LayoutDirection::Column)).unwrap()}
+  }
+  /// Spacing between consecutive fields.
+  #[inline]
+  pub fn gap(&self) -> Option<Length<'a>> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<Length>>(FormLayout::VT_GAP, None)}
+  }
+  /// Maximum visual width of the form. Beyond this, the form is
+  /// centered in its container.
+  #[inline]
+  pub fn max_width(&self) -> Option<Length<'a>> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<Length>>(FormLayout::VT_MAX_WIDTH, None)}
+  }
+  /// Inner padding around the entire form.
+  #[inline]
+  pub fn padding(&self) -> Option<EdgeInsets<'a>> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<EdgeInsets>>(FormLayout::VT_PADDING, None)}
+  }
+  /// Whether fields should wrap when overflowing on inline layouts.
+  #[inline]
+  pub fn wrap(&self) -> bool {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<bool>(FormLayout::VT_WRAP, Some(false)).unwrap()}
+  }
+  /// Submit-button alignment within the form.
+  #[inline]
+  pub fn button_alignment(&self) -> FormButtonAlignment {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<FormButtonAlignment>(FormLayout::VT_BUTTON_ALIGNMENT, Some(FormButtonAlignment::Start)).unwrap()}
+  }
+}
+
+impl flatbuffers::Verifiable for FormLayout<'_> {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.visit_table(pos)?
+     .visit_field::<LayoutDirection>("direction", Self::VT_DIRECTION, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<Length>>("gap", Self::VT_GAP, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<Length>>("max_width", Self::VT_MAX_WIDTH, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<EdgeInsets>>("padding", Self::VT_PADDING, false)?
+     .visit_field::<bool>("wrap", Self::VT_WRAP, false)?
+     .visit_field::<FormButtonAlignment>("button_alignment", Self::VT_BUTTON_ALIGNMENT, false)?
+     .finish();
+    Ok(())
+  }
+}
+pub struct FormLayoutArgs<'a> {
+    pub direction: LayoutDirection,
+    pub gap: Option<flatbuffers::WIPOffset<Length<'a>>>,
+    pub max_width: Option<flatbuffers::WIPOffset<Length<'a>>>,
+    pub padding: Option<flatbuffers::WIPOffset<EdgeInsets<'a>>>,
+    pub wrap: bool,
+    pub button_alignment: FormButtonAlignment,
+}
+impl<'a> Default for FormLayoutArgs<'a> {
+  #[inline]
+  fn default() -> Self {
+    FormLayoutArgs {
+      direction: LayoutDirection::Column,
+      gap: None,
+      max_width: None,
+      padding: None,
+      wrap: false,
+      button_alignment: FormButtonAlignment::Start,
+    }
+  }
+}
+
+pub struct FormLayoutBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> FormLayoutBuilder<'a, 'b, A> {
+  #[inline]
+  pub fn add_direction(&mut self, direction: LayoutDirection) {
+    self.fbb_.push_slot::<LayoutDirection>(FormLayout::VT_DIRECTION, direction, LayoutDirection::Column);
+  }
+  #[inline]
+  pub fn add_gap(&mut self, gap: flatbuffers::WIPOffset<Length<'b >>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<Length>>(FormLayout::VT_GAP, gap);
+  }
+  #[inline]
+  pub fn add_max_width(&mut self, max_width: flatbuffers::WIPOffset<Length<'b >>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<Length>>(FormLayout::VT_MAX_WIDTH, max_width);
+  }
+  #[inline]
+  pub fn add_padding(&mut self, padding: flatbuffers::WIPOffset<EdgeInsets<'b >>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<EdgeInsets>>(FormLayout::VT_PADDING, padding);
+  }
+  #[inline]
+  pub fn add_wrap(&mut self, wrap: bool) {
+    self.fbb_.push_slot::<bool>(FormLayout::VT_WRAP, wrap, false);
+  }
+  #[inline]
+  pub fn add_button_alignment(&mut self, button_alignment: FormButtonAlignment) {
+    self.fbb_.push_slot::<FormButtonAlignment>(FormLayout::VT_BUTTON_ALIGNMENT, button_alignment, FormButtonAlignment::Start);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> FormLayoutBuilder<'a, 'b, A> {
+    let start = _fbb.start_table();
+    FormLayoutBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<FormLayout<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
+impl core::fmt::Debug for FormLayout<'_> {
+  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    let mut ds = f.debug_struct("FormLayout");
+      ds.field("direction", &self.direction());
+      ds.field("gap", &self.gap());
+      ds.field("max_width", &self.max_width());
+      ds.field("padding", &self.padding());
+      ds.field("wrap", &self.wrap());
+      ds.field("button_alignment", &self.button_alignment());
+      ds.finish()
+  }
+}
 pub enum FormNodeOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
@@ -20525,6 +21154,7 @@ impl<'a> FormNode<'a> {
   pub const VT_INITIAL_VALUES_NODE_ID: flatbuffers::VOffsetT = 18;
   pub const VT_AUTOSAVE: flatbuffers::VOffsetT = 20;
   pub const VT_SEMANTIC_NODE_ID: flatbuffers::VOffsetT = 22;
+  pub const VT_LAYOUT: flatbuffers::VOffsetT = 24;
 
   #[inline]
   pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
@@ -20536,6 +21166,7 @@ impl<'a> FormNode<'a> {
     args: &'args FormNodeArgs<'args>
   ) -> flatbuffers::WIPOffset<FormNode<'bldr>> {
     let mut builder = FormNodeBuilder::new(_fbb);
+    if let Some(x) = args.layout { builder.add_layout(x); }
     if let Some(x) = args.semantic_node_id { builder.add_semantic_node_id(x); }
     if let Some(x) = args.autosave { builder.add_autosave(x); }
     if let Some(x) = args.initial_values_node_id { builder.add_initial_values_node_id(x); }
@@ -20623,6 +21254,16 @@ impl<'a> FormNode<'a> {
     // which contains a valid value in this slot
     unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(FormNode::VT_SEMANTIC_NODE_ID, None)}
   }
+  /// Form-level layout (direction, gap, max width, padding, button
+  /// alignment). Optional — the compiler emits its baseline form CSS
+  /// when absent. Added in S72 §2.
+  #[inline]
+  pub fn layout(&self) -> Option<FormLayout<'a>> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<FormLayout>>(FormNode::VT_LAYOUT, None)}
+  }
 }
 
 impl flatbuffers::Verifiable for FormNode<'_> {
@@ -20642,6 +21283,7 @@ impl flatbuffers::Verifiable for FormNode<'_> {
      .visit_field::<flatbuffers::ForwardsUOffset<&str>>("initial_values_node_id", Self::VT_INITIAL_VALUES_NODE_ID, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<AutosaveConfig>>("autosave", Self::VT_AUTOSAVE, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<&str>>("semantic_node_id", Self::VT_SEMANTIC_NODE_ID, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<FormLayout>>("layout", Self::VT_LAYOUT, false)?
      .finish();
     Ok(())
   }
@@ -20657,6 +21299,7 @@ pub struct FormNodeArgs<'a> {
     pub initial_values_node_id: Option<flatbuffers::WIPOffset<&'a str>>,
     pub autosave: Option<flatbuffers::WIPOffset<AutosaveConfig<'a>>>,
     pub semantic_node_id: Option<flatbuffers::WIPOffset<&'a str>>,
+    pub layout: Option<flatbuffers::WIPOffset<FormLayout<'a>>>,
 }
 impl<'a> Default for FormNodeArgs<'a> {
   #[inline]
@@ -20672,6 +21315,7 @@ impl<'a> Default for FormNodeArgs<'a> {
       initial_values_node_id: None,
       autosave: None,
       semantic_node_id: None,
+      layout: None,
     }
   }
 }
@@ -20722,6 +21366,10 @@ impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> FormNodeBuilder<'a, 'b, A> {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(FormNode::VT_SEMANTIC_NODE_ID, semantic_node_id);
   }
   #[inline]
+  pub fn add_layout(&mut self, layout: flatbuffers::WIPOffset<FormLayout<'b >>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<FormLayout>>(FormNode::VT_LAYOUT, layout);
+  }
+  #[inline]
   pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> FormNodeBuilder<'a, 'b, A> {
     let start = _fbb.start_table();
     FormNodeBuilder {
@@ -20752,6 +21400,7 @@ impl core::fmt::Debug for FormNode<'_> {
       ds.field("initial_values_node_id", &self.initial_values_node_id());
       ds.field("autosave", &self.autosave());
       ds.field("semantic_node_id", &self.semantic_node_id());
+      ds.field("layout", &self.layout());
       ds.finish()
   }
 }
@@ -21647,7 +22296,9 @@ impl<'a> Surface<'a> {
   pub const VT_MAX_HEIGHT: flatbuffers::VOffsetT = 32;
   pub const VT_PADDING: flatbuffers::VOffsetT = 34;
   pub const VT_DECORATIVE: flatbuffers::VOffsetT = 36;
-  pub const VT_SEMANTIC_NODE_ID: flatbuffers::VOffsetT = 38;
+  pub const VT_HREF: flatbuffers::VOffsetT = 38;
+  pub const VT_TARGET: flatbuffers::VOffsetT = 40;
+  pub const VT_SEMANTIC_NODE_ID: flatbuffers::VOffsetT = 42;
 
   #[inline]
   pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
@@ -21660,6 +22311,8 @@ impl<'a> Surface<'a> {
   ) -> flatbuffers::WIPOffset<Surface<'bldr>> {
     let mut builder = SurfaceBuilder::new(_fbb);
     if let Some(x) = args.semantic_node_id { builder.add_semantic_node_id(x); }
+    if let Some(x) = args.target { builder.add_target(x); }
+    if let Some(x) = args.href { builder.add_href(x); }
     if let Some(x) = args.padding { builder.add_padding(x); }
     if let Some(x) = args.max_height { builder.add_max_height(x); }
     if let Some(x) = args.min_height { builder.add_min_height(x); }
@@ -21801,6 +22454,20 @@ impl<'a> Surface<'a> {
     unsafe { self._tab.get::<bool>(Surface::VT_DECORATIVE, Some(false)).unwrap()}
   }
   #[inline]
+  pub fn href(&self) -> Option<&'a str> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(Surface::VT_HREF, None)}
+  }
+  #[inline]
+  pub fn target(&self) -> Option<&'a str> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(Surface::VT_TARGET, None)}
+  }
+  #[inline]
   pub fn semantic_node_id(&self) -> Option<&'a str> {
     // Safety:
     // Created from valid Table for this object
@@ -21833,6 +22500,8 @@ impl flatbuffers::Verifiable for Surface<'_> {
      .visit_field::<flatbuffers::ForwardsUOffset<Length>>("max_height", Self::VT_MAX_HEIGHT, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<EdgeInsets>>("padding", Self::VT_PADDING, false)?
      .visit_field::<bool>("decorative", Self::VT_DECORATIVE, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("href", Self::VT_HREF, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("target", Self::VT_TARGET, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<&str>>("semantic_node_id", Self::VT_SEMANTIC_NODE_ID, false)?
      .finish();
     Ok(())
@@ -21856,6 +22525,8 @@ pub struct SurfaceArgs<'a> {
     pub max_height: Option<flatbuffers::WIPOffset<Length<'a>>>,
     pub padding: Option<flatbuffers::WIPOffset<EdgeInsets<'a>>>,
     pub decorative: bool,
+    pub href: Option<flatbuffers::WIPOffset<&'a str>>,
+    pub target: Option<flatbuffers::WIPOffset<&'a str>>,
     pub semantic_node_id: Option<flatbuffers::WIPOffset<&'a str>>,
 }
 impl<'a> Default for SurfaceArgs<'a> {
@@ -21879,6 +22550,8 @@ impl<'a> Default for SurfaceArgs<'a> {
       max_height: None,
       padding: None,
       decorative: false,
+      href: None,
+      target: None,
       semantic_node_id: None,
     }
   }
@@ -21958,6 +22631,14 @@ impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> SurfaceBuilder<'a, 'b, A> {
     self.fbb_.push_slot::<bool>(Surface::VT_DECORATIVE, decorative, false);
   }
   #[inline]
+  pub fn add_href(&mut self, href: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Surface::VT_HREF, href);
+  }
+  #[inline]
+  pub fn add_target(&mut self, target: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Surface::VT_TARGET, target);
+  }
+  #[inline]
   pub fn add_semantic_node_id(&mut self, semantic_node_id: flatbuffers::WIPOffset<&'b  str>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Surface::VT_SEMANTIC_NODE_ID, semantic_node_id);
   }
@@ -21997,6 +22678,8 @@ impl core::fmt::Debug for Surface<'_> {
       ds.field("max_height", &self.max_height());
       ds.field("padding", &self.padding());
       ds.field("decorative", &self.decorative());
+      ds.field("href", &self.href());
+      ds.field("target", &self.target());
       ds.field("semantic_node_id", &self.semantic_node_id());
       ds.finish()
   }
@@ -22033,7 +22716,9 @@ impl<'a> TextNode<'a> {
   pub const VT_COLOR: flatbuffers::VOffsetT = 30;
   pub const VT_OPACITY: flatbuffers::VOffsetT = 32;
   pub const VT_HEADING_LEVEL: flatbuffers::VOffsetT = 34;
-  pub const VT_SEMANTIC_NODE_ID: flatbuffers::VOffsetT = 36;
+  pub const VT_HREF: flatbuffers::VOffsetT = 36;
+  pub const VT_TARGET: flatbuffers::VOffsetT = 38;
+  pub const VT_SEMANTIC_NODE_ID: flatbuffers::VOffsetT = 40;
 
   #[inline]
   pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
@@ -22046,6 +22731,8 @@ impl<'a> TextNode<'a> {
   ) -> flatbuffers::WIPOffset<TextNode<'bldr>> {
     let mut builder = TextNodeBuilder::new(_fbb);
     if let Some(x) = args.semantic_node_id { builder.add_semantic_node_id(x); }
+    if let Some(x) = args.target { builder.add_target(x); }
+    if let Some(x) = args.href { builder.add_href(x); }
     builder.add_opacity(args.opacity);
     if let Some(x) = args.color { builder.add_color(x); }
     builder.add_max_lines(args.max_lines);
@@ -22179,6 +22866,20 @@ impl<'a> TextNode<'a> {
     unsafe { self._tab.get::<i8>(TextNode::VT_HEADING_LEVEL, Some(0)).unwrap()}
   }
   #[inline]
+  pub fn href(&self) -> Option<&'a str> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(TextNode::VT_HREF, None)}
+  }
+  #[inline]
+  pub fn target(&self) -> Option<&'a str> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(TextNode::VT_TARGET, None)}
+  }
+  #[inline]
   pub fn semantic_node_id(&self) -> Option<&'a str> {
     // Safety:
     // Created from valid Table for this object
@@ -22210,6 +22911,8 @@ impl flatbuffers::Verifiable for TextNode<'_> {
      .visit_field::<Color>("color", Self::VT_COLOR, false)?
      .visit_field::<f32>("opacity", Self::VT_OPACITY, false)?
      .visit_field::<i8>("heading_level", Self::VT_HEADING_LEVEL, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("href", Self::VT_HREF, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("target", Self::VT_TARGET, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<&str>>("semantic_node_id", Self::VT_SEMANTIC_NODE_ID, false)?
      .finish();
     Ok(())
@@ -22232,6 +22935,8 @@ pub struct TextNodeArgs<'a> {
     pub color: Option<&'a Color>,
     pub opacity: f32,
     pub heading_level: i8,
+    pub href: Option<flatbuffers::WIPOffset<&'a str>>,
+    pub target: Option<flatbuffers::WIPOffset<&'a str>>,
     pub semantic_node_id: Option<flatbuffers::WIPOffset<&'a str>>,
 }
 impl<'a> Default for TextNodeArgs<'a> {
@@ -22254,6 +22959,8 @@ impl<'a> Default for TextNodeArgs<'a> {
       color: None,
       opacity: 1.0,
       heading_level: 0,
+      href: None,
+      target: None,
       semantic_node_id: None,
     }
   }
@@ -22329,6 +23036,14 @@ impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> TextNodeBuilder<'a, 'b, A> {
     self.fbb_.push_slot::<i8>(TextNode::VT_HEADING_LEVEL, heading_level, 0);
   }
   #[inline]
+  pub fn add_href(&mut self, href: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(TextNode::VT_HREF, href);
+  }
+  #[inline]
+  pub fn add_target(&mut self, target: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(TextNode::VT_TARGET, target);
+  }
+  #[inline]
   pub fn add_semantic_node_id(&mut self, semantic_node_id: flatbuffers::WIPOffset<&'b  str>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(TextNode::VT_SEMANTIC_NODE_ID, semantic_node_id);
   }
@@ -22367,6 +23082,8 @@ impl core::fmt::Debug for TextNode<'_> {
       ds.field("color", &self.color());
       ds.field("opacity", &self.opacity());
       ds.field("heading_level", &self.heading_level());
+      ds.field("href", &self.href());
+      ds.field("target", &self.target());
       ds.field("semantic_node_id", &self.semantic_node_id());
       ds.finish()
   }

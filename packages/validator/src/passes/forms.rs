@@ -49,7 +49,27 @@ const CODES: &[CodeMeta] = &[
                text — placeholders disappear on focus.",
         fix_confidence: Some(Confidence::Suggested),
     },
+    CodeMeta {
+        code: "FRM010",
+        summary: "FormLayout.direction is not a valid LayoutDirection",
+        hint: "`direction` must be one of \"Row\", \"Column\", \"RowReverse\", \
+               or \"ColumnReverse\" (matching the LayoutDirection enum). \
+               Anything else is rejected by the compiler. Omit the field to \
+               keep the default Column layout.",
+        fix_confidence: None,
+    },
+    CodeMeta {
+        code: "FRM011",
+        summary: "FormLayout.button_alignment is not a valid FormButtonAlignment",
+        hint: "`button_alignment` must be one of \"Start\", \"Center\", \"End\", \
+               or \"Stretch\". Omit the field to keep the default Start \
+               alignment, which matches the S61 baseline form CSS.",
+        fix_confidence: None,
+    },
 ];
+
+const VALID_LAYOUT_DIRECTIONS: &[&str] = &["Row", "Column", "RowReverse", "ColumnReverse"];
+const VALID_BUTTON_ALIGNMENTS: &[&str] = &["Start", "Center", "End", "Stretch"];
 
 impl ValidationPass for FormsPass {
     fn name(&self) -> &'static str {
@@ -107,6 +127,42 @@ impl FormsPass {
                 pass: self.name().to_string(),
                 hint: None,
             });
+        }
+
+        // FRM010 / FRM011: validate FormLayout enum values when present.
+        // Optional fields, so absence is fine; only check declared values.
+        if let Some(ref layout) = form.layout {
+            if let Some(ref dir) = layout.direction {
+                if !VALID_LAYOUT_DIRECTIONS.contains(&dir.as_str()) {
+                    result.diagnostics.push(Diagnostic {
+                        severity: Severity::Error,
+                        code: "FRM010".to_string(),
+                        message: format!(
+                            "FormLayout.direction \"{dir}\" is not a valid LayoutDirection \
+                             (expected one of: Row, Column, RowReverse, ColumnReverse)"
+                        ),
+                        node_path: format!("{path}/layout"),
+                        pass: self.name().to_string(),
+                        hint: None,
+                    });
+                }
+            }
+
+            if let Some(ref align) = layout.button_alignment {
+                if !VALID_BUTTON_ALIGNMENTS.contains(&align.as_str()) {
+                    result.diagnostics.push(Diagnostic {
+                        severity: Severity::Error,
+                        code: "FRM011".to_string(),
+                        message: format!(
+                            "FormLayout.button_alignment \"{align}\" is not a valid \
+                             FormButtonAlignment (expected one of: Start, Center, End, Stretch)"
+                        ),
+                        node_path: format!("{path}/layout"),
+                        pass: self.name().to_string(),
+                        hint: None,
+                    });
+                }
+            }
         }
 
         // FRM002: Must have submission config

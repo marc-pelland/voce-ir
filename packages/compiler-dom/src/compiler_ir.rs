@@ -63,6 +63,9 @@ pub struct CompiledForm {
     pub action_endpoint: Option<String>,
     pub action_method: String,
     pub progressive: bool,
+    /// Optional form-level layout overrides (S72 §2). When `None`, the
+    /// compiler emits its baseline form CSS.
+    pub layout: Option<CompiledFormLayout>,
 }
 
 #[derive(Debug, Clone)]
@@ -76,6 +79,9 @@ pub struct CompiledFormField {
     pub description: Option<String>,
     /// Options for Select, Radio fields.
     pub options: Vec<String>,
+    /// Optional per-field visual styling (S72 §2). When `None`, the
+    /// compiler emits its baseline field CSS.
+    pub style: Option<CompiledFormFieldStyle>,
 }
 
 #[derive(Debug, Clone)]
@@ -83,6 +89,38 @@ pub struct CompiledValidationRule {
     pub rule_type: String,
     pub value: Option<String>,
     pub message: String,
+}
+
+/// Compiler-side mirror of the `FormFieldStyle` schema table. Only the
+/// CSS-relevant scalars are extracted; complex nested types (Color,
+/// Length, EdgeInsets, etc.) are stringified into raw CSS values during
+/// ingest so the emit pass doesn't have to re-walk JSON.
+#[derive(Debug, Clone, Default)]
+pub struct CompiledFormFieldStyle {
+    pub padding: Option<String>,
+    pub border: Option<String>,
+    pub corner_radius: Option<String>,
+    pub background: Option<String>,
+    pub text_color: Option<String>,
+    pub placeholder_color: Option<String>,
+    pub font_family: Option<String>,
+    pub font_size: Option<String>,
+    pub font_weight: Option<String>,
+    pub line_height: Option<String>,
+    pub focus_style: Option<Box<CompiledFormFieldStyle>>,
+    pub error_style: Option<Box<CompiledFormFieldStyle>>,
+    pub disabled_style: Option<Box<CompiledFormFieldStyle>>,
+}
+
+/// Compiler-side mirror of the `FormLayout` schema table.
+#[derive(Debug, Clone, Default)]
+pub struct CompiledFormLayout {
+    pub direction: Option<String>,
+    pub gap: Option<String>,
+    pub max_width: Option<String>,
+    pub padding: Option<String>,
+    pub wrap: bool,
+    pub button_alignment: Option<String>,
 }
 
 /// A state machine ready for JS compilation.

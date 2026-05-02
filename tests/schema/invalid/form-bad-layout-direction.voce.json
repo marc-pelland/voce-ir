@@ -1,0 +1,21 @@
+{
+  "root": {
+    "node_id": "root",
+    "children": [
+      {
+        "value_type": "FormNode",
+        "value": {
+          "node_id": "bad-direction-form",
+          "fields": [
+            { "name": "email", "field_type": "Email", "label": "Email" }
+          ],
+          "submission": { "action_node_id": "submit-action" },
+          "layout": {
+            "direction": "Diagonal",
+            "button_alignment": "Floaty"
+          }
+        }
+      }
+    ]
+  }
+}

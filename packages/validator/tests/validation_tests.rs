@@ -195,6 +195,44 @@ fn frm001_form_no_fields() {
     );
 }
 
+#[test]
+fn frm010_invalid_layout_direction() {
+    // FormLayout.direction = "Diagonal" should produce FRM010.
+    let json = load_fixture("invalid/form-bad-layout-direction.voce.json");
+    let codes = error_codes(&json);
+    assert!(
+        codes.contains(&"FRM010".to_string()),
+        "Expected FRM010 for invalid FormLayout.direction, got: {codes:?}"
+    );
+}
+
+#[test]
+fn frm011_invalid_button_alignment() {
+    // FormLayout.button_alignment = "Floaty" should produce FRM011.
+    let json = load_fixture("invalid/form-bad-layout-direction.voce.json");
+    let codes = error_codes(&json);
+    assert!(
+        codes.contains(&"FRM011".to_string()),
+        "Expected FRM011 for invalid FormLayout.button_alignment, got: {codes:?}"
+    );
+}
+
+#[test]
+fn form_with_style_and_layout_validates_cleanly() {
+    // Valid IR using the new FormFieldStyle + FormLayout fields.
+    let json = load_fixture("valid/form-with-style-and-layout.voce.json");
+    let result = validate(&json).unwrap();
+    let form_errors: Vec<_> = result
+        .diagnostics
+        .iter()
+        .filter(|d| d.severity == Severity::Error && d.code.starts_with("FRM"))
+        .collect();
+    assert!(
+        form_errors.is_empty(),
+        "Form with style + layout should produce no FRM errors, got: {form_errors:#?}"
+    );
+}
+
 // ─── i18n Pass ──────────────────────────────────────────────────
 
 #[test]

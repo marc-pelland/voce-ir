@@ -1,0 +1,77 @@
+{
+  "schema_version_major": 0,
+  "schema_version_minor": 2,
+  "root": {
+    "node_id": "root",
+    "document_language": "en",
+    "children": [
+      {
+        "value_type": "FormNode",
+        "value": {
+          "node_id": "styled-contact-form",
+          "fields": [
+            {
+              "name": "email",
+              "field_type": "Email",
+              "label": "Email",
+              "autocomplete": "Email",
+              "validations": [
+                { "rule_type": "Email", "message": "Please enter a valid email address." }
+              ],
+              "style": {
+                "padding": {
+                  "top": { "value": 12.0, "unit": "Px" },
+                  "right": { "value": 14.0, "unit": "Px" },
+                  "bottom": { "value": 12.0, "unit": "Px" },
+                  "left": { "value": 14.0, "unit": "Px" }
+                },
+                "background": { "r": 255, "g": 255, "b": 255, "a": 255 },
+                "text_color": { "r": 17, "g": 17, "b": 17, "a": 255 },
+                "font_size": { "value": 16.0, "unit": "Px" },
+                "corner_radius": {
+                  "top_left": { "value": 6.0, "unit": "Px" },
+                  "top_right": { "value": 6.0, "unit": "Px" },
+                  "bottom_right": { "value": 6.0, "unit": "Px" },
+                  "bottom_left": { "value": 6.0, "unit": "Px" }
+                },
+                "focus_style": {
+                  "background": { "r": 250, "g": 250, "b": 255, "a": 255 }
+                },
+                "error_style": {
+                  "text_color": { "r": 200, "g": 30, "b": 30, "a": 255 }
+                }
+              }
+            },
+            {
+              "name": "message",
+              "field_type": "Textarea",
+              "label": "Message"
+            }
+          ],
+          "submission": { "action_node_id": "submit-action", "progressive": true },
+          "layout": {
+            "direction": "Column",
+            "gap": { "value": 16.0, "unit": "Px" },
+            "max_width": { "value": 480.0, "unit": "Px" },
+            "padding": {
+              "top": { "value": 16.0, "unit": "Px" },
+              "right": { "value": 0.0, "unit": "Px" },
+              "bottom": { "value": 16.0, "unit": "Px" },
+              "left": { "value": 0.0, "unit": "Px" }
+            },
+            "wrap": false,
+            "button_alignment": "End"
+          },
+          "semantic_node_id": "form-semantic"
+        }
+      }
+    ],
+    "semantic_nodes": [
+      {
+        "node_id": "form-semantic",
+        "role": "form",
+        "label": "Contact form"
+      }
+    ]
+  }
+}

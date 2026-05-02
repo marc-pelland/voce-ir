@@ -331,6 +331,8 @@ pub struct FormNode {
     pub fields: Option<Vec<FormField>>,
     pub submission: Option<FormSubmission>,
     pub semantic_node_id: Option<String>,
+    /// Optional layout overrides — added in S72 §2.
+    pub layout: Option<FormLayout>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -342,6 +344,8 @@ pub struct FormField {
     pub semantic_node_id: Option<String>,
     pub autocomplete: Option<String>,
     pub description: Option<String>,
+    /// Optional visual styling — added in S72 §2.
+    pub style: Option<FormFieldStyle>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -356,6 +360,42 @@ pub struct FormSubmission {
     pub action_node_id: Option<String>,
     #[serde(default)]
     pub progressive: bool,
+}
+
+/// Per-field visual styling. All inner properties are optional — the
+/// compiler falls back to its baseline form CSS for any unset value.
+/// Per-state overrides (`focus_style`, `error_style`, `disabled_style`)
+/// inherit from the base style; only declared properties override.
+/// See `FormFieldStyle` in `packages/schema/schemas/forms.fbs`.
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct FormFieldStyle {
+    pub padding: Option<serde_json::Value>,
+    pub border: Option<serde_json::Value>,
+    pub corner_radius: Option<serde_json::Value>,
+    pub background: Option<serde_json::Value>,
+    pub text_color: Option<serde_json::Value>,
+    pub placeholder_color: Option<serde_json::Value>,
+    pub font_family: Option<String>,
+    pub font_size: Option<serde_json::Value>,
+    pub font_weight: Option<String>,
+    pub line_height: Option<serde_json::Value>,
+    pub focus_style: Option<Box<FormFieldStyle>>,
+    pub error_style: Option<Box<FormFieldStyle>>,
+    pub disabled_style: Option<Box<FormFieldStyle>>,
+}
+
+/// Form-level layout knobs. All fields optional — compiler falls back to
+/// the S61 baseline (column, gap 14px, max-width 520px) when absent.
+/// See `FormLayout` in `packages/schema/schemas/forms.fbs`.
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct FormLayout {
+    pub direction: Option<String>,
+    pub gap: Option<serde_json::Value>,
+    pub max_width: Option<serde_json::Value>,
+    pub padding: Option<serde_json::Value>,
+    #[serde(default)]
+    pub wrap: bool,
+    pub button_alignment: Option<String>,
 }
 
 // ─── SEO ────────────────────────────────────────────────────────

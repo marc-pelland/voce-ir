@@ -123,6 +123,43 @@ table SelectOption {
   disabled: bool = false;
 }
 
+/// Visual styling for an individual FormField. All fields are optional —
+/// the compiler falls back to its baseline form CSS for any unset
+/// property. Per-state overrides (focus_style, error_style,
+/// disabled_style) inherit from the base style and override only the
+/// properties they declare. Closes the biggest single gap surfaced by
+/// the S72 schema completeness audit (S72 §1).
+table FormFieldStyle {
+  /// Inner padding (between border and content).
+  padding: EdgeInsets;
+  /// Border on all four sides.
+  border: BorderSides;
+  /// Rounded corners on the input itself.
+  corner_radius: CornerRadii;
+  /// Background fill for the input.
+  background: Color;
+  /// Text color for the value the user types.
+  text_color: Color;
+  /// Placeholder color (shown when input is empty).
+  placeholder_color: Color;
+  /// Font family — references a typography token; opaque to the schema.
+  font_family: string;
+  /// Font size as a length (px, rem, em).
+  font_size: Length;
+  /// Font weight (100-900, "normal", "bold").
+  font_weight: string;
+  /// Line height as a length.
+  line_height: Length;
+
+  /// Style override applied while the input has focus.
+  /// Inherits from the base style; only declared properties override.
+  focus_style: FormFieldStyle;
+  /// Style override applied when the field has a validation error.
+  error_style: FormFieldStyle;
+  /// Style override applied when the field is disabled.
+  disabled_style: FormFieldStyle;
+}
+
 table FormField {
   /// Field identifier (used as form submission key).
   name: string (required);
@@ -165,6 +202,11 @@ table FormField {
 
   /// Accessibility.
   semantic_node_id: string;
+
+  /// Visual styling for the field. Optional — when absent, the compiler
+  /// emits its baseline form CSS. Closes the visual customization gap
+  /// surfaced by the S72 schema completeness audit (S72 §1).
+  style: FormFieldStyle;
 }
 
 // ─── Form Submission ────────────────────────────────────────────
@@ -205,6 +247,35 @@ table AutosaveConfig {
   storage_key: string;
 }
 
+/// Submit-button placement relative to the field stack.
+enum FormButtonAlignment : byte {
+  Start = 0,
+  Center,
+  End,
+  Stretch
+}
+
+/// Layout knobs for the form as a whole. Optional — the compiler falls
+/// back to the S61 baseline (column, gap 14px, max-width 520px) when
+/// absent. Lets authors choose stacked vs. inline forms without
+/// overriding the global stylesheet (which the IR doesn't support).
+/// Added in S72 §2 to close the gap surfaced by the audit.
+table FormLayout {
+  /// Field flow direction (Row = inline, Column = stacked).
+  direction: LayoutDirection = Column;
+  /// Spacing between consecutive fields.
+  gap: Length;
+  /// Maximum visual width of the form. Beyond this, the form is
+  /// centered in its container.
+  max_width: Length;
+  /// Inner padding around the entire form.
+  padding: EdgeInsets;
+  /// Whether fields should wrap when overflowing on inline layouts.
+  wrap: bool = false;
+  /// Submit-button alignment within the form.
+  button_alignment: FormButtonAlignment = Start;
+}
+
 table FormNode {
   node_id: string (required);
   name: string;
@@ -224,4 +295,9 @@ table FormNode {
 
   /// Accessibility.
   semantic_node_id: string;
+
+  /// Form-level layout (direction, gap, max width, padding, button
+  /// alignment). Optional — the compiler emits its baseline form CSS
+  /// when absent. Added in S72 §2.
+  layout: FormLayout;
 }
