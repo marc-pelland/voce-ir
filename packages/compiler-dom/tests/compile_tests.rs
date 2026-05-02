@@ -266,3 +266,120 @@ fn size_bytes_matches_html_length() {
     let result = compile(json, &CompileOptions::default()).unwrap();
     assert_eq!(result.size_bytes, result.html.len());
 }
+
+// ─── S70 Day 1: CSP hardening ───────────────────────────────────
+
+#[test]
+fn default_csp_includes_hardened_directives() {
+    // Plain IR — no inline scripts. CSP should have all four new directives.
+    let json = r#"{ "root": { "node_id": "root" } }"#;
+    let result = compile(json, &CompileOptions::default()).unwrap();
+    assert!(
+        result.html.contains("frame-ancestors 'none'"),
+        "frame-ancestors missing"
+    );
+    assert!(result.html.contains("base-uri 'self'"), "base-uri missing");
+    assert!(
+        result.html.contains("form-action 'self'"),
+        "form-action missing"
+    );
+}
+
+#[test]
+fn default_csp_drops_unsafe_inline_for_scripts() {
+    let json = r#"{ "root": { "node_id": "root" } }"#;
+    let result = compile(json, &CompileOptions::default()).unwrap();
+    let csp_line = result
+        .html
+        .lines()
+        .find(|l| l.contains("Content-Security-Policy"))
+        .expect("CSP meta tag present");
+    // Slice out the script-src segment to avoid matching style-src's 'unsafe-inline'.
+    let after_script = csp_line.split("script-src").nth(1).unwrap();
+    let script_segment = after_script.split(';').next().unwrap();
+    assert!(
+        !script_segment.contains("'unsafe-inline'"),
+        "script-src should not allow inline scripts; got: {script_segment}"
+    );
+}
+
+#[test]
+fn csp_includes_sha256_for_inline_script_when_emitted() {
+    // GestureHandler causes the compiler to emit interactive JS — the script
+    // body must round-trip through the CSP as a sha256 source.
+    let json = r#"{
+        "root": {
+            "node_id": "root",
+            "children": [
+                {
+                    "value_type": "GestureHandler",
+                    "value": {
+                        "node_id": "tap-handler",
+                        "gesture_type": "Tap",
+                        "target_node_id": "btn",
+                        "keyboard_equivalent": "Enter"
+                    }
+                },
+                {
+                    "value_type": "TextNode",
+                    "value": { "node_id": "btn", "content": "click me" }
+                }
+            ]
+        }
+    }"#;
+    let result = compile(json, &CompileOptions::default()).unwrap();
+    let csp_line = result
+        .html
+        .lines()
+        .find(|l| l.contains("Content-Security-Policy"))
+        .expect("CSP meta tag");
+    assert!(
+        csp_line.contains("'sha256-"),
+        "expected sha256 hash in script-src; got: {csp_line}"
+    );
+}
+
+#[test]
+fn page_metadata_csp_override_replaces_default() {
+    let json = r#"{
+        "root": {
+            "node_id": "root",
+            "metadata": {
+                "title": "x",
+                "content_security_policy": "default-src 'none'; img-src https:"
+            },
+            "children": []
+        }
+    }"#;
+    let result = compile(json, &CompileOptions::default()).unwrap();
+    let csp_line = result
+        .html
+        .lines()
+        .find(|l| l.contains("Content-Security-Policy"))
+        .expect("CSP meta tag");
+    assert!(
+        csp_line.contains("default-src 'none'") && csp_line.contains("img-src https:"),
+        "override didn't take effect; got: {csp_line}"
+    );
+    // Override is verbatim — no hardened directives merged in.
+    assert!(
+        !csp_line.contains("frame-ancestors"),
+        "override should NOT auto-merge defaults"
+    );
+}
+
+#[test]
+fn empty_csp_override_falls_back_to_default() {
+    let json = r#"{
+        "root": {
+            "node_id": "root",
+            "metadata": { "title": "x", "content_security_policy": "   " },
+            "children": []
+        }
+    }"#;
+    let result = compile(json, &CompileOptions::default()).unwrap();
+    assert!(
+        result.html.contains("frame-ancestors 'none'"),
+        "blank override should not suppress the hardened default"
+    );
+}

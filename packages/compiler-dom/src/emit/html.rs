@@ -43,8 +43,25 @@ pub fn emit(ir: &CompilerIr, options: &CompileOptions) -> HtmlOutput {
         })
         .collect();
 
+    // S70 Day 1: pre-compute every inline script the compiler will emit so
+    // the CSP `<meta>` tag in <head> can reference them by SHA-256 hash. The
+    // emitted bytes below MUST match the hashed bytes exactly — any whitespace
+    // change here will require recomputing the digest.
+    let interactive_js = crate::emit::js::emit_js(ir);
+    let mut script_hashes: Vec<String> = Vec::new();
+    for jsonld in &ir.meta.structured_data {
+        // The JSON-LD body is wrapped with leading + trailing newlines; the
+        // hash covers the same bytes that land between <script> and </script>.
+        script_hashes.push(crate::emit::csp::hash_script(&format!("\n{jsonld}\n")));
+    }
+    if !interactive_js.is_empty() {
+        script_hashes.push(crate::emit::csp::hash_script(&format!(
+            "\n{interactive_js}"
+        )));
+    }
+
     // Head
-    emit_head(&mut html, ir, &preload_images, options);
+    emit_head(&mut html, ir, &preload_images, options, &script_hashes);
 
     // Collect IDs that gesture handlers target — these need data-voce-id attributes
     let interactive_targets: std::collections::HashSet<String> = ir
@@ -60,11 +77,10 @@ pub fn emit(ir: &CompilerIr, options: &CompileOptions) -> HtmlOutput {
         emit_node_safe(&mut html, ir, child_id, 1, options, &interactive_targets);
     }
 
-    // Emit JS if interactive
-    let js = crate::emit::js::emit_js(ir);
-    if !js.is_empty() {
+    // Emit JS if interactive (matches the bytes hashed above).
+    if !interactive_js.is_empty() {
         html.push_str("<script>\n");
-        html.push_str(&js);
+        html.push_str(&interactive_js);
         html.push_str("</script>\n");
     }
 
@@ -79,13 +95,19 @@ fn emit_head(
     ir: &CompilerIr,
     preload_images: &[String],
     options: &CompileOptions,
+    script_hashes: &[String],
 ) {
     html.push_str("<head>\n");
     html.push_str("<meta charset=\"UTF-8\">\n");
     html.push_str("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n");
 
-    // Content Security Policy
-    html.push_str("<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:\">\n");
+    // S70 Day 1: per-script-hash CSP. An IR can override via PageMetadata's
+    // content_security_policy field; otherwise the hardened default applies.
+    let csp = crate::emit::csp::resolve(ir.meta.csp_override.as_deref(), script_hashes);
+    html.push_str(&format!(
+        "<meta http-equiv=\"Content-Security-Policy\" content=\"{}\">\n",
+        escape_attr(&csp)
+    ));
 
     // Security headers
     html.push_str("<meta http-equiv=\"X-Content-Type-Options\" content=\"nosniff\">\n");

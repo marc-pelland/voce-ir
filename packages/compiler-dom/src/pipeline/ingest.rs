@@ -155,6 +155,11 @@ fn build_meta(root: &Value, doc: &Value) -> DocumentMeta {
                 .map(String::from);
             meta.og_image = og.get("image").and_then(|v| v.as_str()).map(String::from);
         }
+        meta.csp_override = pm
+            .get("content_security_policy")
+            .and_then(|v| v.as_str())
+            .filter(|s| !s.trim().is_empty())
+            .map(String::from);
     }
 
     // Extract structured data

@@ -181,6 +181,9 @@ pub struct DocumentMeta {
     pub theme_vars: Vec<(String, String)>,
     /// JSON-LD structured data blocks.
     pub structured_data: Vec<String>,
+    /// Per-IR Content Security Policy override (S70 Day 1). When set, the
+    /// compiler emits this verbatim in place of the hardened default.
+    pub csp_override: Option<String>,
 }
 
 /// A compiler node — wraps the type-specific data with common fields.

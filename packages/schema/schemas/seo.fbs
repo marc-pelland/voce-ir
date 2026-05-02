@@ -127,4 +127,11 @@ table PageMetadata {
 
   /// Custom meta tags (escape hatch).
   custom_meta: [MetaTag];
+
+  /// Override the compiler's default Content Security Policy for this page.
+  /// When set, the value replaces the entire policy verbatim (the compiler
+  /// does NOT merge directives). Use sparingly — the default is hardened
+  /// per S70: SHA-256-pinned scripts, frame-ancestors none, base-uri self,
+  /// form-action self.
+  content_security_policy: string;
 }
