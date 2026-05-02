@@ -22,7 +22,7 @@ import { join } from "node:path";
 import chalk from "chalk";
 
 import { appendSession, listDecisions, readBrief } from "@voce-ir/mcp-server/memory";
-import { TOOL_DEFINITIONS, executeTool } from "@voce-ir/mcp-server/tools";
+import { TOOL_DEFINITIONS } from "@voce-ir/mcp-server/tools";
 
 import { parseArgs } from "./cli-args.js";
 import { buildSystemPrompt } from "./prompt.js";
@@ -37,6 +37,8 @@ import type { LoopMessage } from "./tool-loop.js";
 import { clearPending, createAccumulator, feedLine } from "./multi-line.js";
 import { buildRegistry, type ChatState, type CommandContext } from "./commands/index.js";
 import { pushIrHistory } from "./commands/ir.js";
+import { wrapExecutor } from "./wrapped-executor.js";
+import type { Interface as ReadlineInterface } from "node:readline";
 
 // ── Config ──────────────────────────────────────────────────────
 
@@ -70,9 +72,17 @@ let client: Anthropic | null = null;
 let activeAbort: AbortController | null = null;
 let chatBusy = false;
 
+/** Ask the user a one-off question via the existing readline. Returns the
+ *  trimmed answer. Used by the wrapped executor for [Y/n/q] / [r/s/c]. */
+function askInline(rl: ReadlineInterface, prompt: string): Promise<string> {
+  return new Promise((resolve) => {
+    rl.question(chalk.cyan(prompt), (answer) => resolve(answer.trim()));
+  });
+}
+
 // ── Chat ────────────────────────────────────────────────────────
 
-async function chat(userMessage: string): Promise<void> {
+async function chat(userMessage: string, rl: ReadlineInterface): Promise<void> {
   if (!client) throw new Error("API client not initialized");
 
   state.conversationHistory.push({
@@ -87,6 +97,14 @@ async function chat(userMessage: string): Promise<void> {
   activeAbort = abort;
   chatBusy = true;
 
+  // Wrapped executor: intercepts voce_generate_propose for the readiness UI
+  // and voce_check_drift for [r/s/c] resolution. Both pause for user input
+  // via the same readline interface the REPL uses.
+  const interactiveExecutor = wrapExecutor({
+    ask: (prompt) => askInline(rl, prompt),
+    log: (msg) => console.log(msg),
+  });
+
   try {
     const result = await runToolLoop({
       client,
@@ -94,7 +112,7 @@ async function chat(userMessage: string): Promise<void> {
       system: state.systemPrompt,
       messages: state.conversationHistory as LoopMessage[],
       tools: TOOL_DEFINITIONS,
-      executor: executeTool,
+      executor: interactiveExecutor,
       signal: abort.signal,
       onText: (text) => process.stdout.write(text),
       onToolUse: (event) => {
@@ -110,6 +128,12 @@ async function chat(userMessage: string): Promise<void> {
             isError: event.result.isError ?? false,
           }),
         });
+      },
+      onUsage: (usage) => {
+        state.tokenUsage.input += usage.input_tokens ?? 0;
+        state.tokenUsage.output += usage.output_tokens ?? 0;
+        state.tokenUsage.cache_read += usage.cache_read_input_tokens ?? 0;
+        state.tokenUsage.cache_creation += usage.cache_creation_input_tokens ?? 0;
       },
     });
 
@@ -198,10 +222,6 @@ async function main() {
     exit: (code = 0) => process.exit(code),
   };
 
-  if (args.initialPrompt && client) {
-    await chat(args.initialPrompt);
-  }
-
   const rl = createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -209,6 +229,10 @@ async function main() {
     historySize: 100,
   });
   const acc = createAccumulator();
+
+  if (args.initialPrompt && client) {
+    await chat(args.initialPrompt, rl);
+  }
   rl.prompt();
 
   rl.on("line", async (line: string) => {
@@ -235,7 +259,7 @@ async function main() {
           if ("submitText" in result && result.submitText !== undefined) {
             // /explain (or any future command) can ask the chat to handle text.
             if (client) {
-              await chat(result.submitText);
+              await chat(result.submitText, rl);
             } else {
               ctx.log(chalk.yellow("Set ANTHROPIC_API_KEY to use this command."));
             }
@@ -259,7 +283,7 @@ async function main() {
       return;
     }
 
-    await chat(input);
+    await chat(input, rl);
     rl.prompt();
   });
 

@@ -40,14 +40,26 @@ export interface LoopOpts {
   messages: LoopMessage[];
   /** Tool definitions in MCP shape — converted to Anthropic shape internally. */
   tools: readonly ToolDefinition[];
-  /** Synchronous tool runner. Wired to executeTool from @voce-ir/mcp-server/tools. */
-  executor: (name: string, args: Record<string, unknown> | undefined) => ToolResult;
+  /** Tool runner — sync OR async. cli-chat wraps it to gate proposes on
+   *  readiness UI and surface drift push-back, both of which need to await
+   *  user input. The MCP server passes a sync version. */
+  executor: (
+    name: string,
+    args: Record<string, unknown> | undefined,
+  ) => ToolResult | Promise<ToolResult>;
   /** Hook invoked for each text chunk from the model. */
   onText?: (text: string) => void;
   /** Hook invoked when the model decides to call a tool. */
   onToolUse?: (event: { name: string; input: unknown }) => void;
   /** Hook invoked after each tool result is gathered. */
   onToolResult?: (event: ToolEvent) => void;
+  /** Hook invoked after each model turn returns, with the SDK's usage stats. */
+  onUsage?: (usage: {
+    input_tokens?: number;
+    output_tokens?: number;
+    cache_read_input_tokens?: number | null;
+    cache_creation_input_tokens?: number | null;
+  }) => void;
   /** Safety cap so a runaway loop terminates. Default 12 — enough for the full
    *  start → 5 answers → propose → finalize chain plus a few sanity checks. */
   maxTurns?: number;
@@ -95,19 +107,41 @@ export async function runToolLoop(opts: LoopOpts): Promise<LoopResult> {
 
     // The Anthropic SDK accepts content arrays directly — our LoopMessage
     // shape is structurally identical aside from the tool_result branch.
+    // System + tools are stable across turns within a session — mark them
+    // with ephemeral cache_control so subsequent turns hit the cache. The
+    // tools array gets the marker on its last entry; the SDK applies it
+    // to the whole tool list.
+    const systemBlocks = [
+      { type: "text" as const, text: opts.system, cache_control: { type: "ephemeral" as const } },
+    ];
+    const toolsWithCache = tools.map((t, i) =>
+      i === tools.length - 1
+        ? { ...t, cache_control: { type: "ephemeral" as const } }
+        : t,
+    );
+
     const response = await opts.client.messages.create(
       {
         model: opts.model,
         max_tokens: 4096,
-        system: opts.system,
-        tools,
-        // Cast: SDK types include extra block variants we don't emit.
+        // Cast: SDK accepts both string and content-array forms; we use the
+        // array form so the ephemeral cache_control marker can attach.
+        system: systemBlocks as unknown as Parameters<
+          typeof opts.client.messages.create
+        >[0]["system"],
+        tools: toolsWithCache as unknown as Parameters<
+          typeof opts.client.messages.create
+        >[0]["tools"],
         messages: opts.messages as unknown as Parameters<
           typeof opts.client.messages.create
         >[0]["messages"],
       },
       opts.signal !== undefined ? { signal: opts.signal } : undefined,
     );
+
+    if (opts.onUsage !== undefined && response.usage !== undefined) {
+      opts.onUsage(response.usage);
+    }
 
     const assistantBlocks: ContentBlock[] = [];
     const toolResults: ContentBlock[] = [];
@@ -120,10 +154,11 @@ export async function runToolLoop(opts: LoopOpts): Promise<LoopResult> {
         if (ir !== null) capturedIr = ir;
         assistantBlocks.push({ type: "text", text: block.text });
       } else if (block.type === "tool_use") {
+        const result = await opts.executor(block.name, block.input as Record<string, unknown>);
         const event = {
           name: block.name,
           input: block.input,
-          result: opts.executor(block.name, block.input as Record<string, unknown>),
+          result,
         };
         events.push(event);
         opts.onToolUse?.({ name: block.name, input: block.input });
