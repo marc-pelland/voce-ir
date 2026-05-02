@@ -21,23 +21,15 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import chalk from "chalk";
 
-import { appendSession, listDecisions, readBrief } from "@voce-ir/mcp-server/memory";
-import { TOOL_DEFINITIONS } from "@voce-ir/mcp-server/tools";
+import { listDecisions, readBrief } from "@voce-ir/mcp-server/memory";
 
 import { parseArgs } from "./cli-args.js";
 import { buildSystemPrompt } from "./prompt.js";
-import {
-  logAssistantTurn,
-  logSystemEvent,
-  logUserTurn,
-  resolveSession,
-} from "./session-manager.js";
-import { runToolLoop, ToolLoopAborted } from "./tool-loop.js";
-import type { LoopMessage } from "./tool-loop.js";
+import { logSystemEvent, resolveSession } from "./session-manager.js";
 import { clearPending, createAccumulator, feedLine } from "./multi-line.js";
 import { buildRegistry, type ChatState, type CommandContext } from "./commands/index.js";
-import { pushIrHistory } from "./commands/ir.js";
 import { wrapExecutor } from "./wrapped-executor.js";
+import { processChatTurn } from "./chat-flow.js";
 import type { Interface as ReadlineInterface } from "node:readline";
 
 // ── Config ──────────────────────────────────────────────────────
@@ -85,12 +77,6 @@ function askInline(rl: ReadlineInterface, prompt: string): Promise<string> {
 async function chat(userMessage: string, rl: ReadlineInterface): Promise<void> {
   if (!client) throw new Error("API client not initialized");
 
-  state.conversationHistory.push({
-    role: "user",
-    content: [{ type: "text", text: userMessage }],
-  });
-  logUserTurn(state.sessionId, userMessage);
-
   process.stdout.write(chalk.cyan("\nvoce "));
 
   const abort = new AbortController();
@@ -106,59 +92,28 @@ async function chat(userMessage: string, rl: ReadlineInterface): Promise<void> {
   });
 
   try {
-    const result = await runToolLoop({
-      client,
-      model: state.model,
-      system: state.systemPrompt,
-      messages: state.conversationHistory as LoopMessage[],
-      tools: TOOL_DEFINITIONS,
+    const result = await processChatTurn(state, client, {
       executor: interactiveExecutor,
       signal: abort.signal,
       onText: (text) => process.stdout.write(text),
       onToolUse: (event) => {
         process.stdout.write(chalk.dim(`\n  ↳ ${event.name}\n  `));
       },
-      onToolResult: (event) => {
-        appendSession(state.sessionId, {
-          role: "tool",
-          tool: event.name,
-          content: JSON.stringify({
-            input: event.input,
-            result: event.result.content[0]?.text ?? "",
-            isError: event.result.isError ?? false,
-          }),
-        });
-      },
-      onUsage: (usage) => {
-        state.tokenUsage.input += usage.input_tokens ?? 0;
-        state.tokenUsage.output += usage.output_tokens ?? 0;
-        state.tokenUsage.cache_read += usage.cache_read_input_tokens ?? 0;
-        state.tokenUsage.cache_creation += usage.cache_creation_input_tokens ?? 0;
-      },
-    });
+    }, userMessage);
 
     console.log(); // newline after final text
 
-    if (result.capturedIr !== null) {
-      pushIrHistory({ state }, result.capturedIr);
-      logAssistantTurn(state.sessionId, result.finalText, result.capturedIr);
+    if (result.aborted) {
+      console.log(chalk.yellow("(cancelled — back to prompt)"));
+    } else if (result.error !== null) {
+      console.log(chalk.red("\nError:"), result.error.message);
+    } else if (result.capturedIr !== null) {
       console.log(
-        chalk.dim(
-          "\nIR captured. /compile, /validate, /save, /preview, /diff, /undo.",
-        ),
+        chalk.dim("\nIR captured. /compile, /validate, /save, /preview, /diff, /undo."),
       );
-    } else {
-      logAssistantTurn(state.sessionId, result.finalText);
     }
-
-    if (!result.completed) {
+    if (!result.aborted && result.error === null && !result.completed) {
       console.log(chalk.yellow("Tool-use loop hit its turn cap. Reply to continue."));
-    }
-  } catch (err) {
-    if (err instanceof ToolLoopAborted) {
-      console.log(chalk.yellow("\n(cancelled — back to prompt)"));
-    } else {
-      console.log(chalk.red("\nError:"), (err as Error).message);
     }
   } finally {
     activeAbort = null;

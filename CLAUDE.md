@@ -25,17 +25,19 @@ Voce IR is an open-source AI-native UI intermediate representation — "SPIR-V f
 
 50 sprints. 15 Rust crates (including 5 adapter crates, playground-wasm). 4 TypeScript packages (+ site-hero added in S61). 7 compile targets (DOM, WebGPU, WASM, Hybrid, iOS/SwiftUI, Android/Compose, Email HTML). ~250 tests. Schema → Validator → Compiler → AI Bridge → Inspector → Ecosystem.
 
-**Phase 7 progress as of 2026-05-01:**
+**Phase 7 progress as of 2026-05-02:**
 
 | Sprint | Status |
 | --- | --- |
 | S51–S59 | Complete |
-| S61 (live pipeline hero) | Mostly shipped — `dist-integrated/` deploys via `pages.yml` |
+| S61 (live pipeline hero) | Complete — `dist-integrated/` deploys via `pages.yml`, nav fixed |
 | S64 (compiler rich defaults) | Complete |
+| S65 (MCP server polish) | Complete — 19 tools, 4 resources, `.voce/` storage layer, 5-phase generate workflow, drift v1, walkthrough docs |
+| S66 (standalone REPL) | Complete — tool-use loop, slash command framework + 18 commands, multi-line input, Ctrl+C, readiness + drift UX, prompt caching, 78ms cold start |
 | S67 (validator diagnostic quality) | Complete (Days 1–5: per-pass output, hints, fixes, `voce fix` CLI, docs URLs, severity config) |
-| S69 (test coverage) | Parts 1+2 of 4 (proptest + full-pipeline integration tests); coverage gate + mutation pilot deferred |
-| S72 (schema audit) | Part 1 of 3 (audit document shipped; schema additions deferred) |
-| S60, S62, S63, S65, S66, S68, S70, S71, S74, S82 | Scoped, untouched |
+| S69 (test coverage) | Complete — coverage gate (60% floor) + mutation pilot |
+| S72 (schema audit) | Complete — FormFieldStyle + FormLayout shipped |
+| S60, S62, S63, S68, S70, S71, S74, S82 | Scoped, untouched |
 
 Current task status — update this section as work progresses:
 - [x] Deep research & landscape analysis completed (`docs/research/DEEP_RESEARCH.md`)

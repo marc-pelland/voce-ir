@@ -1,7 +1,7 @@
 {
   "name": "@voce-ir/cli-chat",
-  "version": "0.1.0",
-  "description": "Voce IR conversational CLI — describe what you want, get production UI",
+  "version": "0.2.0",
+  "description": "Voce IR conversational CLI. Tool-use loop, .voce/ memory, slash commands, multi-line input, readiness + drift UI. Sister to @voce-ir/mcp-server.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -11,7 +11,8 @@
     "build": "tsup",
     "dev": "tsx src/index.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "bench:startup": "node scripts/bench-startup.mjs --runs 5"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.52.0",

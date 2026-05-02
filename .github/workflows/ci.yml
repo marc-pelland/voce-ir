@@ -119,6 +119,12 @@ jobs:
       - name: Build dist
         working-directory: packages/cli-chat
         run: npm run build
+      # S66 acceptance: cold start must stay under 500ms on dev hardware.
+      # GitHub runners are roughly comparable; threshold doubled to 1000ms
+      # so transient runner load doesn't flake the gate.
+      - name: Cold start benchmark
+        working-directory: packages/cli-chat
+        run: node scripts/bench-startup.mjs --runs 5 --max-ms 1000
 
   frontend-verify:
     name: Site-hero verifiers (round-trip + pass-list drift)
