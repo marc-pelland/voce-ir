@@ -25,7 +25,7 @@ Voce IR is an open-source AI-native UI intermediate representation — "SPIR-V f
 
 50 sprints. 15 Rust crates (including 5 adapter crates, playground-wasm). 4 TypeScript packages (+ site-hero added in S61). 7 compile targets (DOM, WebGPU, WASM, Hybrid, iOS/SwiftUI, Android/Compose, Email HTML). ~250 tests. Schema → Validator → Compiler → AI Bridge → Inspector → Ecosystem.
 
-**Phase 7 progress as of 2026-05-02:**
+**Phase 7 progress as of 2026-05-03:**
 
 | Sprint | Status |
 | --- | --- |
@@ -36,8 +36,9 @@ Voce IR is an open-source AI-native UI intermediate representation — "SPIR-V f
 | S66 (standalone REPL) | Complete — tool-use loop, slash command framework + 18 commands, multi-line input, Ctrl+C, readiness + drift UX, prompt caching, 78ms cold start |
 | S67 (validator diagnostic quality) | Complete (Days 1–5: per-pass output, hints, fixes, `voce fix` CLI, docs URLs, severity config) |
 | S69 (test coverage) | Complete — coverage gate (60% floor) + mutation pilot |
+| S70 (security hardening) | Complete — hardened CSP (per-script SHA-256 + frame-ancestors/base-uri/form-action), 5 new SEC rules (SEC005-009), prompt-injection delimiter + 15-attack corpus, adapter audit, STRIDE threat model, disclosure SLA, cargo audit + cargo deny + SBOM in CI |
 | S72 (schema audit) | Complete — FormFieldStyle + FormLayout shipped |
-| S60, S62, S63, S68, S70, S71, S74, S82 | Scoped, untouched |
+| S60, S62, S63, S68, S71, S74, S82 | Scoped, untouched |
 
 Current task status — update this section as work progresses:
 - [x] Deep research & landscape analysis completed (`docs/research/DEEP_RESEARCH.md`)

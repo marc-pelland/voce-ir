@@ -191,6 +191,42 @@ jobs:
             exit 1
           fi
 
+  sbom:
+    name: SBOM (CycloneDX, S70 Day 5)
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: sbom
+      # cargo-cyclonedx generates CycloneDX-format SBOMs covering every
+      # workspace member's dependency graph. Run after the main `check`
+      # job so we know the workspace builds cleanly first.
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-cyclonedx
+      - name: Generate SBOM (workspace)
+        run: cargo cyclonedx --format json --override-filename voce-sbom
+      # Each crate emits its own *.cdx.json under its directory; collect
+      # them so reviewers can audit per-crate or workspace-wide.
+      - name: Collect SBOMs
+        run: |
+          mkdir -p sbom-out
+          find . -name "voce-sbom.cdx.json" -not -path "./target/*" -exec sh -c '
+            for f; do
+              dir=$(dirname "$f" | sed "s|^\./||")
+              cp "$f" "sbom-out/${dir//\//_}.cdx.json"
+            done
+          ' sh {} +
+          ls -la sbom-out/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx
+          path: sbom-out/
+          if-no-files-found: error
+
   release:
     name: Build Release Binaries
     needs: check
@@ -237,7 +273,7 @@ jobs:
 
   publish-release:
     name: Create GitHub Release
-    needs: release
+    needs: [release, sbom]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
@@ -246,6 +282,17 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           merge-multiple: true
+      # Tarball the SBOM artifacts together so the release surface stays
+      # tidy — one *.tar.gz per binary plus one sbom-cyclonedx.tar.gz.
+      - name: Bundle SBOM artifacts
+        run: |
+          if [ -d sbom-out ] || ls *.cdx.json >/dev/null 2>&1; then
+            mkdir -p sbom-bundle
+            mv *.cdx.json sbom-bundle/ 2>/dev/null || true
+            [ -d sbom-out ] && cp -R sbom-out/* sbom-bundle/ || true
+            tar -czf sbom-cyclonedx.tar.gz -C sbom-bundle .
+          fi
+          ls -la *.tar.gz
       - uses: softprops/action-gh-release@v2
         with:
           files: "*.tar.gz"
