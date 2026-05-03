@@ -21,6 +21,8 @@ pub mod assets;
 pub mod cache;
 pub mod compiler_ir;
 pub mod emit;
+pub mod perf;
 pub mod pipeline;
 
+pub use perf::PerfReport;
 pub use pipeline::{CompileOptions, CompileResult, compile};

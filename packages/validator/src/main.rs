@@ -108,6 +108,10 @@ enum Commands {
         /// Disable compilation cache
         #[arg(long)]
         no_cache: bool,
+
+        /// Write a compile-time perf report (JSON sidecar) to this path (S71 Day 2).
+        #[arg(long, value_name = "PATH")]
+        perf_report: Option<PathBuf>,
     },
 
     /// Generate a compilation quality report
@@ -229,6 +233,7 @@ fn run(cli: Cli) -> Result<i32> {
             skip_fonts,
             minify,
             no_cache,
+            perf_report,
         } => cmd_compile(
             &file,
             output.as_deref(),
@@ -236,6 +241,7 @@ fn run(cli: Cli) -> Result<i32> {
             skip_fonts,
             minify,
             no_cache,
+            perf_report.as_deref(),
         ),
         Commands::Report { file, format } => cmd_report(&file, &format),
         Commands::Manifest { file } => cmd_manifest(&file),
@@ -413,12 +419,20 @@ fn cmd_compile(
     skip_fonts: bool,
     minify: bool,
     no_cache: bool,
+    perf_report: Option<&std::path::Path>,
 ) -> Result<i32> {
+    // S71 Day 2: when --perf-report is set, time the outer-process work
+    // (read, validate, write) and merge into the report alongside the
+    // compiler's internal phase timings.
+    let read_start = std::time::Instant::now();
     let json = std::fs::read_to_string(file)
         .with_context(|| format!("Failed to read {}", file.display()))?;
+    let read_dur = read_start.elapsed();
 
     // Validate first
+    let validate_start = std::time::Instant::now();
     let val_result = voce_validator::validate(&json).map_err(|e| anyhow::anyhow!("{e}"))?;
+    let validate_dur = validate_start.elapsed();
     if val_result.has_errors() {
         eprintln!(
             "voce compile: {} has {} validation error(s). Fix them before compiling.",
@@ -430,9 +444,10 @@ fn cmd_compile(
     }
 
     // Compile
-    // Check cache first (unless --no-cache)
+    // Check cache first (unless --no-cache OR --perf-report — the report
+    // is meaningless when the work it would measure was skipped).
     let project_dir = file.parent().unwrap_or(std::path::Path::new("."));
-    if !no_cache {
+    if !no_cache && perf_report.is_none() {
         let cache = voce_compiler_dom::cache::CompilationCache::new(project_dir);
         if let Some(cached_html) = cache.get(&json) {
             let out_path = output.map(PathBuf::from).unwrap_or_else(|| {
@@ -458,6 +473,7 @@ fn cmd_compile(
         debug_attrs: debug,
         skip_fonts,
         minify,
+        collect_perf_report: perf_report.is_some(),
         ..Default::default()
     };
 
@@ -474,12 +490,28 @@ fn cmd_compile(
         std::fs::create_dir_all(parent)?;
     }
 
+    let write_start = std::time::Instant::now();
     std::fs::write(&out_path, &result.html)?;
+    let write_dur = write_start.elapsed();
 
     // Cache the result
     if !no_cache {
         let cache = voce_compiler_dom::cache::CompilationCache::new(project_dir);
         let _ = cache.put(&json, &result.html);
+    }
+
+    // Emit the perf report sidecar if requested.
+    if let (Some(report_path), Some(mut report)) = (perf_report, result.perf_report) {
+        // Outer-process timings the compiler itself can't see.
+        report.add_phase("read_input", read_dur);
+        report.add_phase("validate", validate_dur);
+        report.add_phase("write_output", write_dur);
+        if let Some(parent) = report_path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::write(report_path, report.to_json_pretty())
+            .with_context(|| format!("Failed to write perf report to {}", report_path.display()))?;
+        eprintln!("  perf report: {}", report_path.display());
     }
 
     eprintln!(
