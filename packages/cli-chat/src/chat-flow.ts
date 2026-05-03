@@ -13,6 +13,7 @@ import { runToolLoop, ToolLoopAborted, type LoopMessage } from "./tool-loop.js";
 import type { ChatState } from "./commands/registry.js";
 import { logAssistantTurn, logUserTurn } from "./session-manager.js";
 import { pushIrHistory } from "./commands/ir.js";
+import { wrapUserInput } from "./safe-input.js";
 
 export interface ChatFlowDeps {
   /** Wrapped executor — already includes the interactive readiness/drift UI. */
@@ -45,9 +46,14 @@ export async function processChatTurn(
   deps: ChatFlowDeps,
   userMessage: string,
 ): Promise<ChatFlowResult> {
+  // S70 Day 3: wrap user-typed text in <user_input> tags before it reaches
+  // the model. The system prompt's PROMPT_INJECTION_GUARDRAIL paragraph
+  // tells the model to treat anything inside those tags as data, not
+  // instructions. The session ledger records the original (unwrapped)
+  // text so resume / replay shows what the user actually typed.
   state.conversationHistory.push({
     role: "user",
-    content: [{ type: "text", text: userMessage }],
+    content: [{ type: "text", text: wrapUserInput(userMessage) }],
   });
   logUserTurn(state.sessionId, userMessage);
 

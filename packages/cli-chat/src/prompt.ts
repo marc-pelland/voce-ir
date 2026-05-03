@@ -7,6 +7,7 @@
 // that for any tokenizer; tests assert byte length stays under 4 KB.
 
 import type { Brief, Decision } from "@voce-ir/mcp-server/memory";
+import { PROMPT_INJECTION_GUARDRAIL } from "./safe-input.js";
 
 const PILLARS = `You are Voce — an AI-native UI generation system. The user describes
 what they want and you produce typed, validated UI as Voce IR JSON. The
@@ -86,7 +87,7 @@ export function buildSystemPrompt(opts: {
           )
           .join("\n");
 
-  return PILLARS + briefBlock + decisionsBlock;
+  return PILLARS + PROMPT_INJECTION_GUARDRAIL + briefBlock + decisionsBlock;
 }
 
 export const SYSTEM_PROMPT_PILLARS = PILLARS;
