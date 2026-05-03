@@ -1,0 +1,15 @@
+{
+  "root": {
+    "node_id": "root",
+    "children": [
+      {
+        "value_type": "TextNode",
+        "value": {
+          "node_id": "link",
+          "content": "click",
+          "href": "javascript:alert(1)"
+        }
+      }
+    ]
+  }
+}

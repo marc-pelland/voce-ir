@@ -1,0 +1,16 @@
+{
+  "root": {
+    "node_id": "root",
+    "children": [
+      {
+        "value_type": "TextNode",
+        "value": {
+          "node_id": "link",
+          "content": "open in new tab",
+          "href": "https://example.com",
+          "target": "_blank2"
+        }
+      }
+    ]
+  }
+}

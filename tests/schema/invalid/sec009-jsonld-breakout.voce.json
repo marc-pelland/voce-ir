@@ -1,0 +1,15 @@
+{
+  "root": {
+    "node_id": "root",
+    "metadata": {
+      "title": "Demo",
+      "structured_data": [
+        {
+          "schema_type": "Article",
+          "properties_json": "\"name\":\"Hi</script><script>alert(1)</script>\""
+        }
+      ]
+    },
+    "children": []
+  }
+}

@@ -170,6 +170,91 @@ fn sec002_mutation_no_csrf() {
     );
 }
 
+#[test]
+fn sec005_action_endpoint_http() {
+    let json = load_fixture("invalid/sec005-action-http.voce.json");
+    let codes = error_codes(&json);
+    assert!(
+        codes.contains(&"SEC005".to_string()),
+        "Expected SEC005 for http:// action endpoint, got: {codes:?}"
+    );
+}
+
+#[test]
+fn sec006_javascript_href_is_rejected() {
+    let json = load_fixture("invalid/sec006-javascript-href.voce.json");
+    let codes = error_codes(&json);
+    assert!(
+        codes.contains(&"SEC006".to_string()),
+        "Expected SEC006 for javascript: href, got: {codes:?}"
+    );
+}
+
+#[test]
+fn sec007_external_http_image() {
+    let json = load_fixture("invalid/sec007-external-http-image.voce.json");
+    let warnings = warning_codes(&json);
+    assert!(
+        warnings.contains(&"SEC007".to_string()),
+        "Expected SEC007 warning for external http image, got: {warnings:?}"
+    );
+    // SEC003 still fires on the same input — both are intentional and complementary.
+    assert!(
+        warnings.contains(&"SEC003".to_string()),
+        "Expected SEC003 to still fire alongside SEC007, got: {warnings:?}"
+    );
+}
+
+#[test]
+fn sec008_invalid_target_value() {
+    let json = load_fixture("invalid/sec008-bad-target.voce.json");
+    let warnings = warning_codes(&json);
+    assert!(
+        warnings.contains(&"SEC008".to_string()),
+        "Expected SEC008 for typo'd target value, got: {warnings:?}"
+    );
+}
+
+#[test]
+fn sec009_jsonld_breakout() {
+    let json = load_fixture("invalid/sec009-jsonld-breakout.voce.json");
+    let codes = error_codes(&json);
+    assert!(
+        codes.contains(&"SEC009".to_string()),
+        "Expected SEC009 for </script in properties_json, got: {codes:?}"
+    );
+}
+
+#[test]
+fn sec_clean_action_with_https_passes() {
+    // ActionNode with an https endpoint must NOT trip SEC005 or SEC006.
+    let json = r#"{
+        "root": {
+            "node_id": "root",
+            "children": [
+                {
+                    "value_type": "ActionNode",
+                    "value": {
+                        "node_id": "submit",
+                        "source": { "endpoint": "https://example.com/api/contact" },
+                        "method": "POST",
+                        "csrf_protected": true
+                    }
+                }
+            ]
+        }
+    }"#;
+    let codes = error_codes(json);
+    assert!(
+        !codes.contains(&"SEC005".to_string()),
+        "https endpoint should not trip SEC005, got: {codes:?}"
+    );
+    assert!(
+        !codes.contains(&"SEC006".to_string()),
+        "https endpoint should not trip SEC006, got: {codes:?}"
+    );
+}
+
 // ─── SEO Pass ───────────────────────────────────────────────────
 
 #[test]

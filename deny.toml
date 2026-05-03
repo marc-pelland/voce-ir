@@ -1,0 +1,70 @@
+# cargo-deny config (S70 Day 2). Three concerns:
+#
+#   advisories — fail builds when a dep has a known unpatched vulnerability
+#   licenses   — keep license obligations compatible with Apache-2.0 (the
+#                project's chosen OSS license)
+#   bans       — fail builds when a banned crate sneaks into the dep graph
+#
+# Iterate cautiously — the first run will likely surface a few license
+# warnings on transitive deps that need explicit allowlisting. That's
+# expected and intentional; better to know than not.
+
+[graph]
+# All targets matter for adapters that may compile to wasm or non-default OSes.
+all-features = false
+
+# ── Advisories ──────────────────────────────────────────────────────────
+[advisories]
+# RustSec database (default). Ignore-list is empty by design — advisories
+# stay loud until a fix lands or there's an explicit per-id justification.
+db-path = "~/.cargo/advisory-db"
+db-urls = ["https://github.com/rustsec/advisory-db"]
+yanked = "deny"
+ignore = []
+# Treat unmaintained / unsound / notice-level advisories as warnings rather
+# than errors — they aren't actionable in the same way as "fix or fail".
+# CI surfaces them via `cargo audit` on the same workflow.
+
+# ── Licenses ────────────────────────────────────────────────────────────
+[licenses]
+allow = [
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "MIT",
+  "MIT-0",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "ISC",
+  "Unicode-3.0",
+  "Unicode-DFS-2016",
+  "Zlib",
+  "CDLA-Permissive-2.0",
+  "0BSD",
+  "BSL-1.0",
+  "MPL-2.0",
+  "CC0-1.0",
+]
+confidence-threshold = 0.93
+
+# ── Bans ────────────────────────────────────────────────────────────────
+[bans]
+# Multiple versions of the same crate cost binary size and increase audit
+# surface. Warn rather than deny on first pass — the workspace has not been
+# audited end-to-end and a few legitimate duplicates likely exist.
+multiple-versions = "warn"
+# Deny exactly the crates that are known-bad or clearly out-of-scope.
+deny = []
+# Forbid obviously-incompatible licenses entirely. GPL/AGPL would force the
+# whole project to relicense; better to fail at the dep graph than to ship.
+[[bans.deny]]
+name = "openssl"          # vendored by default — use rustls for portability + no C deps
+wrappers = []
+
+[bans.skip]
+# Empty for now — populate if a transitive duplicate ends up justified.
+
+# ── Sources ─────────────────────────────────────────────────────────────
+[sources]
+unknown-registry = "warn"
+unknown-git = "warn"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

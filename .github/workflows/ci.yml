@@ -60,6 +60,36 @@ jobs:
           path: lcov.info
           if-no-files-found: warn
 
+  supply-chain:
+    name: Dependency audit (cargo audit + cargo deny, S70 Day 2)
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          # Distinct cache key — cargo audit + cargo deny work off the
+          # registry index, not built artifacts, so they don't share with
+          # the main check job.
+          key: supply-chain
+      # cargo-audit fails the build on any unpatched RustSec advisory in
+      # the workspace's lockfile. Run before deny so the more-actionable
+      # output lands first.
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit,cargo-deny
+      - name: cargo audit
+        run: cargo audit
+      - name: cargo deny check advisories
+        run: cargo deny check advisories
+      - name: cargo deny check licenses
+        run: cargo deny check licenses
+      - name: cargo deny check bans
+        run: cargo deny check bans
+      - name: cargo deny check sources
+        run: cargo deny check sources
+
   mcp-server:
     name: MCP server (vitest, S65 Day 5)
     needs: check

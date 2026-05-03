@@ -202,6 +202,9 @@ pub fn build_fix(diag: &Diagnostic) -> Option<FixPatch> {
         "A11Y005" => Some(fix_a11y005(&diag.node_path)),
         "SEC003" => Some(fix_sec003(&diag.node_path)),
         "SEC004" => Some(fix_sec004(&diag.node_path)),
+        "SEC005" => Some(fix_sec005(&diag.node_path)),
+        "SEC007" => Some(fix_sec007(&diag.node_path)),
+        "SEC008" => Some(fix_sec008(&diag.node_path)),
         "SEO001" => Some(fix_seo001(&diag.node_path)),
         "SEO007" => Some(fix_seo007(&diag.node_path)),
         "STA002" => Some(fix_sta002(&diag.node_path)),
@@ -315,6 +318,59 @@ fn fix_sec003(node_path: &str) -> FixPatch {
         }],
         preview: format!(
             "Replace value at {node_path}: change http:// to https:// (verify the resource is reachable over TLS first)"
+        ),
+    }
+}
+
+// ── SEC005: action endpoint http → https ────────────────────────────────────
+
+fn fix_sec005(node_path: &str) -> FixPatch {
+    // Same shape as SEC003: replace value, the consumer fills in the new
+    // value by swapping http for https on the existing endpoint.
+    FixPatch {
+        confidence: Confidence::Suggested,
+        operations: vec![PatchOp {
+            op: "replace",
+            path: node_path.to_string(),
+            value: None,
+        }],
+        preview: format!(
+            "Replace value at {node_path}: change http:// to https:// (or use a relative path) — verify TLS reachability before applying"
+        ),
+    }
+}
+
+// ── SEC007: external HTTP image → suggest dropping host ─────────────────────
+
+fn fix_sec007(node_path: &str) -> FixPatch {
+    // The auto-fix here is conservative: rewrite to https:// if the same
+    // host is reachable, else the dev needs to pick a CDN. We can't choose
+    // for them, so emit a Suggested replace that the consumer populates.
+    FixPatch {
+        confidence: Confidence::Suggested,
+        operations: vec![PatchOp {
+            op: "replace",
+            path: node_path.to_string(),
+            value: None,
+        }],
+        preview: format!(
+            "Replace src at {node_path}: prefer https://, self-hosting, or a trusted CDN"
+        ),
+    }
+}
+
+// ── SEC008: invalid target value → _blank (most common intent) ──────────────
+
+fn fix_sec008(node_path: &str) -> FixPatch {
+    FixPatch {
+        confidence: Confidence::Suggested,
+        operations: vec![PatchOp {
+            op: "replace",
+            path: node_path.to_string(),
+            value: Some(json!("_blank")),
+        }],
+        preview: format!(
+            "Set target: \"_blank\" at {node_path} — review whether _self / _parent / _top would suit better"
         ),
     }
 }

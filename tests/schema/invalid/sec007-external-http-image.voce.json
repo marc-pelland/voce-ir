@@ -1,0 +1,15 @@
+{
+  "root": {
+    "node_id": "root",
+    "children": [
+      {
+        "value_type": "MediaNode",
+        "value": {
+          "node_id": "logo",
+          "src": "http://images.example.com/hero.jpg",
+          "alt": "hero"
+        }
+      }
+    ]
+  }
+}
