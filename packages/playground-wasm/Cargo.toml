@@ -19,8 +19,11 @@ wasm-bindgen = "0.2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
-[profile.release]
-opt-level = "z"
-lto = true
-codegen-units = 1
-strip = true
+# Release profile lives at the workspace root — Cargo silently ignores
+# profile config in non-root Cargo.toml files (S71 Day 1).
+
+# wasm-pack ships a pinned wasm-opt that doesn't accept the WebAssembly
+# features rustc 1.94+ emits. Disable the bundled run; CI + the build
+# script call the system binaryen `wasm-opt -Oz --converge` afterwards.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false

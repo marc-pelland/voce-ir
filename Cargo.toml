@@ -39,3 +39,24 @@ clap = { version = "4.5", features = ["derive"] }
 insta = { version = "1.40", features = ["yaml"] }
 toml = "0.8"
 criterion = { version = "0.5", features = ["html_reports"] }
+
+# S71 Day 1: workspace-level release profile. Profiles set in non-root
+# Cargo.toml files are silently ignored by Cargo (the playground-wasm
+# package previously defined these locally — they had no effect on the
+# 748 KB baseline). Moving them here applies to every binary + lib in
+# the workspace, including the WASM bundle that gates the homepage.
+#
+# - opt-level "z" — aggressive size optimization
+# - lto       fat — whole-program optimization at link time
+# - codegen-units 1 — better dead-code elimination, slower link
+# - strip   symbols — drop debug info from the binary
+# - panic   abort — drop the unwinding machinery (~20 KB on WASM)
+#
+# Tradeoff: builds are noticeably slower (especially LTO). Acceptable
+# because release builds run on CI / for shipping, not in dev loops.
+[profile.release]
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+strip = "symbols"
+panic = "abort"

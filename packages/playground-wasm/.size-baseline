@@ -1,0 +1,5 @@
+# playground-wasm bundle size baseline (raw bytes, post wasm-opt).
+# CI fails if the built bundle exceeds this by more than 5%.
+# Update via a `chore(wasm): update size baseline` commit so reviewers
+# can audit the delta. See docs/perf-investigation.md for context.
+521687
