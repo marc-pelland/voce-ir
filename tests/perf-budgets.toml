@@ -1,0 +1,93 @@
+# Per-fixture compile-time perf budgets (S71 Day 3).
+#
+# Each entry caps a fixture's compile-time work. The test harness
+# (packages/validator/tests/perf_budgets_test.rs) compiles each fixture
+# 10 times in a tight loop and takes the minimum wall time, then
+# compares against `max_compile_us`. Output size is exact-deterministic
+# and compared against `max_output_bytes`.
+#
+# Numbers are sized to absorb CI variance + debug-build overhead while
+# still catching real regressions:
+#   - max_compile_us  ~5–10× the local release minimum on a developer
+#                     laptop. CI runners are typically 2–3× slower;
+#                     debug-build adds another factor; the headroom
+#                     accommodates both without flaking.
+#   - max_output_bytes  ~1.1× the current measured size, rounded up.
+#                       Output is byte-deterministic — the only growth
+#                       reason is intentional compiler change.
+#
+# Updating a budget is fine; do it in a chore commit so reviewers see
+# the delta and can audit whether the regression / improvement was
+# intended. See docs/perf-investigation.md for context.
+
+[fixture.container-grid]
+path = "tests/fixtures/container-grid.voce.json"
+max_compile_us = 800
+max_output_bytes = 4800
+
+[fixture.container-row]
+path = "tests/fixtures/container-row.voce.json"
+max_compile_us = 800
+max_output_bytes = 4750
+
+[fixture.decorative-surface]
+path = "tests/fixtures/decorative-surface.voce.json"
+max_compile_us = 800
+max_output_bytes = 4750
+
+[fixture.form-contact]
+path = "tests/fixtures/form-contact.voce.json"
+max_compile_us = 800
+# Form fixtures emit interactive JS for client-side validation; the
+# extra ~800 B over a static fixture is expected.
+max_output_bytes = 5850
+
+[fixture.gesture-tap]
+path = "tests/fixtures/gesture-tap.voce.json"
+max_compile_us = 800
+max_output_bytes = 4750
+
+[fixture.links-and-nav]
+path = "tests/fixtures/links-and-nav.voce.json"
+max_compile_us = 1500
+max_output_bytes = 5700
+
+[fixture.media-image]
+path = "tests/fixtures/media-image.voce.json"
+max_compile_us = 800
+max_output_bytes = 5100
+
+[fixture.nested-layout]
+path = "tests/fixtures/nested-layout.voce.json"
+max_compile_us = 1200
+max_output_bytes = 5050
+
+[fixture.semantic-a11y]
+path = "tests/fixtures/semantic-a11y.voce.json"
+max_compile_us = 800
+max_output_bytes = 4750
+
+[fixture.state-machine]
+path = "tests/fixtures/state-machine.voce.json"
+max_compile_us = 800
+max_output_bytes = 4600
+
+[fixture.surface-card]
+path = "tests/fixtures/surface-card.voce.json"
+max_compile_us = 800
+max_output_bytes = 4800
+
+[fixture.text-heading]
+path = "tests/fixtures/text-heading.voce.json"
+max_compile_us = 800
+max_output_bytes = 4650
+
+[fixture.theme-dark]
+path = "tests/fixtures/theme-dark.voce.json"
+max_compile_us = 800
+max_output_bytes = 4600
+
+[fixture.landing-page]
+path = "examples/landing-page/landing-page.voce.json"
+max_compile_us = 5000
+max_output_bytes = 11200
