@@ -1,0 +1,25 @@
+{
+  "root": {
+    "node_id": "root",
+    "children": [
+      {
+        "value_type": "Surface",
+        "value": {
+          "node_id": "card",
+          "fill": { "r": 255, "g": 255, "b": 255, "a": 255 },
+          "children": [
+            {
+              "value_type": "TextNode",
+              "value": {
+                "node_id": "borderline-large",
+                "content": "Large enough to relax the threshold",
+                "font_size": { "value": 24, "unit": "Px" },
+                "color": { "r": 118, "g": 118, "b": 118, "a": 255 }
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

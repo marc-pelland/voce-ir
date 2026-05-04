@@ -100,7 +100,7 @@
               "value_type": "Surface",
               "value": {
                 "node_id": "hero-cta",
-                "fill": { "r": 232, "g": 89, "b": 60, "a": 255 },
+                "fill": { "r": 217, "g": 55, "b": 35, "a": 255 },
                 "corner_radius": {
                   "top_left": { "value": 8.0, "unit": "Px" },
                   "top_right": { "value": 8.0, "unit": "Px" },

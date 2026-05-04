@@ -1,0 +1,25 @@
+{
+  "root": {
+    "node_id": "root",
+    "children": [
+      {
+        "value_type": "Surface",
+        "value": {
+          "node_id": "card",
+          "fill": { "r": 240, "g": 240, "b": 240, "a": 255 },
+          "children": [
+            {
+              "value_type": "TextNode",
+              "value": {
+                "node_id": "muted",
+                "content": "Hard to read",
+                "font_size": { "value": 14, "unit": "Px" },
+                "color": { "r": 180, "g": 180, "b": 180, "a": 255 }
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

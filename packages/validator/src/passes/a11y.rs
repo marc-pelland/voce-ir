@@ -51,6 +51,17 @@ const CODES: &[CodeMeta] = &[
                `label`. Icon-only buttons need explicit names.",
         fix_confidence: None,
     },
+    CodeMeta {
+        code: "A11Y007",
+        summary: "Text-on-background contrast ratio fails WCAG 2.2 AA",
+        hint: "WCAG AA requires 4.5:1 for body text and 3:1 for large text \
+               (≥18pt regular, or ≥14pt bold). Either lighten the text color, \
+               darken the background, or — if this is decorative text on a \
+               complex background — mark the surrounding Surface decorative \
+               so the validator skips it. Partial-alpha colors are not \
+               currently checked; document them as a known gap.",
+        fix_confidence: None,
+    },
 ];
 
 impl ValidationPass for AccessibilityPass {
@@ -78,6 +89,10 @@ impl ValidationPass for AccessibilityPass {
         // Walk children for per-node checks
         if let Some(ref children) = root.children {
             self.check_children(children, "/root/children", result);
+            // A11Y007: Color contrast. Only checks text where an ancestor
+            // surface declares an explicit background — implicit defaults
+            // are skipped so light-/dark-mode inversion doesn't false-fire.
+            self.check_contrast(children, "/root/children", None, result);
         }
     }
 }
@@ -219,6 +234,86 @@ impl AccessibilityPass {
                 });
             }
             prev_level = *level;
+        }
+    }
+
+    /// A11Y007: walk the IR carrying the nearest-ancestor background color.
+    /// At each TextNode that has an explicit `color`, compute contrast and
+    /// emit a diagnostic if the WCAG AA threshold isn't met.
+    ///
+    /// Only emits when a real ancestor background was declared — implicit
+    /// page defaults (white in light mode, dark in dark mode) would
+    /// false-fire on near-white text the user wrote with dark mode in mind.
+    /// Documented as a known gap; users with stricter requirements can
+    /// declare an explicit Surface fill on the page wrapper.
+    fn check_contrast(
+        &self,
+        children: &[ChildNode],
+        parent_path: &str,
+        ambient_bg: Option<crate::contrast::Rgb>,
+        result: &mut ValidationResult,
+    ) {
+        for (i, child) in children.iter().enumerate() {
+            let path = format!("{parent_path}/{i}");
+
+            // Update ambient bg if this node carries an explicit one.
+            let next_bg = match child.type_name() {
+                "Surface" => child
+                    .value
+                    .get("fill")
+                    .and_then(crate::contrast::Rgb::from_json)
+                    .or(ambient_bg),
+                "Container" => child
+                    .value
+                    .get("background")
+                    .and_then(crate::contrast::Rgb::from_json)
+                    .or(ambient_bg),
+                _ => ambient_bg,
+            };
+
+            // Check this TextNode's contrast against its ambient bg.
+            if child.type_name() == "TextNode" {
+                if let (Some(bg), Some(fg)) = (
+                    ambient_bg,
+                    child
+                        .value
+                        .get("color")
+                        .and_then(crate::contrast::Rgb::from_json),
+                ) {
+                    let ratio = crate::contrast::contrast_ratio(fg, bg);
+                    let font_size_px = child
+                        .value
+                        .get("font_size")
+                        .and_then(|v| v.get("value"))
+                        .and_then(|v| v.as_f64())
+                        .unwrap_or(16.0);
+                    let is_bold = child
+                        .value
+                        .get("font_weight")
+                        .and_then(|v| v.as_str())
+                        .is_some_and(|w| matches!(w, "Bold" | "ExtraBold" | "Black" | "SemiBold"));
+                    let large = crate::contrast::is_large_text(font_size_px, is_bold);
+                    let threshold = crate::contrast::aa_threshold(large);
+                    if ratio < threshold {
+                        let kind = if large { "large text" } else { "body text" };
+                        result.diagnostics.push(Diagnostic {
+                            severity: Severity::Error,
+                            code: "A11Y007".to_string(),
+                            message: format!(
+                                "Text contrast {ratio:.2}:1 fails WCAG AA for {kind} (requires {threshold}:1)"
+                            ),
+                            node_path: path.clone(),
+                            pass: self.name().to_string(),
+                            hint: None,
+                        });
+                    }
+                }
+            }
+
+            // Recurse into wrapper types that carry their own children list.
+            if let Some(grandchildren) = child.children() {
+                self.check_contrast(&grandchildren, &format!("{path}/children"), next_bg, result);
+            }
         }
     }
 }

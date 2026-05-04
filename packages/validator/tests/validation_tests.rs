@@ -158,6 +158,54 @@ fn a11y005_heading_skip() {
     );
 }
 
+#[test]
+fn a11y007_low_contrast_text() {
+    let json = load_fixture("invalid/a11y007-low-contrast.voce.json");
+    let codes = error_codes(&json);
+    assert!(
+        codes.contains(&"A11Y007".to_string()),
+        "Expected A11Y007 for #b4b4b4 on #f0f0f0, got: {codes:?}"
+    );
+}
+
+#[test]
+fn a11y007_skips_when_no_explicit_background() {
+    // Same low-contrast text, but no ancestor Surface fill is set, so the
+    // validator skips the check (it can't tell light vs dark mode for the
+    // implicit page background).
+    let json = r#"{
+        "root": {
+            "node_id": "root",
+            "children": [
+                {
+                    "value_type": "TextNode",
+                    "value": {
+                        "node_id": "muted",
+                        "content": "Hard to read",
+                        "font_size": { "value": 14, "unit": "Px" },
+                        "color": { "r": 180, "g": 180, "b": 180, "a": 255 }
+                    }
+                }
+            ]
+        }
+    }"#;
+    let codes = error_codes(json);
+    assert!(
+        !codes.contains(&"A11Y007".to_string()),
+        "A11Y007 should be silent without an explicit ancestor background, got: {codes:?}"
+    );
+}
+
+#[test]
+fn a11y007_passes_with_large_text_threshold() {
+    let json = load_fixture("valid/a11y007-passes-as-large-text.voce.json");
+    let codes = error_codes(&json);
+    assert!(
+        !codes.contains(&"A11Y007".to_string()),
+        "Large text (24px) should clear the relaxed 3:1 threshold, got: {codes:?}"
+    );
+}
+
 // ─── Security Pass ──────────────────────────────────────────────
 
 #[test]

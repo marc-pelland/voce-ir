@@ -13,6 +13,7 @@
 //! ```
 
 pub mod config;
+pub mod contrast;
 pub mod engine;
 pub mod errors;
 pub mod fixes;

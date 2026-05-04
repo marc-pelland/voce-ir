@@ -29,7 +29,7 @@
               "value_type": "Surface",
               "value": {
                 "node_id": "cta-button",
-                "fill": { "r": 232, "g": 89, "b": 60, "a": 255 },
+                "fill": { "r": 217, "g": 55, "b": 35, "a": 255 },
                 "corner_radius": { "top_left": { "value": 8.0, "unit": "Px" }, "top_right": { "value": 8.0, "unit": "Px" }, "bottom_right": { "value": 8.0, "unit": "Px" }, "bottom_left": { "value": 8.0, "unit": "Px" } },
                 "padding": { "top": { "value": 12.0, "unit": "Px" }, "right": { "value": 24.0, "unit": "Px" }, "bottom": { "value": 12.0, "unit": "Px" }, "left": { "value": 24.0, "unit": "Px" } },
                 "semantic_node_id": "sem-cta",
