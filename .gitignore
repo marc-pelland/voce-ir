@@ -39,3 +39,8 @@ Thumbs.db
 **/.voce/sessions/
 **/.voce/snapshots/
 **/.voce/cache/
+
+# Lighthouse CI artifacts + the staging dir the CI compiles the landing
+# page into for LHCI to serve (S71 Day 4).
+.lighthouseci/
+/_site/

@@ -216,6 +216,40 @@ jobs:
         working-directory: packages/playground-wasm
         run: ./scripts/build-and-check.sh
 
+  lighthouse:
+    name: Lighthouse CI floor (S71 Day 4)
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: lighthouse
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      # Lighthouse runs against the directly-compiled landing page (the same
+      # output pages.yml ships). Build the CLI first, then compile the IR
+      # into _site/, then point lhci at it.
+      - name: Build voce CLI (release)
+        run: cargo build --release -p voce-validator
+      - name: Compile landing page
+        run: |
+          mkdir -p _site
+          ./target/release/voce compile \
+            examples/production/landing.voce.json \
+            -o _site/index.html \
+            --skip-fonts --minify
+      # @lhci/cli serves the static dir, runs Lighthouse 3 times, takes the
+      # median, and asserts against lighthouserc.json's category floors.
+      # Uploads the report to temporary-public-storage so failures link to
+      # the actual Lighthouse output.
+      - name: Run Lighthouse CI
+        run: npx --yes @lhci/cli@0.14 autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
   sbom:
     name: SBOM (CycloneDX, S70 Day 5)
     needs: check
