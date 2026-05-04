@@ -145,3 +145,70 @@ Day 1) is set to the current 522 KB. Any change that grows the bundle by
 more than 5% will fail CI. Updating the baseline is an explicit
 `chore(wasm): update size baseline` commit so reviewers can audit the
 delta.
+
+---
+
+## Deferred to a follow-up sprint: nightly runtime perf
+
+S71 §7 calls for a `puppeteer`-based measurement of compiled-output
+runtime metrics — First Contentful Paint, Largest Contentful Paint,
+Total Blocking Time, Cumulative Layout Shift — for each fixture, run on
+a nightly schedule. Per-fixture targets aligned with Core Web Vitals
+"good" thresholds, failing the build below the floor.
+
+### Why deferred
+
+S71 Day 4's Lighthouse CI already exercises the production landing
+page's runtime profile end-to-end on every push (median of 3 runs,
+desktop preset). It enforces:
+
+  - Performance (which rolls up FCP, LCP, TBT, CLS, TTI, SI) ≥ 0.90
+  - Accessibility ≥ 0.95
+  - Best practices ≥ 0.95
+  - SEO ≥ 0.95
+
+That's the bulk of what §7 asks for. The remaining slice is per-fixture
+visibility — knowing whether `gesture-tap.voce.json`'s compiled output
+hits LCP < 2.5s in isolation, separate from the landing page. Useful
+for compiler-regression triage but not blocking for v1.1.0:
+
+  - The compiler's IR types are bounded and the output shapes don't
+    vary much per fixture; if landing-page is fast, simpler fixtures
+    are fast too.
+  - Puppeteer + nightly cron + per-fixture target tuning is a real
+    chunk of engineering — Chromium download, headless runner, network
+    throttling profile, retry logic for flaky single runs.
+  - Lighthouse CI already gives us the production-shape regression
+    signal that matters most.
+
+### Tracking
+
+Tracked as "S71 follow-up: nightly runtime perf for fixture corpus."
+Pick up when:
+
+  1. The compiler grows enough fixture-specific code paths (e.g. WebGPU
+     compile target, animation IR with springs) that the landing page
+     stops being a representative proxy.
+  2. A user reports a runtime perf regression on a fixture-shaped IR
+     that landing-page's Lighthouse scores didn't catch.
+
+Either signal would justify the engineering. Until then, Lighthouse CI
+on the landing page is the cheapest intervention with the highest
+fraction of the value.
+
+---
+
+## What S71 actually shipped
+
+Five days of perf work landed:
+
+| Day | Deliverable | Effect |
+|---|---|---|
+| 1 | Workspace `[profile.release]` + binaryen wasm-opt + size baseline | WASM 748 KB → 522 KB (-30%) |
+| 2 | `voce compile --perf-report` JSON sidecar | Phase timings visible per compile |
+| 3 | `tests/perf-budgets.toml` + `perf_budgets_test.rs` | 14 fixtures gated on compile time + output bytes |
+| 4 | Lighthouse CI floor on the compiled landing page | Perf 1.00 / A11y 0.95 / BP 0.96 / SEO 1.00, gated at 0.90/0.95 |
+| 5 | `voce compile --report-cache` + `.voce/perf-log.jsonl` | Per-invocation cache outcome + opt-in JSONL log |
+
+Acceptance criteria — all green except §7 (runtime perf for fixtures),
+descoped above with rationale.

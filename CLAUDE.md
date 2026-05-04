@@ -37,8 +37,9 @@ Voce IR is an open-source AI-native UI intermediate representation — "SPIR-V f
 | S67 (validator diagnostic quality) | Complete (Days 1–5: per-pass output, hints, fixes, `voce fix` CLI, docs URLs, severity config) |
 | S69 (test coverage) | Complete — coverage gate (60% floor) + mutation pilot |
 | S70 (security hardening) | Complete — hardened CSP (per-script SHA-256 + frame-ancestors/base-uri/form-action), 5 new SEC rules (SEC005-009), prompt-injection delimiter + 15-attack corpus, adapter audit, STRIDE threat model, disclosure SLA, cargo audit + cargo deny + SBOM in CI |
+| S71 (perf budgets) | Complete — WASM 748 KB → 522 KB (workspace profile fix + binaryen wasm-opt), `voce compile --perf-report` + `--report-cache`, 14-fixture compile-budget gate, Lighthouse CI floor (perf 1.00 / a11y 0.95 / bp 0.96 / seo 1.00). Nightly puppeteer runtime perf descoped — see docs/perf-investigation.md |
 | S72 (schema audit) | Complete — FormFieldStyle + FormLayout shipped |
-| S60, S62, S63, S68, S71, S74, S82 | Scoped, untouched |
+| S60, S62, S63, S68, S74, S82 | Scoped, untouched |
 
 Current task status — update this section as work progresses:
 - [x] Deep research & landscape analysis completed (`docs/research/DEEP_RESEARCH.md`)

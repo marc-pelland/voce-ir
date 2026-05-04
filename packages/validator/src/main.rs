@@ -112,6 +112,11 @@ enum Commands {
         /// Write a compile-time perf report (JSON sidecar) to this path (S71 Day 2).
         #[arg(long, value_name = "PATH")]
         perf_report: Option<PathBuf>,
+
+        /// Print the cache outcome (HIT / MISS / SKIPPED) for this invocation
+        /// and append a structured line to .voce/perf-log.jsonl (S71 Day 5).
+        #[arg(long)]
+        report_cache: bool,
     },
 
     /// Generate a compilation quality report
@@ -234,6 +239,7 @@ fn run(cli: Cli) -> Result<i32> {
             minify,
             no_cache,
             perf_report,
+            report_cache,
         } => cmd_compile(
             &file,
             output.as_deref(),
@@ -242,6 +248,7 @@ fn run(cli: Cli) -> Result<i32> {
             minify,
             no_cache,
             perf_report.as_deref(),
+            report_cache,
         ),
         Commands::Report { file, format } => cmd_report(&file, &format),
         Commands::Manifest { file } => cmd_manifest(&file),
@@ -412,6 +419,7 @@ fn cmd_bin2json(input: &PathBuf, output: Option<&std::path::Path>) -> Result<i32
     }
 }
 
+#[allow(clippy::too_many_arguments)] // direct mapping from clap subcommand fields
 fn cmd_compile(
     file: &PathBuf,
     output: Option<&std::path::Path>,
@@ -420,10 +428,12 @@ fn cmd_compile(
     minify: bool,
     no_cache: bool,
     perf_report: Option<&std::path::Path>,
+    report_cache: bool,
 ) -> Result<i32> {
     // S71 Day 2: when --perf-report is set, time the outer-process work
     // (read, validate, write) and merge into the report alongside the
     // compiler's internal phase timings.
+    let invocation_start = std::time::Instant::now();
     let read_start = std::time::Instant::now();
     let json = std::fs::read_to_string(file)
         .with_context(|| format!("Failed to read {}", file.display()))?;
@@ -447,9 +457,11 @@ fn cmd_compile(
     // Check cache first (unless --no-cache OR --perf-report — the report
     // is meaningless when the work it would measure was skipped).
     let project_dir = file.parent().unwrap_or(std::path::Path::new("."));
+    let mut cache_outcome: &'static str = "miss";
     if !no_cache && perf_report.is_none() {
         let cache = voce_compiler_dom::cache::CompilationCache::new(project_dir);
         if let Some(cached_html) = cache.get(&json) {
+            cache_outcome = "hit";
             let out_path = output.map(PathBuf::from).unwrap_or_else(|| {
                 let stem = file.file_stem().unwrap_or_default().to_string_lossy();
                 PathBuf::from(format!("dist/{stem}.html"))
@@ -465,8 +477,20 @@ fn cmd_compile(
                 out_path.display(),
                 size
             );
+            if report_cache {
+                emit_cache_report(
+                    project_dir,
+                    file,
+                    &out_path,
+                    cache_outcome,
+                    size,
+                    invocation_start.elapsed(),
+                );
+            }
             return Ok(0);
         }
+    } else if no_cache {
+        cache_outcome = "skipped";
     }
 
     let options = voce_compiler_dom::CompileOptions {
@@ -521,7 +545,67 @@ fn cmd_compile(
         result.size_bytes
     );
 
+    if report_cache {
+        emit_cache_report(
+            project_dir,
+            file,
+            &out_path,
+            cache_outcome,
+            result.size_bytes,
+            invocation_start.elapsed(),
+        );
+    }
+
     Ok(0)
+}
+
+/// S71 Day 5: print the cache outcome for this invocation and append a
+/// JSONL line to .voce/perf-log.jsonl. The log is opt-in (only written
+/// when --report-cache is set) so casual `voce compile` runs don't grow
+/// a hidden trail file. Each line is one full record — readable with
+/// `jq -s 'group_by(.outcome)' .voce/perf-log.jsonl` or similar.
+fn emit_cache_report(
+    project_dir: &std::path::Path,
+    input: &std::path::Path,
+    output_path: &std::path::Path,
+    outcome: &str,
+    output_bytes: usize,
+    elapsed: std::time::Duration,
+) {
+    let label = match outcome {
+        "hit" => "HIT",
+        "miss" => "MISS",
+        "skipped" => "SKIPPED (--no-cache)",
+        other => other,
+    };
+    eprintln!("  cache: {label}");
+
+    // Append a JSONL line; failure is non-fatal so a read-only project
+    // dir doesn't break the compile flow. The perf log is best-effort.
+    let log_dir = project_dir.join(".voce");
+    if std::fs::create_dir_all(&log_dir).is_err() {
+        return;
+    }
+    let log_path = log_dir.join("perf-log.jsonl");
+    let line = serde_json::json!({
+        "timestamp_us": std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_micros() as u64)
+            .unwrap_or(0),
+        "input": input.display().to_string(),
+        "output": output_path.display().to_string(),
+        "outcome": outcome,
+        "output_bytes": output_bytes,
+        "elapsed_us": elapsed.as_micros() as u64,
+    });
+    use std::io::Write as _;
+    if let Ok(mut f) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&log_path)
+    {
+        let _ = writeln!(f, "{line}");
+    }
 }
 
 fn cmd_report(file: &PathBuf, format: &OutputFormat) -> Result<i32> {
