@@ -206,6 +206,112 @@ fn a11y007_passes_with_large_text_threshold() {
     );
 }
 
+#[test]
+fn a11y008_positive_tab_index_warns() {
+    let json = load_fixture("invalid/a11y008-positive-tabindex.voce.json");
+    let warnings = warning_codes(&json);
+    assert!(
+        warnings.contains(&"A11Y008".to_string()),
+        "Expected A11Y008 for positive tab_index, got: {warnings:?}"
+    );
+}
+
+#[test]
+fn a11y008_zero_or_negative_tabindex_is_silent() {
+    // tab_index 0 (default) and -1 (programmatic only) are both valid;
+    // the rule only fires on positive values.
+    for ti in [0i32, -1] {
+        let json = format!(
+            r#"{{
+                "root": {{
+                    "node_id": "root",
+                    "semantic_nodes": [
+                        {{ "node_id": "s", "role": "Button", "label": "Go", "tab_index": {ti} }}
+                    ],
+                    "children": []
+                }}
+            }}"#
+        );
+        let warnings = warning_codes(&json);
+        assert!(
+            !warnings.contains(&"A11Y008".to_string()),
+            "tab_index {ti} should not trigger A11Y008, got: {warnings:?}"
+        );
+    }
+}
+
+#[test]
+fn a11y009_tiny_touch_target_warns() {
+    let json = load_fixture("invalid/a11y009-tiny-touch-target.voce.json");
+    let warnings = warning_codes(&json);
+    assert!(
+        warnings.contains(&"A11Y009".to_string()),
+        "Expected A11Y009 for 4px-padded interactive surface, got: {warnings:?}"
+    );
+}
+
+#[test]
+fn a11y009_24px_padding_passes() {
+    // Exactly 24×24 padding sum (12+12 each axis) hits the floor — should pass.
+    let json = r#"{
+        "root": {
+            "node_id": "root",
+            "children": [
+                {
+                    "value_type": "Surface",
+                    "value": {
+                        "node_id": "ok",
+                        "href": "/ok",
+                        "padding": {
+                            "top": { "value": 12, "unit": "Px" },
+                            "bottom": { "value": 12, "unit": "Px" },
+                            "left": { "value": 12, "unit": "Px" },
+                            "right": { "value": 12, "unit": "Px" }
+                        }
+                    }
+                }
+            ]
+        }
+    }"#;
+    let warnings = warning_codes(json);
+    assert!(
+        !warnings.contains(&"A11Y009".to_string()),
+        "Exactly 24px padding-sum should clear A11Y009, got: {warnings:?}"
+    );
+}
+
+#[test]
+fn a11y009_min_dimensions_clear_the_warning() {
+    // Tight padding but explicit min_width / min_height meets the floor.
+    let json = r#"{
+        "root": {
+            "node_id": "root",
+            "children": [
+                {
+                    "value_type": "Surface",
+                    "value": {
+                        "node_id": "ok",
+                        "href": "/ok",
+                        "padding": {
+                            "top": { "value": 2, "unit": "Px" },
+                            "bottom": { "value": 2, "unit": "Px" },
+                            "left": { "value": 2, "unit": "Px" },
+                            "right": { "value": 2, "unit": "Px" }
+                        },
+                        "min_width": { "value": 44, "unit": "Px" },
+                        "min_height": { "value": 44, "unit": "Px" }
+                    }
+                }
+            ]
+        }
+    }"#;
+    let warnings = warning_codes(json);
+    assert!(
+        !warnings.contains(&"A11Y009".to_string()),
+        "Explicit min_width/min_height ≥ 24 should clear A11Y009, got: {warnings:?}"
+    );
+}
+
 // ─── Security Pass ──────────────────────────────────────────────
 
 #[test]

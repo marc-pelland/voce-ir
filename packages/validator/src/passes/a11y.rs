@@ -62,6 +62,29 @@ const CODES: &[CodeMeta] = &[
                currently checked; document them as a known gap.",
         fix_confidence: None,
     },
+    CodeMeta {
+        code: "A11Y008",
+        summary: "SemanticNode uses a positive tab_index, disrupting focus order",
+        hint: "Positive tab_index values (1, 2, …) override DOM order and create \
+               a custom focus path that screen-reader users have to memorize. \
+               WCAG 2.4.3 expects focus order to follow meaning, which DOM \
+               order already does. Use 0 (default — focusable, in DOM order) \
+               or -1 (programmatic-only) instead. If you genuinely need a \
+               custom order, restructure the IR so DOM order matches.",
+        fix_confidence: Some(Confidence::Suggested),
+    },
+    CodeMeta {
+        code: "A11Y009",
+        summary: "Interactive element has a touch target smaller than 24×24 CSS px",
+        hint: "WCAG 2.2 SC 2.5.8 requires interactive targets to be at least \
+               24×24 CSS px. Heuristic: an interactive Surface whose padding-x \
+               or padding-y totals less than 24 px without an explicit \
+               min_width / min_height is likely below the threshold. Either \
+               increase the padding, set explicit min dimensions, or — if the \
+               element is purely decorative wrapping a real interactive child \
+               — move the interactivity onto the larger ancestor.",
+        fix_confidence: None,
+    },
 ];
 
 impl ValidationPass for AccessibilityPass {
@@ -93,6 +116,28 @@ impl ValidationPass for AccessibilityPass {
             // surface declares an explicit background — implicit defaults
             // are skipped so light-/dark-mode inversion doesn't false-fire.
             self.check_contrast(children, "/root/children", None, result);
+            // A11Y009: touch target size on interactive surfaces.
+            self.check_touch_targets(children, "/root/children", result);
+        }
+
+        // A11Y008: positive tab_index on SemanticNodes.
+        if let Some(ref sems) = root.semantic_nodes {
+            for (i, sem) in sems.iter().enumerate() {
+                if let Some(ti) = sem.tab_index {
+                    if ti > 0 {
+                        result.diagnostics.push(Diagnostic {
+                            severity: Severity::Warning,
+                            code: "A11Y008".to_string(),
+                            message: format!(
+                                "SemanticNode tab_index = {ti} disrupts focus order — use 0 or -1"
+                            ),
+                            node_path: format!("/root/semantic_nodes/{i}"),
+                            pass: self.name().to_string(),
+                            hint: None,
+                        });
+                    }
+                }
+            }
         }
     }
 }
@@ -316,4 +361,89 @@ impl AccessibilityPass {
             }
         }
     }
+
+    /// A11Y009: WCAG 2.2 SC 2.5.8 — interactive targets must be ≥ 24×24 CSS px.
+    /// Heuristic since we can't render at validate time:
+    ///
+    /// - An interactive node is a Surface with `href`, a TextNode with
+    ///   `href`, or a FormNode (the submit button is the interactive
+    ///   surface here).
+    /// - We sum the explicit padding on each axis. If padding-x < 24 OR
+    ///   padding-y < 24, AND the node has no `min_width` / `min_height`
+    ///   that would push past the threshold, we warn.
+    /// - "≥ 24" includes 24 — exactly hitting the floor passes.
+    ///
+    /// Caveats: a small Surface with content that pushes its own size past
+    /// 24 px (e.g. a 32 px-tall TextNode child) would clear the real WCAG
+    /// rule even with no padding, but the heuristic warns anyway. The
+    /// suggested fix in the hint covers that case (declare min_height).
+    fn check_touch_targets(
+        &self,
+        children: &[ChildNode],
+        parent_path: &str,
+        result: &mut ValidationResult,
+    ) {
+        for (i, child) in children.iter().enumerate() {
+            let path = format!("{parent_path}/{i}");
+
+            // Only the *clickable surface itself* is a touch target. FormNode
+            // is a container — its fields and submit button (rendered via
+            // baseline form CSS with explicit padding) are the real targets,
+            // and they get measured separately.
+            let is_interactive = match child.type_name() {
+                "Surface" => child.value.get("href").and_then(|v| v.as_str()).is_some(),
+                "TextNode" => child.value.get("href").and_then(|v| v.as_str()).is_some(),
+                _ => false,
+            };
+
+            if is_interactive {
+                let pad_x = padding_axis(&child.value, "left", "right");
+                let pad_y = padding_axis(&child.value, "top", "bottom");
+                let min_w = length_px(child.value.get("min_width")).unwrap_or(0.0);
+                let min_h = length_px(child.value.get("min_height")).unwrap_or(0.0);
+
+                if (pad_x < 24.0 && min_w < 24.0) || (pad_y < 24.0 && min_h < 24.0) {
+                    result.diagnostics.push(Diagnostic {
+                        severity: Severity::Warning,
+                        code: "A11Y009".to_string(),
+                        message: format!(
+                            "Touch target may be < 24×24 px (padding {pad_x:.0}×{pad_y:.0}; min {min_w:.0}×{min_h:.0})"
+                        ),
+                        node_path: path.clone(),
+                        pass: self.name().to_string(),
+                        hint: None,
+                    });
+                }
+            }
+
+            if let Some(grandchildren) = child.children() {
+                self.check_touch_targets(&grandchildren, &format!("{path}/children"), result);
+            }
+        }
+    }
+}
+
+/// Sum the values of two padding sides (`top + bottom` for axis-y, etc.).
+/// Reads `node.padding.<side>.value` from the raw JSON; missing or non-Px
+/// units count as zero. Pixels are the only unit reliably comparable to
+/// the WCAG threshold without rendering.
+fn padding_axis(value: &serde_json::Value, side_a: &str, side_b: &str) -> f64 {
+    let p = match value.get("padding") {
+        Some(p) => p,
+        None => return 0.0,
+    };
+    length_px(p.get(side_a)).unwrap_or(0.0) + length_px(p.get(side_b)).unwrap_or(0.0)
+}
+
+/// Read a Voce IR Length JSON: `{ "value": f64, "unit": "Px" }`. Returns
+/// `Some(px)` only when unit is Px (or absent — Px is the default). Other
+/// units (Rem, Percent, etc.) return None — they're not directly comparable
+/// to 24 CSS pixels without rendering context.
+fn length_px(value: Option<&serde_json::Value>) -> Option<f64> {
+    let v = value?;
+    let unit = v.get("unit").and_then(|u| u.as_str()).unwrap_or("Px");
+    if unit != "Px" {
+        return None;
+    }
+    v.get("value").and_then(|x| x.as_f64())
 }

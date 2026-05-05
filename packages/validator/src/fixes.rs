@@ -200,6 +200,7 @@ pub fn build_fix(diag: &Diagnostic) -> Option<FixPatch> {
         "FRM004" => Some(fix_frm004(&diag.node_path)),
         "FRM009" => Some(fix_frm009(&diag.node_path)),
         "A11Y005" => Some(fix_a11y005(&diag.node_path)),
+        "A11Y008" => Some(fix_a11y008(&diag.node_path)),
         "SEC003" => Some(fix_sec003(&diag.node_path)),
         "SEC004" => Some(fix_sec004(&diag.node_path)),
         "SEC005" => Some(fix_sec005(&diag.node_path)),
@@ -300,6 +301,22 @@ fn fix_a11y005(node_path: &str) -> FixPatch {
             value: Some(json!("")),
         }],
         preview: format!("Add empty aria_label to {node_path} — replace with descriptive text"),
+    }
+}
+
+// ── A11Y008: positive tab_index → 0 (DOM order) ─────────────────────────────
+
+fn fix_a11y008(node_path: &str) -> FixPatch {
+    FixPatch {
+        confidence: Confidence::Suggested,
+        operations: vec![PatchOp {
+            op: "replace",
+            path: format!("{node_path}/tab_index"),
+            value: Some(json!(0)),
+        }],
+        preview: format!(
+            "Set tab_index: 0 at {node_path} — focus follows DOM order. Use -1 if this element should be programmatically focusable but skipped during tab navigation."
+        ),
     }
 }
 

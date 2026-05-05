@@ -1,0 +1,20 @@
+{
+  "root": {
+    "node_id": "root",
+    "children": [
+      {
+        "value_type": "Surface",
+        "value": {
+          "node_id": "tiny-link",
+          "href": "/foo",
+          "padding": {
+            "top": { "value": 4, "unit": "Px" },
+            "bottom": { "value": 4, "unit": "Px" },
+            "left": { "value": 4, "unit": "Px" },
+            "right": { "value": 4, "unit": "Px" }
+          }
+        }
+      }
+    ]
+  }
+}

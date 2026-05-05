@@ -1,0 +1,29 @@
+{
+  "root": {
+    "node_id": "root",
+    "semantic_nodes": [
+      {
+        "node_id": "sem-cta",
+        "role": "Button",
+        "label": "Submit",
+        "tab_index": 1
+      }
+    ],
+    "children": [
+      {
+        "value_type": "Surface",
+        "value": {
+          "node_id": "cta",
+          "semantic_node_id": "sem-cta",
+          "padding": {
+            "top": { "value": 16, "unit": "Px" },
+            "bottom": { "value": 16, "unit": "Px" },
+            "left": { "value": 32, "unit": "Px" },
+            "right": { "value": 32, "unit": "Px" }
+          },
+          "href": "/submit"
+        }
+      }
+    ]
+  }
+}
