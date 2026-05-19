@@ -1,10 +1,40 @@
 # Sprint 82 — Accessibility Deep Dive
 
 **Phase:** 7 — Production Readiness
-**Status:** Planned
+**Status:** In progress (Days 1–2 committed)
 **Goal:** Take Accessibility — one of the three non-negotiable pillars — from "5 validator rules + a focus ring" to compile-time-verifiable WCAG 2.2 AA conformance with documented evidence per fixture. Add color contrast computation, focus order verification, automated screen-reader text generation, and a Lighthouse-style automated audit baked into CI.
 
 **Depends on:** validator (S07), compiler-dom (S20), S64 (rich defaults), S67 (validator hints + fixes). Independent of S65/S66/S68/S69/S70/S71/S72/S74.
+
+---
+
+## Implementation Status (reconciled against shipped code)
+
+The deliverables below were written before implementation; the shipped
+validator **compressed the numbering** (it reused existing A11Y004/A11Y006
+slots for heading-skip and accessible-text rather than minting A11Y009/A11Y008).
+Actual `A11Y*` codes now in `packages/validator/src/passes/a11y.rs`:
+
+| Code | What it checks | Maps to plan deliverable | State |
+| --- | --- | --- | --- |
+| A11Y004 | Heading hierarchy skips a level | #4 Heading strictness | ✅ shipped |
+| A11Y006 | Link/button has no accessible text (icon-only) | #3 (validator half) | ✅ shipped |
+| A11Y007 | Text-on-background contrast fails WCAG 2.2 AA | #1 Color contrast | ✅ shipped (Day 1) |
+| A11Y008 | Positive `tab_index` disrupts focus order | #2 Focus order | ✅ shipped (Day 2) |
+| A11Y009 | Touch target < 24×24 CSS px | #5 Touch target | ✅ shipped (Day 2) |
+
+**Remaining work** (renumbered to the next free code, A11Y010+):
+
+- **D3 compiler half** — the *compiler* does not yet auto-generate an
+  accessible name from contained MediaNode `alt` / sibling text; only the
+  validator error (A11Y006) exists.
+- **D6 — `A11Y010` LiveRegion requirement** for dynamic content (no schema
+  change; `LiveRegion` already in the IR). ← next up
+- **D7** axe-core audit per fixture (Puppeteer) · **D8** per-fixture
+  `a11y-evidence.md` · **D9** CI gate · **D10** `docs/accessibility/`.
+
+The `skip_level: true` escape hatch (D4) is not implemented; A11Y004 has no
+override field yet — tracked under D4 follow-up.
 
 ---
 

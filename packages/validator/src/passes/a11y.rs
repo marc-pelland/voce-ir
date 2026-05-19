@@ -85,6 +85,17 @@ const CODES: &[CodeMeta] = &[
                — move the interactivity onto the larger ancestor.",
         fix_confidence: None,
     },
+    CodeMeta {
+        code: "A11Y010",
+        summary: "Dynamic content without a LiveRegion to announce updates",
+        hint: "This document fetches or mutates content at runtime (a DataNode, \
+               SubscriptionNode, or a FormNode with validation rules) but has no \
+               LiveRegion. Screen readers will not announce loading states, \
+               fetched results, or validation errors. Add a `LiveRegion` node \
+               (politeness `polite` for results, `assertive` for errors) so \
+               WCAG 2.2 SC 4.1.3 (Status Messages) is satisfied.",
+        fix_confidence: None,
+    },
 ];
 
 impl ValidationPass for AccessibilityPass {
@@ -137,6 +148,33 @@ impl ValidationPass for AccessibilityPass {
                         });
                     }
                 }
+            }
+        }
+
+        // A11Y010: runtime-dynamic content needs a LiveRegion so screen
+        // readers announce loading states, fetched results, and form errors.
+        if let Some(ref children) = root.children {
+            let mut has_dynamic = false;
+            let mut has_live_region = false;
+            let mut first_dynamic_path = String::new();
+            self.scan_dynamic(
+                children,
+                "/root/children",
+                &mut has_dynamic,
+                &mut has_live_region,
+                &mut first_dynamic_path,
+            );
+            if has_dynamic && !has_live_region {
+                result.diagnostics.push(Diagnostic {
+                    severity: Severity::Warning,
+                    code: "A11Y010".to_string(),
+                    message: "Dynamic content (DataNode/SubscriptionNode/validated FormNode) \
+                              has no LiveRegion — screen readers won't announce updates"
+                        .to_string(),
+                    node_path: first_dynamic_path,
+                    pass: self.name().to_string(),
+                    hint: None,
+                });
             }
         }
     }
@@ -230,6 +268,56 @@ impl AccessibilityPass {
             // Recurse
             if let Some(grandchildren) = child.children() {
                 self.check_children(&grandchildren, &format!("{path}/children"), result);
+            }
+        }
+    }
+
+    /// A11Y010: one walk recording whether the document has runtime-dynamic
+    /// content and whether any LiveRegion exists to announce its updates.
+    fn scan_dynamic(
+        &self,
+        children: &[ChildNode],
+        parent_path: &str,
+        has_dynamic: &mut bool,
+        has_live_region: &mut bool,
+        first_dynamic_path: &mut String,
+    ) {
+        for (i, child) in children.iter().enumerate() {
+            let path = format!("{parent_path}/{i}");
+            match child.type_name() {
+                "LiveRegion" => *has_live_region = true,
+                "DataNode" | "SubscriptionNode" => {
+                    if !*has_dynamic {
+                        *first_dynamic_path = path.clone();
+                    }
+                    *has_dynamic = true;
+                }
+                "FormNode" => {
+                    if let Some(form) = child.as_type::<crate::ir::FormNode>() {
+                        let has_validation = form.fields.as_ref().is_some_and(|fields| {
+                            fields
+                                .iter()
+                                .any(|f| f.validations.as_ref().is_some_and(|v| !v.is_empty()))
+                        });
+                        if has_validation {
+                            if !*has_dynamic {
+                                *first_dynamic_path = path.clone();
+                            }
+                            *has_dynamic = true;
+                        }
+                    }
+                }
+                _ => {}
+            }
+
+            if let Some(grandchildren) = child.children() {
+                self.scan_dynamic(
+                    &grandchildren,
+                    &format!("{path}/children"),
+                    has_dynamic,
+                    has_live_region,
+                    first_dynamic_path,
+                );
             }
         }
     }

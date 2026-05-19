@@ -312,6 +312,94 @@ fn a11y009_min_dimensions_clear_the_warning() {
     );
 }
 
+#[test]
+fn a11y010_datanode_without_liveregion_warns() {
+    let json = r#"{
+        "root": {
+            "node_id": "root",
+            "children": [
+                { "value_type": "DataNode", "value": { "node_id": "d1", "name": "items" } }
+            ]
+        }
+    }"#;
+    let warnings = warning_codes(json);
+    assert!(
+        warnings.contains(&"A11Y010".to_string()),
+        "DataNode with no LiveRegion should warn A11Y010, got: {warnings:?}"
+    );
+}
+
+#[test]
+fn a11y010_liveregion_present_is_silent() {
+    let json = r#"{
+        "root": {
+            "node_id": "root",
+            "children": [
+                { "value_type": "DataNode", "value": { "node_id": "d1", "name": "items" } },
+                { "value_type": "LiveRegion", "value": { "node_id": "lr", "politeness": "polite" } }
+            ]
+        }
+    }"#;
+    let warnings = warning_codes(json);
+    assert!(
+        !warnings.contains(&"A11Y010".to_string()),
+        "A LiveRegion anywhere in the document should clear A11Y010, got: {warnings:?}"
+    );
+}
+
+#[test]
+fn a11y010_validated_form_without_liveregion_warns() {
+    // A FormNode whose field carries validation rules is dynamic (errors
+    // appear at runtime) and needs a LiveRegion to announce them.
+    let json = r#"{
+        "root": {
+            "node_id": "root",
+            "children": [
+                {
+                    "value_type": "FormNode",
+                    "value": {
+                        "node_id": "f1",
+                        "semantic_node_id": "fsem",
+                        "fields": [
+                            {
+                                "name": "email",
+                                "field_type": "email",
+                                "label": "Email",
+                                "validations": [
+                                    { "rule_type": "required", "message": "Required" }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    }"#;
+    let warnings = warning_codes(json);
+    assert!(
+        warnings.contains(&"A11Y010".to_string()),
+        "Validated FormNode with no LiveRegion should warn A11Y010, got: {warnings:?}"
+    );
+}
+
+#[test]
+fn a11y010_static_document_is_silent() {
+    // No DataNode / SubscriptionNode / validated form — nothing to announce.
+    let json = r#"{
+        "root": {
+            "node_id": "root",
+            "children": [
+                { "value_type": "TextNode", "value": { "node_id": "t", "content": "Hello" } }
+            ]
+        }
+    }"#;
+    let warnings = warning_codes(json);
+    assert!(
+        !warnings.contains(&"A11Y010".to_string()),
+        "A purely static document should not warn A11Y010, got: {warnings:?}"
+    );
+}
+
 // ─── Security Pass ──────────────────────────────────────────────
 
 #[test]

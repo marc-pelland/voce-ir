@@ -4,15 +4,18 @@ Step-by-step guide for publishing all components of Voce IR as open source.
 
 ---
 
-## Prerequisites
+## Prerequisites (one-time setup)
 
-Before starting, you need accounts and tokens for:
+This is a runbook, not a progress tracker — these are the accounts and
+credentials a publisher needs available before running the steps below:
 
-- [ ] **GitHub** — repo at `github.com/marc-pelland/voce-ir`
-- [ ] **crates.io** — API token (`cargo login`)
-- [ ] **npm** — auth token (`npm login`, scope `@voce-ir`)
-- [ ] **Cloudflare** — account for Pages deployment (voce-ir.xyz)
-- [ ] **Domain** — voce-ir.xyz DNS configured
+| Service | What you need | Notes |
+| --- | --- | --- |
+| **GitHub** | repo at `github.com/marc-pelland/voce-ir` | repo is live |
+| **crates.io** | API token (`cargo login`) | per-publisher |
+| **npm** | auth token (`npm login`, scope `@voce-ir`) | per-publisher |
+| **Cloudflare** | account for Pages deployment | hosts voce-ir.xyz |
+| **Domain** | `voce-ir.xyz` DNS configured | site is live |
 
 ---
 
