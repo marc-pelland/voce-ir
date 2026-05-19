@@ -13,11 +13,21 @@
   floor, landmark superset) across the 13-fixture corpus reused from
   `tests/fixtures/` (no duplicate `tests/cross-target/` dir — DRY).
   All green on first run; the reference compiler is faithful.
-- ⏳ **Remaining:** observed extractors for Email / WebGPU / Hybrid
-  (HTML-family, reuse `from_html`), then SwiftUI / Compose / WASM
-  (language-specific); the compatibility matrix doc (Deliverable 4);
-  divergence fixes (Deliverable 5); CI gate (Deliverable 6). WASM is a
-  logic-only target — classify as partial, not full-parity.
+- ✅ **Slice 2 (HTML family):** Hybrid asserted at the full oracle
+  contract (verified identical to DOM across the corpus). Email
+  asserted on its required contract (heading order + named media);
+  forms/landmarks classified as medium-degradation (◐). WebGPU
+  classified ✗-via-this-lens (GPU-painted behind a fixed shell — needs
+  an a11y-tree extractor, not `from_html`). `docs/compatibility-matrix.md`
+  (Deliverable 4) generated from the real run, with a profile model so
+  divergence is classified, never silent. A diagnostic dump test aids
+  inspection. **Deliverable-5 finding logged:** Email emits zero
+  anchors for `links-and-nav` (4 links) — flagged ⚠ as a likely
+  flattening bug (email *can* do links), not asserted as a gate yet.
+- ⏳ **Remaining:** Slice 3 — SwiftUI / Compose language-specific
+  extractors; WebGPU a11y-tree extractor; WASM (logic-only — partial).
+  Then Deliverable 5 (resolve the Email-anchor ⚠) and Deliverable 6
+  (CI `cross-target-parity` gate).
 - This slice also unblocks **S82 D7/D9** (axe-core CI runs on this
   corpus) and the **S91** conformance kit (which promotes this exact
   extractor to a normative, portable algorithm).

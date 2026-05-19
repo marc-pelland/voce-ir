@@ -2,11 +2,20 @@
 //!
 //! Distinct from `cross_target_tests.rs` (per-target smoke tests): this
 //! derives a representation-independent [`SemanticSummary`] from each
-//! fixture's IR (the contract) and from the DOM-compiled artifact
-//! (the *oracle* target, per S91), and asserts the oracle preserves the
-//! IR's meaning. This is the foundation every other target is measured
-//! against; SwiftUI/Compose/WASM observed extraction + the full
-//! compatibility matrix land in follow-up slices.
+//! fixture's IR (the contract) and from each compiled artifact, and
+//! asserts every target preserves the IR's meaning *to the extent its
+//! medium allows*. Divergence is classified, never silent:
+//!
+//! - **DOM** (oracle) and **Hybrid** (DOM + WASM): must preserve
+//!   everything — they can represent any IR.
+//! - **Email**: a constrained medium. Must preserve heading order and
+//!   named media; links/forms/landmarks degrade (see the compatibility
+//!   matrix — the link flattening is tracked for Deliverable 5).
+//! - **WebGPU**: paints on the GPU behind a fixed HTML shell, so
+//!   HTML-scraped parity is not the right lens; it needs an a11y-tree
+//!   extractor (future slice). Smoke-covered in `cross_target_tests.rs`.
+//!
+//! SwiftUI/Compose/WASM language-specific extraction is a later slice.
 
 use std::fs;
 use std::path::PathBuf;
@@ -46,66 +55,197 @@ fn load(name: &str) -> String {
     fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()))
 }
 
-/// The DOM target (oracle) must preserve the IR's semantics exactly on
-/// the non-degradable dimensions. Any divergence here is a compiler bug,
-/// not a medium limitation — DOM can represent everything.
-#[test]
-fn dom_oracle_preserves_ir_semantics_across_corpus() {
-    let mut failures = Vec::new();
+/// Which semantic dimensions a target is *required* to preserve. A
+/// `false` flag means the medium legitimately degrades that dimension —
+/// recorded in `docs/compatibility-matrix.md`, not asserted here.
+struct Profile {
+    headings: bool,
+    forms: bool,
+    media_names: bool,
+    interactive: bool,
+    landmarks: bool,
+}
 
-    for &name in CORPUS {
-        let json = load(name);
-        let expected = SemanticSummary::from_ir(&json)
-            .unwrap_or_else(|e| panic!("{name}: IR parse failed: {e}"));
-
-        let compiled = voce_compiler_dom::compile(&json, &voce_compiler_dom::CompileOptions::default())
-            .unwrap_or_else(|e| panic!("{name}: DOM compile failed: {e:?}"));
-        let observed = SemanticSummary::from_html(&compiled.html);
-
-        // Heading hierarchy: order and levels must survive verbatim.
-        if observed.heading_levels != expected.heading_levels {
-            failures.push(format!(
-                "{name}: heading_levels IR={:?} DOM={:?}",
-                expected.heading_levels, observed.heading_levels
-            ));
-        }
-        // Form fields must all be emitted.
-        if observed.form_field_count != expected.form_field_count {
-            failures.push(format!(
-                "{name}: form_field_count IR={} DOM={}",
-                expected.form_field_count, observed.form_field_count
-            ));
-        }
-        // Named images must keep their accessible name.
-        if observed.media_with_name_count != expected.media_with_name_count {
-            failures.push(format!(
-                "{name}: media_with_name_count IR={} DOM={}",
-                expected.media_with_name_count, observed.media_with_name_count
-            ));
-        }
-        // Interactive affordances must not be dropped (DOM may add some,
-        // e.g. wrapping anchors — so this is a floor, not equality).
-        if observed.interactive_count < expected.interactive_count {
-            failures.push(format!(
-                "{name}: interactive_count IR={} DOM={} (dropped)",
-                expected.interactive_count, observed.interactive_count
-            ));
-        }
-        // Every IR landmark must appear in the DOM output.
+/// Compare an observed summary against the IR contract under a profile.
+/// Returns human-readable divergence strings for the *required* dims.
+fn divergences(
+    name: &str,
+    target: &str,
+    expected: &SemanticSummary,
+    observed: &SemanticSummary,
+    p: &Profile,
+) -> Vec<String> {
+    let mut out = Vec::new();
+    if p.headings && observed.heading_levels != expected.heading_levels {
+        out.push(format!(
+            "{name} [{target}]: heading_levels IR={:?} got={:?}",
+            expected.heading_levels, observed.heading_levels
+        ));
+    }
+    if p.forms && observed.form_field_count != expected.form_field_count {
+        out.push(format!(
+            "{name} [{target}]: form_field_count IR={} got={}",
+            expected.form_field_count, observed.form_field_count
+        ));
+    }
+    if p.media_names && observed.media_with_name_count != expected.media_with_name_count {
+        out.push(format!(
+            "{name} [{target}]: media_with_name_count IR={} got={}",
+            expected.media_with_name_count, observed.media_with_name_count
+        ));
+    }
+    // Interactive is a floor: a target may legitimately *add* affordances
+    // (skip links, wrapping anchors) but must never drop them.
+    if p.interactive && observed.interactive_count < expected.interactive_count {
+        out.push(format!(
+            "{name} [{target}]: interactive_count IR={} got={} (dropped)",
+            expected.interactive_count, observed.interactive_count
+        ));
+    }
+    if p.landmarks {
         for role in &expected.landmark_roles {
             if !observed.landmark_roles.contains(role) {
-                failures.push(format!(
-                    "{name}: landmark '{role}' present in IR, missing in DOM \
-                     (DOM landmarks: {:?})",
+                out.push(format!(
+                    "{name} [{target}]: landmark '{role}' in IR, missing (got {:?})",
                     observed.landmark_roles
                 ));
             }
         }
     }
+    out
+}
 
+/// DOM (oracle) — must represent every IR faithfully.
+#[test]
+fn dom_oracle_preserves_ir_semantics() {
+    let p = Profile {
+        headings: true,
+        forms: true,
+        media_names: true,
+        interactive: true,
+        landmarks: true,
+    };
+    let mut failures = Vec::new();
+    for &name in CORPUS {
+        let json = load(name);
+        let expected = SemanticSummary::from_ir(&json).expect("IR parse");
+        let html = voce_compiler_dom::compile(&json, &voce_compiler_dom::CompileOptions::default())
+            .expect("DOM compile")
+            .html;
+        let observed = SemanticSummary::from_html(&html);
+        failures.extend(divergences(name, "DOM", &expected, &observed, &p));
+    }
     assert!(
         failures.is_empty(),
-        "DOM oracle diverged from IR semantics:\n  {}",
+        "DOM oracle diverged (a compiler bug — DOM can represent everything):\n  {}",
         failures.join("\n  ")
     );
+}
+
+/// Hybrid = DOM + WASM. It is a superset of DOM and must hold the same
+/// full-preservation contract as the oracle.
+#[test]
+fn hybrid_matches_oracle_contract() {
+    let p = Profile {
+        headings: true,
+        forms: true,
+        media_names: true,
+        interactive: true,
+        landmarks: true,
+    };
+    let mut failures = Vec::new();
+    for &name in CORPUS {
+        let json = load(name);
+        let expected = SemanticSummary::from_ir(&json).expect("IR parse");
+        let html = voce_compiler_hybrid::compile_hybrid(
+            &json,
+            &voce_compiler_hybrid::HybridCompileOptions::default(),
+        )
+        .expect("Hybrid compile")
+        .html;
+        let observed = SemanticSummary::from_html(&html);
+        failures.extend(divergences(name, "Hybrid", &expected, &observed, &p));
+    }
+    assert!(
+        failures.is_empty(),
+        "Hybrid diverged from the oracle contract:\n  {}",
+        failures.join("\n  ")
+    );
+}
+
+/// Email is a constrained medium. Its *contract* is heading order and
+/// named media; links/forms/landmarks degrade by the medium's nature
+/// (and the current link flattening is tracked for Deliverable 5 in the
+/// compatibility matrix). Asserting only the required dimensions keeps
+/// this honest: a regression in what Email *must* keep still fails.
+#[test]
+fn email_preserves_its_required_contract() {
+    let p = Profile {
+        headings: true,
+        forms: false,
+        media_names: true,
+        interactive: false,
+        landmarks: false,
+    };
+    let mut failures = Vec::new();
+    for &name in CORPUS {
+        let json = load(name);
+        let expected = SemanticSummary::from_ir(&json).expect("IR parse");
+        let html = voce_compiler_email::compile_email(&json)
+            .expect("Email compile")
+            .html;
+        let observed = SemanticSummary::from_html(&html);
+        failures.extend(divergences(name, "Email", &expected, &observed, &p));
+    }
+    assert!(
+        failures.is_empty(),
+        "Email dropped a dimension it is required to preserve \
+         (heading order / named media):\n  {}",
+        failures.join("\n  ")
+    );
+}
+
+/// Diagnostic dump (ignored by default): prints IR vs every HTML-family
+/// target so an agent or maintainer can inspect divergence at a glance.
+/// Run with `--ignored --nocapture`.
+#[test]
+#[ignore]
+fn diagnostic_html_family_dump() {
+    for &name in CORPUS {
+        let json = load(name);
+        let ir = SemanticSummary::from_ir(&json).unwrap();
+        println!("\n=== {name} ===");
+        let row = |t: &str, s: &SemanticSummary| {
+            println!(
+                "{t:6} h={:?} int={} form={} media={}/{} lm={:?}",
+                s.heading_levels,
+                s.interactive_count,
+                s.form_field_count,
+                s.media_with_name_count,
+                s.media_decorative_count,
+                s.landmark_roles
+            );
+        };
+        row("IR", &ir);
+        if let Ok(r) =
+            voce_compiler_dom::compile(&json, &voce_compiler_dom::CompileOptions::default())
+        {
+            row("DOM", &SemanticSummary::from_html(&r.html));
+        }
+        if let Ok(r) = voce_compiler_email::compile_email(&json) {
+            row("EMAIL", &SemanticSummary::from_html(&r.html));
+        }
+        if let Ok(r) = voce_compiler_webgpu::compile_webgpu(
+            &json,
+            &voce_compiler_webgpu::WebGpuCompileOptions::default(),
+        ) {
+            row("WGPU", &SemanticSummary::from_html(&r.html));
+        }
+        if let Ok(r) = voce_compiler_hybrid::compile_hybrid(
+            &json,
+            &voce_compiler_hybrid::HybridCompileOptions::default(),
+        ) {
+            row("HYBR", &SemanticSummary::from_html(&r.html));
+        }
+    }
 }
