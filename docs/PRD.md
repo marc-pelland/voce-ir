@@ -234,31 +234,31 @@ See `docs/research/SECURITY_TESTING_TOOLING.md` for full CLI design.
 
 ### 7.1 Phase 1 (Spec & Foundation) Success Criteria
 
-- [ ] FlatBuffers schema compiles and generates bindings for Rust and TypeScript
-- [ ] Reference validator correctly accepts valid IR and rejects invalid IR with typed errors
-- [ ] 100% of Phase 1 node types have formal schema definitions
-- [ ] At least 20 test cases per node type covering valid and invalid states
+- [x] FlatBuffers schema compiles and generates bindings for Rust and TypeScript
+- [x] Reference validator correctly accepts valid IR and rejects invalid IR with typed errors
+- [x] 100% of Phase 1 node types have formal schema definitions
+- [x] At least 20 test cases per node type covering valid and invalid states
 
 ### 7.2 Phase 2 (DOM Compiler MVP) Success Criteria
 
-- [ ] "Landing page" vertical slice compiles from IR to working HTML
-- [ ] Compiled output contains 0 bytes of framework runtime
-- [ ] TTI < 50ms on Chrome/latest, measured by Lighthouse
-- [ ] Output passes axe-core accessibility audit with 0 violations
-- [ ] Compiled output file size < 10KB for the landing page demo
+- [x] "Landing page" vertical slice compiles from IR to working HTML
+- [x] Compiled output contains 0 bytes of framework runtime
+- [x] TTI < 50ms on Chrome/latest, measured by Lighthouse
+- [x] Output passes axe-core accessibility audit with 0 violations
+- [x] Compiled output file size < 10KB for the landing page demo
 
 ### 7.3 Phase 3 (AI Bridge) Success Criteria
 
-- [ ] Natural language description produces valid IR in >95% of attempts
-- [ ] End-to-end latency (intent → compiled preview) < 5 seconds
-- [ ] Iterative patching works: describe a change, only affected nodes regenerate
-- [ ] Demo recording: conversation → working deployed page in under 2 minutes
+- [x] Natural language description produces valid IR in >95% of attempts
+- [x] End-to-end latency (intent → compiled preview) < 5 seconds
+- [x] Iterative patching works: describe a change, only affected nodes regenerate
+- [ ] Demo recording: conversation → working deployed page in under 2 minutes *(deferred to S60 community launch)*
 
 ### 7.4 Phase 4+ (Growth) Success Criteria
 
-- [ ] At least 2 compile targets functional (DOM + one of WebGPU/WASM/Native)
-- [ ] Open source community: 50+ GitHub stars, 5+ external contributors
-- [ ] At least 3 real-world projects built entirely with Voce IR
+- [x] At least 2 compile targets functional (DOM + one of WebGPU/WASM/Native) *(7 targets shipped)*
+- [ ] Open source community: 50+ GitHub stars, 5+ external contributors *(pending S60 launch)*
+- [ ] At least 3 real-world projects built entirely with Voce IR *(pending S60 launch)*
 
 ## 8. Constraints & Assumptions
 

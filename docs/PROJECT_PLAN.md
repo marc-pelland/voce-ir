@@ -464,14 +464,14 @@ Chosen because:
 
 Before making the repo public:
 
-- [ ] README with clear project description and getting started
-- [ ] CONTRIBUTING.md with code standards and PR process
-- [ ] CODE_OF_CONDUCT.md
-- [ ] Issue templates (bug report, feature request, new compile target proposal)
-- [ ] At least 3 working examples in examples/
-- [ ] CI passing on all PRs
-- [ ] Published demo video/blog post explaining the project
-- [ ] Discord or GitHub Discussions enabled for community Q&A
+- [x] README with clear project description and getting started
+- [x] CONTRIBUTING.md with code standards and PR process
+- [x] CODE_OF_CONDUCT.md
+- [x] Issue templates (bug report, feature request, new compile target proposal)
+- [x] At least 3 working examples in examples/
+- [x] CI passing on all PRs
+- [ ] Published demo video/blog post explaining the project *(S60 deliverable)*
+- [ ] Discord or GitHub Discussions enabled for community Q&A *(S60 deliverable)*
 
 ## 6. Risk Mitigations
 

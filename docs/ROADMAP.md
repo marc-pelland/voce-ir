@@ -59,59 +59,59 @@ Only the nodes needed for the vertical slice demo (a marketing landing page):
 ### Weekly Breakdown
 
 **Weeks 1-2: Project Bootstrap**
-- [ ] Initialize Rust workspace with Cargo
-- [ ] Set up monorepo structure (packages/schema, packages/validator)
-- [ ] Configure CI (GitHub Actions: build, test, lint)
-- [ ] Write CLAUDE.md with project conventions for Claude Code
+- [x] Initialize Rust workspace with Cargo
+- [x] Set up monorepo structure (packages/schema, packages/validator)
+- [x] Configure CI (GitHub Actions: build, test, lint)
+- [x] Write CLAUDE.md with project conventions for Claude Code
 - [x] Research and finalize: FlatBuffers vs Cap'n Proto decision (see `docs/research/DEEP_RESEARCH.md` — FlatBuffers confirmed)
-- [ ] Draft initial `.fbs` schema file with ViewRoot, Container, Surface, TextNode
+- [x] Draft initial `.fbs` schema file with ViewRoot, Container, Surface, TextNode
 
 **Weeks 3-4: Core Schema Definition**
-- [ ] Define all Phase 1 node types in FlatBuffers schema
-- [ ] Define the type system: primitive types, composite types, constraint types
-- [ ] Define DeviceProfile schema
-- [ ] Ensure every node type has explicit stable ID field (for cross-referencing, delta updates, a11y tree mapping)
-- [ ] Generate Rust bindings from schema
-- [ ] Generate TypeScript bindings from schema (for AI bridge later)
-- [ ] Verify JSON canonical representation round-trips to/from binary (FlatBuffers JSON support)
-- [ ] Write schema documentation (inline comments + generated docs)
+- [x] Define all Phase 1 node types in FlatBuffers schema
+- [x] Define the type system: primitive types, composite types, constraint types
+- [x] Define DeviceProfile schema
+- [x] Ensure every node type has explicit stable ID field (for cross-referencing, delta updates, a11y tree mapping)
+- [x] Generate Rust bindings from schema
+- [x] Generate TypeScript bindings from schema (for AI bridge later)
+- [x] Verify JSON canonical representation round-trips to/from binary (FlatBuffers JSON support)
+- [x] Write schema documentation (inline comments + generated docs)
 
 **Weeks 5-6: Validator Core**
-- [ ] Build IR deserialization and structural validation
-- [ ] Implement type checking pass (all fields match declared types)
-- [ ] Implement reference resolution (Ref<T> nodes resolve to valid targets)
-- [ ] Implement state machine validation (no unreachable states, all transitions typed)
-- [ ] Typed error reporting with node path and expected/actual values
+- [x] Build IR deserialization and structural validation
+- [x] Implement type checking pass (all fields match declared types)
+- [x] Implement reference resolution (Ref<T> nodes resolve to valid targets)
+- [x] Implement state machine validation (no unreachable states, all transitions typed)
+- [x] Typed error reporting with node path and expected/actual values
 
 **Weeks 7-8: Pillar Enforcement**
-- [ ] Implement accessibility validation (SemanticNode coverage for interactive nodes)
-- [ ] Implement a11y opt-out validation (decorative images, presentation-only surfaces require explicit flags)
-- [ ] Implement motion safety validation (ReducedMotion for all Transitions/Sequences; support `motion_functional` for loading indicators)
-- [ ] Implement keyboard equivalence validation (GestureHandlers must declare keyboard alt)
-- [ ] Implement data completeness validation (DataNodes have type and error states)
-- [ ] Implement security validation pass (auth guards on protected routes, allowed origins on DataNodes, no XSS patterns)
-- [ ] Write comprehensive test suite: at least 20 test cases per node type
+- [x] Implement accessibility validation (SemanticNode coverage for interactive nodes)
+- [x] Implement a11y opt-out validation (decorative images, presentation-only surfaces require explicit flags)
+- [x] Implement motion safety validation (ReducedMotion for all Transitions/Sequences; support `motion_functional` for loading indicators)
+- [x] Implement keyboard equivalence validation (GestureHandlers must declare keyboard alt)
+- [x] Implement data completeness validation (DataNodes have type and error states)
+- [x] Implement security validation pass (auth guards on protected routes, allowed origins on DataNodes, no XSS patterns)
+- [x] Write comprehensive test suite: at least 20 test cases per node type
 
 **Weeks 9-10: Polish & Documentation**
-- [ ] CLI for validator: `voce-validate <file.voce>` with human-readable error output (include node paths, expected/actual values — these errors feed the AI repair loop)
-- [ ] Build unified `voce` CLI with subcommands: `validate`, `inspect`, `json2bin`, `bin2json`
-- [ ] Implement `voce inspect` — pretty-print IR as human-readable summary (not code)
-- [ ] Create example IR blobs (valid and invalid) for the landing page vertical slice — in both JSON and binary formats
-- [ ] Hand-author the reference landing page IR (this is the "golden file" that Phase 2 compiles)
-- [ ] Begin building (intent description, IR) pair library for Phase 3 RAG — write natural language descriptions for each example IR
-- [ ] Write ARCHITECTURE.md documenting key technical decisions (reference SPIR-V pipeline analogy, Compose slot table, Taffy for layout)
-- [ ] Tag v0.1.0 release of schema and validator
+- [x] CLI for validator: `voce-validate <file.voce>` with human-readable error output (include node paths, expected/actual values — these errors feed the AI repair loop)
+- [x] Build unified `voce` CLI with subcommands: `validate`, `inspect`, `json2bin`, `bin2json`
+- [x] Implement `voce inspect` — pretty-print IR as human-readable summary (not code)
+- [x] Create example IR blobs (valid and invalid) for the landing page vertical slice — in both JSON and binary formats
+- [x] Hand-author the reference landing page IR (this is the "golden file" that Phase 2 compiles)
+- [x] Begin building (intent description, IR) pair library for Phase 3 RAG — write natural language descriptions for each example IR
+- [x] Write ARCHITECTURE.md documenting key technical decisions (reference SPIR-V pipeline analogy, Compose slot table, Taffy for layout)
+- [x] Tag v0.1.0 release of schema and validator
 
 ### Phase 1 Exit Criteria
 
-- [ ] FlatBuffers schema compiles and generates Rust + TypeScript bindings
-- [ ] JSON canonical representation round-trips losslessly to/from binary
-- [ ] Validator CLI accepts the reference landing page IR blob
-- [ ] Validator CLI rejects IR blobs with missing SemanticNodes (with typed error)
-- [ ] Validator CLI rejects IR blobs with animations lacking ReducedMotion (with typed error)
-- [ ] 100+ test cases passing in CI
-- [ ] At least 10 (intent, IR) pairs documented in examples/ for Phase 3 RAG library
-- [ ] ARCHITECTURE.md published
+- [x] FlatBuffers schema compiles and generates Rust + TypeScript bindings
+- [x] JSON canonical representation round-trips losslessly to/from binary
+- [x] Validator CLI accepts the reference landing page IR blob
+- [x] Validator CLI rejects IR blobs with missing SemanticNodes (with typed error)
+- [x] Validator CLI rejects IR blobs with animations lacking ReducedMotion (with typed error)
+- [x] 100+ test cases passing in CI
+- [x] At least 10 (intent, IR) pairs documented in examples/ for Phase 3 RAG library
+- [x] ARCHITECTURE.md published
 
 ---
 

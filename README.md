@@ -354,6 +354,20 @@ Voce IR is at v1.0.0 with all core functionality complete. The current focus (Ph
 - [x] S57: Production error handling and structured errors
 - [x] S58: Production demo site (voce-ir.xyz)
 - [x] S59: Performance optimization and benchmarks
+- [x] S61: Live pipeline hero (self-demonstrating site)
+- [x] S64: Compiler rich defaults (typography, lists, tables, theme palette)
+- [x] S65: MCP server polish (19 tools, `.voce/` memory, generate workflow)
+- [x] S66: Standalone conversational REPL
+- [x] S67: Validator diagnostic quality (hints, JSON Patch fixes, `voce fix`)
+- [x] S69: Test coverage uplift (proptest, coverage gate, mutation pilot)
+- [x] S70: Security hardening (hardened CSP, prompt-injection defense, threat model)
+- [x] S71: Perf budgets (WASM 522 KB, Lighthouse CI floor)
+- [x] S72: Schema completeness audit (FormFieldStyle, FormLayout)
+- [~] S82: Accessibility deep dive (WCAG 2.2 AA) — in progress
+- [ ] S68: Cross-target parity matrix
+- [ ] S74: Dev experience (`voce dev`, IDE plugins)
+- [ ] S79: Agent capability surface (`voce skills`/`doctor`/`graph`)
+- [ ] S91: Conformance specification & certification suite
 - [ ] S60: Community launch and v1.1.0
 
 See [MASTER_PLAN.md](docs/plans/MASTER_PLAN.md) for the full 60-sprint breakdown.

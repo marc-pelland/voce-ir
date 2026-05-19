@@ -545,6 +545,7 @@ Sprints not yet scoped as full plans, but identified as load-bearing or high-lev
 
 ### Tools & Integrations
 
+- **S79 — Agent Capability Surface ("The Agent Contract"):** unify scattered agent-facing affordances into one versioned, machine-consumable contract — `voce skills` / `doctor` / `graph` + published JSON Schemas + self-correcting fix loop + conformance runner. Prompted by `vercel-labs/zero` as external validation of the AI-native-tooling thesis. **Full plan: `docs/plans/sprint-79-agent-capability-surface.md`.**
 - **S86 — IDE Integrations:** VS Code, JetBrains, Vim/Neovim plugins. Promotes the `voce-vscode` stub from S74 into a published extension.
 - **S80 — Migration Tooling:** import from React/Svelte/Vue components → IR; design tokens import. Lowers the activation barrier for existing projects.
 - **S89 — A11y Audit Automation:** axe-core / Lighthouse / Pa11y integrated into deployment adapters so every published page has a fresh report. Builds on S82.
@@ -554,6 +555,7 @@ Sprints not yet scoped as full plans, but identified as load-bearing or high-lev
 - **S76 — Documentation Site Upgrade:** rebuild `voce-ir.xyz/docs` itself in Voce IR — meta-demonstration. Currently mdBook.
 - **S77 — Public Examples Gallery:** community submission flow at `voce-ir.xyz/gallery` extending S63.
 - **S78 — Telemetry & Quality Metrics (opt-in):** track real-world IR shapes, validation pass rates, compile sizes. Feed back into improving defaults.
+- **S91 — Conformance Specification & Certification Suite:** turn Voce into an open standard — normative `CONFORMANCE.md`, portable language-agnostic conformance kit, levels/profiles, self-certification + signed attestation + badge registry, public dashboard at `voce-ir.xyz/conformance`. Generalizes S68's internal parity machinery into the ecosystem moat. **Full plan: `docs/plans/sprint-91-conformance-spec-and-certification.md`.**
 
 ### Future-Adjacent
 

@@ -39,7 +39,10 @@ Voce IR is an open-source AI-native UI intermediate representation — "SPIR-V f
 | S70 (security hardening) | Complete — hardened CSP (per-script SHA-256 + frame-ancestors/base-uri/form-action), 5 new SEC rules (SEC005-009), prompt-injection delimiter + 15-attack corpus, adapter audit, STRIDE threat model, disclosure SLA, cargo audit + cargo deny + SBOM in CI |
 | S71 (perf budgets) | Complete — WASM 748 KB → 522 KB (workspace profile fix + binaryen wasm-opt), `voce compile --perf-report` + `--report-cache`, 14-fixture compile-budget gate, Lighthouse CI floor (perf 1.00 / a11y 0.95 / bp 0.96 / seo 1.00). Nightly puppeteer runtime perf descoped — see docs/perf-investigation.md |
 | S72 (schema audit) | Complete — FormFieldStyle + FormLayout shipped |
-| S60, S62, S63, S68, S74, S82 | Scoped, untouched |
+| S79 (agent capability surface) | Scoped — `docs/plans/sprint-79-agent-capability-surface.md`; prompted by `vercel-labs/zero` |
+| S91 (conformance spec + certification) | Scoped — `docs/plans/sprint-91-conformance-spec-and-certification.md`; generalizes S68 into an open standard |
+| S82 (a11y deep dive) | In progress — Day 1 (A11Y007 contrast) + Day 2 (A11Y008 focus order, A11Y009 touch target) committed; Days 3+ remain |
+| S60, S62, S63, S68, S74 | Scoped, untouched |
 
 Current task status — update this section as work progresses:
 - [x] Deep research & landscape analysis completed (`docs/research/DEEP_RESEARCH.md`)
@@ -91,15 +94,17 @@ Current task status — update this section as work progresses:
 - [x] **F-026** — `voce fix` auto-descends through union wrappers; works for nested fixes
 - [x] **S69 part 1+2** — proptest property-based tests (5 properties, ~1280 random cases per CI run), full-pipeline integration tests (3 e2e tests), CI clippy --all-targets
 - [x] **S72 part 1** — schema completeness audit at `docs/schema/COMPLETENESS_AUDIT.md`
-- [ ] **S69 parts 3+4** — `cargo-llvm-cov` coverage gate, `cargo-mutants` pilot
-- [ ] **S72 part 2** — actual schema additions (FormFieldStyle, FormLayout priority); deferred for fresh session
-- [ ] **S65 MCP server polish** — biggest remaining user-visible payload; conversational pillars in tool descriptions, .voce/ memory, multi-step generate workflow
-- [ ] **S66 Standalone REPL** — tool-use loop, .voce/ persistence, slash command surface
+- [x] **S69 parts 3+4** — `cargo-llvm-cov` coverage gate (60% floor), `cargo-mutants` pilot
+- [x] **S72 part 2** — FormFieldStyle + FormLayout shipped
+- [x] **S65 MCP server polish** — 19 tools, 4 resources, `.voce/` storage, 5-phase generate workflow, drift v1, conversational pillars in tool descriptions
+- [x] **S66 Standalone REPL** — tool-use loop, slash command framework + 18 commands, `.voce/` persistence, prompt caching, 78ms cold start
+- [x] **S70 Security hardening** — hardened CSP (per-script SHA-256), SEC005-009, prompt-injection defense + corpus, STRIDE threat model, cargo audit/deny + SBOM in CI
+- [x] **S71 Perf budgets** — WASM 748 KB → 522 KB, `--perf-report`/`--report-cache`, 14-fixture compile-budget gate, Lighthouse CI floor
+- [~] **S82 A11y deep dive** — IN PROGRESS: Day 1 (A11Y007 contrast) + Day 2 (A11Y008 focus order, A11Y009 touch target) committed; Days 3+ remain
 - [ ] **S68 Cross-target parity matrix**
-- [ ] **S70 Security hardening** — CSP audit, prompt injection defense, threat model
-- [ ] **S71 Perf budgets** — WASM ≤500 KB target, Lighthouse CI gate
 - [ ] **S74 Dev experience** — `voce dev` live-reload, error overlays, IDE plugins
-- [ ] **S82 A11y deep dive** — color contrast, focus order, axe-core CI
+- [ ] **S79 Agent capability surface** — `voce skills`/`doctor`/`graph` + versioned JSON Schemas + self-correcting fix loop (prompted by `vercel-labs/zero`)
+- [ ] **S91 Conformance spec + certification** — normative `CONFORMANCE.md`, portable kit, levels/profiles, signed attestation + badge registry
 - [ ] **S60 Community launch / v1.1.0**
 
 ## Architecture
