@@ -163,6 +163,106 @@ fn surface_decorative_has_aria_hidden() {
     assert!(result.html.contains("background-color:rgb(0,0,0)"));
 }
 
+#[test]
+fn surface_href_icon_only_gets_synthesized_aria_label() {
+    // An icon-only link: Surface with href, no semantic label, no link
+    // text — only a MediaNode whose alt describes it. D3 (S82) promotes
+    // that alt to an explicit aria-label on the <a>.
+    let json = r#"{
+        "root": {
+            "node_id": "root",
+            "children": [{
+                "value_type": "Surface",
+                "value": {
+                    "node_id": "settings-link",
+                    "href": "/settings",
+                    "children": [
+                        {
+                            "value_type": "MediaNode",
+                            "value": {
+                                "node_id": "gear",
+                                "src": "/icons/gear.svg",
+                                "alt": "Settings"
+                            }
+                        }
+                    ]
+                }
+            }]
+        }
+    }"#;
+
+    let result = compile(json, &CompileOptions::default()).unwrap();
+    assert!(
+        result.html.contains("aria-label=\"Settings\""),
+        "icon-only Surface link should get a synthesized aria-label, got:\n{}",
+        result.html
+    );
+}
+
+#[test]
+fn surface_href_with_link_text_is_not_relabeled() {
+    // The link has visible text — that text is the accessible name, so
+    // no aria-label should be synthesized.
+    let json = r#"{
+        "root": {
+            "node_id": "root",
+            "children": [{
+                "value_type": "Surface",
+                "value": {
+                    "node_id": "cta",
+                    "href": "/signup",
+                    "children": [
+                        { "value_type": "TextNode", "value": { "node_id": "t", "content": "Sign up" } }
+                    ]
+                }
+            }]
+        }
+    }"#;
+
+    let result = compile(json, &CompileOptions::default()).unwrap();
+    assert!(result.html.contains("Sign up"));
+    assert!(
+        !result.html.contains("aria-label="),
+        "link with visible text should not get a synthesized aria-label, got:\n{}",
+        result.html
+    );
+}
+
+#[test]
+fn surface_href_semantic_label_is_not_overridden() {
+    // An explicit SemanticNode label always wins over the derived name.
+    let json = r#"{
+        "root": {
+            "node_id": "root",
+            "semantic_nodes": [
+                { "node_id": "sem", "role": "Button", "label": "Account settings" }
+            ],
+            "children": [{
+                "value_type": "Surface",
+                "value": {
+                    "node_id": "acct",
+                    "href": "/account",
+                    "semantic_node_id": "sem",
+                    "children": [
+                        {
+                            "value_type": "MediaNode",
+                            "value": { "node_id": "ic", "src": "/i.svg", "alt": "gear" }
+                        }
+                    ]
+                }
+            }]
+        }
+    }"#;
+
+    let result = compile(json, &CompileOptions::default()).unwrap();
+    assert!(result.html.contains("aria-label=\"Account settings\""));
+    assert!(
+        !result.html.contains("aria-label=\"gear\""),
+        "semantic label must not be overridden by the MediaNode alt, got:\n{}",
+        result.html
+    );
+}
+
 // ─── Media ──────────────────────────────────────────────────────
 
 #[test]

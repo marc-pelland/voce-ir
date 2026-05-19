@@ -41,7 +41,7 @@ Voce IR is an open-source AI-native UI intermediate representation — "SPIR-V f
 | S72 (schema audit) | Complete — FormFieldStyle + FormLayout shipped |
 | S79 (agent capability surface) | Scoped — `docs/plans/sprint-79-agent-capability-surface.md`; prompted by `vercel-labs/zero` |
 | S91 (conformance spec + certification) | Scoped — `docs/plans/sprint-91-conformance-spec-and-certification.md`; generalizes S68 into an open standard |
-| S82 (a11y deep dive) | In progress — A11Y007 contrast, A11Y008 focus order, A11Y009 touch target, A11Y010 LiveRegion-required shipped; remaining: D3 compiler accessible-name gen, D7 axe-core CI, D8 evidence docs, D9 CI gate, D10 docs |
+| S82 (a11y deep dive) | In progress — A11Y007 contrast, A11Y008 focus order, A11Y009 touch target, A11Y010 LiveRegion-required, D3 compiler accessible-name synthesis shipped; remaining: D7 axe-core CI, D8 evidence docs, D9 CI gate, D10 docs (D7/D9 need S68 fixtures) |
 | S60, S62, S63, S68, S74 | Scoped, untouched |
 
 Current task status — update this section as work progresses:

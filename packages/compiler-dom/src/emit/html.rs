@@ -336,6 +336,40 @@ fn emit_node_safe(
     }
 }
 
+/// D3 (S82): derive an accessible name for an icon-only interactive
+/// element. Returns `None` when a descendant already supplies visible
+/// text (that text *is* the accessible name) or when nothing usable can
+/// be derived; returns `Some(alt)` when the only nameable descendant is
+/// a MediaNode with non-empty alt text — promoted to an explicit
+/// `aria-label` so the link/button is reliably named for screen readers.
+fn derive_accessible_name(ir: &CompilerIr, node: &CNode) -> Option<String> {
+    fn walk(ir: &CompilerIr, id: NodeId, media_alt: &mut Option<String>) -> bool {
+        let n = &ir.nodes[id.0];
+        match &n.kind {
+            NodeKind::Text { content, .. } if !content.trim().is_empty() => return true,
+            NodeKind::RichText { .. } => return true,
+            NodeKind::Media { alt, .. } if media_alt.is_none() && !alt.trim().is_empty() => {
+                *media_alt = Some(alt.trim().to_string());
+            }
+            _ => {}
+        }
+        for &c in &n.children {
+            if walk(ir, c, media_alt) {
+                return true;
+            }
+        }
+        false
+    }
+
+    let mut media_alt = None;
+    for &c in &node.children {
+        if walk(ir, c, &mut media_alt) {
+            return None; // visible text present — it is the accessible name
+        }
+    }
+    media_alt
+}
+
 fn emit_node(
     html: &mut String,
     ir: &CompilerIr,
@@ -468,8 +502,19 @@ fn emit_node(
                 } else {
                     ""
                 };
+                // D3: an icon-only link with no semantic label and no link
+                // text gets an aria-label synthesized from its MediaNode alt.
+                let auto_label = if !aria_attrs.contains("aria-label")
+                    && !aria_attrs.contains("aria-labelledby")
+                {
+                    derive_accessible_name(ir, node)
+                        .map(|name| format!(" aria-label=\"{}\"", escape_attr(&name)))
+                        .unwrap_or_default()
+                } else {
+                    String::new()
+                };
                 html.push_str(&format!(
-                    "{indent}<a href=\"{url}\"{target_attr}{rel} class=\"voce-btn\" style=\"{style};display:block;text-decoration:none;color:inherit\"{aria_attrs}{data_attr}>\n"
+                    "{indent}<a href=\"{url}\"{target_attr}{rel} class=\"voce-btn\" style=\"{style};display:block;text-decoration:none;color:inherit\"{aria_attrs}{auto_label}{data_attr}>\n"
                 ));
                 for &child_id in &node.children {
                     emit_node_safe(html, ir, child_id, depth + 1, options, interactive_targets);

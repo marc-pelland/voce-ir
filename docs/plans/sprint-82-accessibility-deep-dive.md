@@ -25,13 +25,14 @@ Actual `A11Y*` codes now in `packages/validator/src/passes/a11y.rs`:
 
 **Remaining work** (renumbered to the next free code, A11Y010+):
 
-- **D3 compiler half** — the *compiler* does not yet auto-generate an
-  accessible name from contained MediaNode `alt` / sibling text; only the
-  validator error (A11Y006) exists.
-- **D6 — `A11Y010` LiveRegion requirement** for dynamic content (no schema
-  change; `LiveRegion` already in the IR). ← next up
+- ✅ **D3 compiler half** — compiler-dom now synthesizes an `aria-label`
+  on an icon-only `Surface` link from a descendant MediaNode `alt` when
+  there is no semantic label and no visible link text (`derive_accessible_name`).
+- ✅ **D6 — `A11Y010` LiveRegion requirement** for dynamic content (no
+  schema change; `LiveRegion` already in the IR).
 - **D7** axe-core audit per fixture (Puppeteer) · **D8** per-fixture
   `a11y-evidence.md` · **D9** CI gate · **D10** `docs/accessibility/`.
+  ← remaining; D7/D9 depend on the S68 cross-target fixture set.
 
 The `skip_level: true` escape hatch (D4) is not implemented; A11Y004 has no
 override field yet — tracked under D4 follow-up.
