@@ -1,7 +1,30 @@
 # Sprint 79 — Agent Capability Surface ("The Agent Contract")
 
 **Phase:** 7 — Production Readiness
-**Status:** Planned
+**Status:** In progress (A1 Slice 1: CLI shipped)
+
+## Implementation Status
+
+- ✅ **A1 Slice 1 — `voce skills [--json]` (CLI):** reflected manifest
+  via `packages/validator/src/skills.rs` + canonical
+  `packages/validator/src/targets.rs` registry. Sources are all single
+  sources of truth — no hand lists: validation passes/codes from the
+  engine pass registry (`passes::all_passes()`), node types from the
+  generated FB union `ENUM_VALUES_CHILD_UNION` (27 types), compile
+  targets from the new `targets::ALL` registry (7), CLI commands from
+  clap `Command::get_subcommands()` introspection. Real numbers from
+  the live build: 9 passes / 52 codes (17 fixable) / 27 node types /
+  7 targets / 12 CLI commands. `contract_version: "1.0.0"`. JSON is
+  the contract; default output is a human-rendered summary.
+- ⏳ **A1 Slice 2 — MCP parity:** expose the same manifest as an MCP
+  tool (`voce_skills`) and resource so the conversational layer shares
+  the CLI's source. Deferred to keep this slice complete and tested
+  rather than half-spanning languages.
+- ⏳ **A2 (`voce doctor`) · A3 (`voce graph`) · A4 (versioned JSON
+  Schemas) · A5 (conformance runner skeleton, fully realized by S91)·
+  Part B differentiators.**
+
+---
 **Goal:** Consolidate Voce's scattered agent-facing affordances into one **documented, versioned, machine-consumable contract**. Today an agent learns Voce through MCP tool descriptions, `--list-passes`, `--list-codes`, `--perf-report`, and JSON Patch fixes — useful, but disjoint and undocumented as a stable interface. After this sprint, any AI agent (MCP client, the REPL, a third-party harness) can discover *everything Voce can do*, check *whether a project and toolchain are healthy*, inspect *the IR as a structured graph*, and rely on *a semver'd output schema* — without reading prose or source.
 
 **Depends on:** validator (S06–S07), S67 (diagnostics quality — hints/fixes/codes), S65 (MCP storage + tools), S71 (perf-report). Independent of S60/S62/S68; S68 conformance work is a sibling, cross-referenced below.

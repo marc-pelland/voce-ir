@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::process;
 
 use anyhow::{Context, Result};
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{CommandFactory, Parser, Subcommand, ValueEnum};
 
 /// Voce IR — AI-native UI intermediate representation toolchain.
 ///
@@ -167,6 +167,19 @@ enum Commands {
         confidence: String,
     },
 
+    /// Emit the agent-contract capability manifest (S79 A1).
+    ///
+    /// One reflected, machine-consumable description of what this build
+    /// of Voce can do — validation passes, diagnostic codes, node types,
+    /// compile targets, CLI commands — for AI agents, MCP clients, and
+    /// third-party tooling to discover capabilities without reading
+    /// prose or source.
+    Skills {
+        /// Emit the JSON contract (default: rendered human summary).
+        #[arg(long)]
+        json: bool,
+    },
+
     /// Deploy compiled output to a hosting platform
     Deploy {
         /// Path to the IR file (.voce.json)
@@ -259,6 +272,7 @@ fn run(cli: Cli) -> Result<i32> {
             apply,
             confidence,
         } => cmd_fix(&file, apply, &confidence),
+        Commands::Skills { json } => cmd_skills(json),
         Commands::Deploy {
             file,
             adapter,
@@ -891,6 +905,63 @@ fn confidence_meets(
         Confidence::Risky => 2,
     };
     rank(actual) <= rank(threshold)
+}
+
+/// S79 A1 — emit the reflected capability manifest. CLI subcommand
+/// names + their help blurbs are introspected from clap here (the lib
+/// cannot reach `Cli`); everything else is reflected lib-side.
+fn cmd_skills(json: bool) -> Result<i32> {
+    let cli_commands: Vec<voce_validator::skills::CliCommand> = Cli::command()
+        .get_subcommands()
+        .map(|c| voce_validator::skills::CliCommand {
+            name: c.get_name().to_string(),
+            about: c
+                .get_about()
+                .map(|s| s.to_string())
+                .unwrap_or_default(),
+        })
+        .collect();
+
+    let manifest = voce_validator::skills::build(env!("CARGO_PKG_VERSION"), cli_commands);
+
+    if json {
+        println!("{}", serde_json::to_string_pretty(&manifest)?);
+        return Ok(0);
+    }
+
+    // Human summary. The JSON envelope is the contract; this is operator
+    // ergonomics for someone running `voce skills` in a terminal.
+    println!("Voce capability manifest");
+    println!("  contract: v{}", manifest.contract_version);
+    println!("  voce:     v{}", manifest.voce_version);
+    println!();
+    println!(
+        "Validation passes ({}): {}",
+        manifest.validation_passes.len(),
+        manifest
+            .validation_passes
+            .iter()
+            .map(|p| p.name)
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
+    println!(
+        "Diagnostic codes: {} total ({} fixable)",
+        manifest.diagnostic_codes.len(),
+        manifest.diagnostic_codes.iter().filter(|c| c.fixable).count()
+    );
+    println!("Node types: {}", manifest.node_types.len());
+    println!("Compile targets ({}):", manifest.compile_targets.len());
+    for t in manifest.compile_targets {
+        println!("  - {:<16} {:?}  {}", t.id, t.stability, t.notes);
+    }
+    println!("CLI commands ({}):", manifest.cli_commands.len());
+    for c in &manifest.cli_commands {
+        println!("  - {:<10} {}", c.name, c.about);
+    }
+    println!();
+    println!("For the machine contract, run: voce skills --json");
+    Ok(0)
 }
 
 fn cmd_deploy(file: &PathBuf, adapter_name: Option<&str>, dry_run: bool) -> Result<i32> {
