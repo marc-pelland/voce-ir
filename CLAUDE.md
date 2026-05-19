@@ -41,7 +41,7 @@ Voce IR is an open-source AI-native UI intermediate representation — "SPIR-V f
 | S72 (schema audit) | Complete — FormFieldStyle + FormLayout shipped |
 | S79 (agent capability surface) | Scoped — `docs/plans/sprint-79-agent-capability-surface.md`; prompted by `vercel-labs/zero` |
 | S91 (conformance spec + certification) | Scoped — `docs/plans/sprint-91-conformance-spec-and-certification.md`; generalizes S68 into an open standard |
-| S82 (a11y deep dive) | In progress — A11Y007 contrast, A11Y008 focus order, A11Y009 touch target, A11Y010 LiveRegion-required, D3 compiler accessible-name synthesis shipped; remaining: D7 axe-core CI, D8 evidence docs, D9 CI gate, D10 docs (D7/D9 need S68 fixtures) |
+| S82 (a11y deep dive) | **CLOSED** — A11Y007–A11Y010 + D3 compiler accessible-name synthesis; D8 machine-checked corpus evidence (3 invalid fixtures fixed); D10 `docs/accessibility/`. D7 axe-core + D9 runtime-audit CI delegated to S89 (already scoped "Builds on S82"). Compile-time a11y pillar complete & gated |
 | S68 (cross-target parity) | In progress — Slice 1–2 + D5 + D6 done: `SemanticSummary` (link/gesture split) in validator lib; DOM+Hybrid full-contract + Email required-contract verifiers; `docs/compatibility-matrix.md`; dedicated `cross-target-parity` CI job. HTML-family foundation complete + gated. Remaining: Slice 3 only — SwiftUI/Compose/WASM/WebGPU-a11y extractors |
 | S60, S62, S63, S74 | Scoped, untouched |
 

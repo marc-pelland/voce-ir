@@ -11,14 +11,14 @@
           "node_id": "tap-handler",
           "gesture_type": "Tap",
           "target_node_id": "btn",
-          "keyboard_equivalent": "Enter"
+          "keyboard_key": "Enter"
         }
       },
       {
         "value_type": "Surface",
         "value": {
           "node_id": "btn",
-          "fill": { "r": 99, "g": 102, "b": 241, "a": 255 },
+          "fill": { "r": 79, "g": 70, "b": 229, "a": 255 },
           "corner_radius": { "top_left": 6, "top_right": 6, "bottom_left": 6, "bottom_right": 6 },
           "children": [
             { "value_type": "TextNode", "value": { "node_id": "btn-label", "content": "Click me", "font_size": { "value": 14, "unit": "Px" }, "color": { "r": 255, "g": 255, "b": 255, "a": 255 } } }

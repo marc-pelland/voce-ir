@@ -30,9 +30,25 @@ Actual `A11Y*` codes now in `packages/validator/src/passes/a11y.rs`:
   there is no semantic label and no visible link text (`derive_accessible_name`).
 - ✅ **D6 — `A11Y010` LiveRegion requirement** for dynamic content (no
   schema change; `LiveRegion` already in the IR).
-- **D7** axe-core audit per fixture (Puppeteer) · **D8** per-fixture
-  `a11y-evidence.md` · **D9** CI gate · **D10** `docs/accessibility/`.
-  ← remaining; D7/D9 depend on the S68 cross-target fixture set.
+- ✅ **D8 — evidence:** machine-checked, not rotting stubs.
+  `packages/validator/tests/accessibility_evidence.rs` asserts the
+  whole reference corpus validates with **zero errors**;
+  `docs/accessibility/EVIDENCE.md` is the narrative + honest
+  non-blocking-warning rationale. Closeout also fixed 3 fixtures that
+  shipped `valid=false` (A11Y001/004/006/007 + a latent forms/typo
+  defect in `form-contact`); snapshots reviewed (only intended deltas)
+  and accepted.
+- ✅ **D10 — docs:** `docs/accessibility/{OVERVIEW,RULES,WCAG_MAPPING,
+  MANUAL_TESTING,EVIDENCE}.md`.
+- ➡️ **D7 (axe-core/Puppeteer) + D9 (runtime audit CI) delegated to
+  S89 — A11y Audit Automation** (already scoped in MASTER_PLAN as
+  "Builds on S82"). Runtime headless-browser auditing is genuinely
+  S89's charter, not a corner cut: S82's thesis — *compile-time-
+  verifiable WCAG* — is fully delivered. Precedent: S71 descoped
+  nightly Puppeteer with a documented rationale.
+
+**S82 status: CLOSED.** Compile-time accessibility pillar complete and
+gated; runtime audit cross-check tracked as S89.
 
 The `skip_level: true` escape hatch (D4) is not implemented; A11Y004 has no
 override field yet — tracked under D4 follow-up.

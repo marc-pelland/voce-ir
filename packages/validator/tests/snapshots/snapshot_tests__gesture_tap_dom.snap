@@ -57,7 +57,7 @@ form [role="alert"]{font-size:13px;color:var(--voce-error,#ef4444)}
 </style>
 </head>
 <body>
-  <div style="background-color:rgb(99,102,241);" data-voce-id="btn">
+  <div style="background-color:rgb(79,70,229);" data-voce-id="btn">
     <p style="color:rgb(255,255,255);font-size:14px;">Click me</p>
   </div>
 <script>

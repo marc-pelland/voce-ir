@@ -4,18 +4,23 @@
   "root": {
     "node_id": "root",
     "viewport_width": { "value": 600, "unit": "Px" },
+    "semantic_nodes": [
+      { "node_id": "sem-form", "role": "form", "label": "Contact form" }
+    ],
     "children": [
       {
         "value_type": "FormNode",
         "value": {
           "node_id": "contact-form",
+          "semantic_node_id": "sem-form",
           "action": { "method": "POST", "endpoint": "/api/contact" },
           "fields": [
-            { "name": "email", "field_type": "Email", "label": "Email", "required": true, "autocomplete": "Email" },
+            { "name": "email", "field_type": "Email", "label": "Email", "required": true, "autocomplete": "Email", "validations": [ { "rule_type": "Email", "message": "Please enter a valid email address." } ] },
             { "name": "message", "field_type": "Textarea", "label": "Message", "required": true }
           ],
           "submit_label": "Send",
-          "csrf_token": "auto"
+          "csrf_token": "auto",
+          "submission": { "action_node_id": "contact-action", "progressive": true }
         }
       }
     ],

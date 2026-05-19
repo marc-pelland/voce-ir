@@ -38,7 +38,7 @@
               "value_type": "Surface",
               "value": {
                 "node_id": "cta-button",
-                "fill": { "r": 99, "g": 102, "b": 241, "a": 255 },
+                "fill": { "r": 79, "g": 70, "b": 229, "a": 255 },
                 "corner_radius": { "top_left": { "value": 8, "unit": "Px" }, "top_right": { "value": 8, "unit": "Px" }, "bottom_left": { "value": 8, "unit": "Px" }, "bottom_right": { "value": 8, "unit": "Px" } },
                 "padding": { "top": { "value": 12, "unit": "Px" }, "bottom": { "value": 12, "unit": "Px" }, "left": { "value": 24, "unit": "Px" }, "right": { "value": 24, "unit": "Px" } },
                 "href": "/get-started",

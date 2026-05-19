@@ -8,7 +8,7 @@ expression: html
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-QTHF+z/xbBZL28X499GpOiOxiDU+COrEZajcpoeb5BA='; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-0p8sYqz+Ni3+bb78o3r1Ir/eDGAgdW0PTlfDYdQGrOk='; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="X-Frame-Options" content="DENY">
 <meta name="referrer" content="strict-origin-when-cross-origin">
@@ -57,7 +57,7 @@ form [role="alert"]{font-size:13px;color:var(--voce-error,#ef4444)}
 </style>
 </head>
 <body>
-  <form id="contact-form" method="POST" action="#" novalidate>
+  <form id="contact-form" method="POST" action="contact-action" novalidate>
     <label for="contact-form-email">Email</label>
     <input id="contact-form-email" name="email" type="email" autocomplete="email">
     <span id="contact-form-email-error" role="alert" aria-live="polite" hidden></span>
@@ -73,6 +73,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     let valid=true;
     const email=document.getElementById('contact-form-email');
     const email_err=document.getElementById('contact-form-email-error');
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)){email_err.textContent='Please enter a valid email address.';email_err.hidden=false;valid=false;}else{email_err.hidden=true;}
     const message=document.getElementById('contact-form-message');
     const message_err=document.getElementById('contact-form-message-error');
     if(!valid){e.preventDefault();}
