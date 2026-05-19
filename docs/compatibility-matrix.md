@@ -73,5 +73,9 @@ cargo test -p voce-validator --test cross_target_parity \
   diagnostic_html_family_dump -- --ignored --nocapture
 ```
 
-A regression in a **✓** or required-**◐**-contract cell fails CI. The
-**⚠** cell is a tracked bug, not a gate, until Deliverable 5 resolves it.
+The dedicated **`cross-target-parity`** CI job (`.github/workflows/ci.yml`)
+runs the verifier on every PR and uploads the divergence dump as the
+`cross-target-divergence` artifact. A regression in a **✓** or
+required-**◐**-contract cell fails that job in isolation (not buried in
+the workspace run). There are no open **⚠** cells: the Email-anchor
+divergence was resolved in Deliverable 5.

@@ -33,9 +33,15 @@
   do JS gestures. Split into `link_count` + `gesture_count`; Email
   profile now asserts link parity (✓) while gesture is documented ◐.
   Matrix updated (Interactive row → Links + Gestures).
-- ⏳ **Remaining:** Slice 3 — SwiftUI / Compose language-specific
+- ✅ **Deliverable 6 (CI gate):** dedicated `cross-target-parity` job
+  in `.github/workflows/ci.yml` (`needs: check`) runs the verifier in
+  isolation on every PR and uploads the divergence dump as the
+  `cross-target-divergence` artifact. A regression in a ✓/required-◐
+  cell fails this job loudly instead of being buried in the 39-suite
+  workspace run.
+- ⏳ **Remaining:** Slice 3 only — SwiftUI / Compose language-specific
   extractors; WebGPU a11y-tree extractor; WASM (logic-only — partial).
-  Then Deliverable 6 (CI `cross-target-parity` gate).
+  The HTML-family foundation (DOM/Hybrid/Email) is complete and gated.
 - This slice also unblocks **S82 D7/D9** (axe-core CI runs on this
   corpus) and the **S91** conformance kit (which promotes this exact
   extractor to a normative, portable algorithm).

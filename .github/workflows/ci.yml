@@ -90,6 +90,38 @@ jobs:
       - name: cargo deny check sources
         run: cargo deny check sources
 
+  cross-target-parity:
+    name: Cross-target parity (S68)
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: cross-target-parity
+      # The parity assertions also run inside `cargo test --workspace`,
+      # but this job makes the guarantee a first-class, isolated PR
+      # check: a regression in a ✓ or required-◐ matrix cell fails here
+      # loudly instead of being buried in the 39-suite workspace run.
+      # Gates DOM/Hybrid full-contract + Email required-contract.
+      - name: Parity verifier
+        run: cargo test -p voce-validator --test cross_target_parity
+      # The compatibility matrix (docs/compatibility-matrix.md) is the
+      # living record; this is the per-PR evidence behind it. Uploaded
+      # so divergence is inspectable without re-running locally.
+      - name: Divergence dump
+        run: |
+          cargo test -p voce-validator --test cross_target_parity \
+            diagnostic_html_family_dump -- --ignored --nocapture \
+            | tee cross-target-divergence.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cross-target-divergence
+          path: cross-target-divergence.txt
+          if-no-files-found: warn
+
   mcp-server:
     name: MCP server (vitest, S65 Day 5)
     needs: check
