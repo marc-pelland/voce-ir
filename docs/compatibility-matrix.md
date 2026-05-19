@@ -23,7 +23,8 @@ land in Slice 3.
 | Heading order & levels | ✓ | ✓ | ✓ | ✗¹ | — | — | — |
 | Named media (alt) | ✓ | ✓ | ✓ | ✗¹ | — | — | — |
 | Form fields | ✓ | ✓ | ◐² | ✗¹ | — | — | — |
-| Interactive (links/gestures) | ✓ | ✓ | ⚠³ | ✗¹ | — | — | — |
+| Links (href) | ✓ | ✓ | ✓³ | ✗¹ | — | — | — |
+| Gestures (JS) | ✓ | ✓ | ◐⁵ | ✗¹ | — | — | — |
 | Landmark roles | ✓ | ✓ | ◐⁴ | ✗¹ | — | — | — |
 
 `—` = not yet measured (Slice 3). DOM and Hybrid are asserted at the
@@ -43,17 +44,25 @@ is *required* to preserve (headings, named media).
    block `<form>` and inputs; the Email target does not emit them. This
    is the medium's nature, documented and expected.
 
-3. **Email interactive links — divergence flagged as a bug (⚠).**
-   `links-and-nav` has 4 links; the Email artifact emits **zero**
-   anchors. Email HTML *can* carry `<a href>` (newsletters rely on it),
-   so this is not a medium limitation — it is a likely flattening bug in
-   the Email compiler. **Deliverable-5 ticket:** investigate Email
-   anchor emission; either emit `<a>` or document a concrete client-
-   compatibility rationale per link type.
+3. **Email interactive links — fixed (✓, was ⚠).** The Email compiler
+   silently dropped `href` on both TextNode and Surface, flattening all
+   links to plain text (`links-and-nav`: 4 links → 0 anchors).
+   **Deliverable 5 resolved:** both paths now emit email-safe anchors
+   (`<a href>` with `target`/`rel` matching the DOM compiler; Surface
+   links wrap the block in a `display:block` anchor). `links-and-nav`
+   now emits 4 anchors, matching the IR contract, and the Email profile
+   asserts interactive parity so it cannot regress.
 
 4. **Email landmarks — medium limitation (◐).** Email layout is
    table-based with no semantic landmark elements/roles; their absence
    is expected for the medium.
+
+5. **Email gestures — medium limitation (◐).** Gesture handlers are
+   JS-driven; email has no scripting, so `gesture-tap`'s handler does
+   not survive. This is the medium's nature, not a bug — and is why
+   `SemanticSummary` tracks links and gestures separately: conflating
+   them would have hidden the legitimate gesture degradation behind
+   the (now correct) link parity.
 
 ## How to regenerate
 

@@ -139,8 +139,28 @@ fn emit_email_node(html: &mut String, child: &Value) {
                 "p".to_string()
             };
 
+            // A TextNode with an href is a link — wrap the content in an
+            // email-safe anchor (a heading link stays <hN><a>…</a></hN>).
+            let href = value.get("href").and_then(|v| v.as_str()).unwrap_or("");
+            let inner = if href.is_empty() {
+                content.to_string()
+            } else {
+                let target = value.get("target").and_then(|v| v.as_str());
+                let target_attr = target
+                    .map(|t| format!(" target=\"{t}\""))
+                    .unwrap_or_default();
+                let rel = if target == Some("_blank") {
+                    " rel=\"noopener noreferrer\""
+                } else {
+                    ""
+                };
+                format!(
+                    "<a href=\"{href}\"{target_attr}{rel} style=\"color:inherit\">{content}</a>"
+                )
+            };
+
             html.push_str(&format!(
-                "<tr><td style=\"font-family:Arial,Helvetica,sans-serif;font-size:{size:.0}px;font-weight:{fw};{color}text-align:{text_align};padding:4px 0\"><{tag} style=\"margin:0\">{content}</{tag}></td></tr>\n"
+                "<tr><td style=\"font-family:Arial,Helvetica,sans-serif;font-size:{size:.0}px;font-weight:{fw};{color}text-align:{text_align};padding:4px 0\"><{tag} style=\"margin:0\">{inner}</{tag}></td></tr>\n"
             ));
         }
         "Surface" => {
@@ -161,12 +181,33 @@ fn emit_email_node(html: &mut String, child: &Value) {
             html.push_str(&format!(
                 "<tr><td style=\"{bg}{padding}{border_radius}\">\n"
             ));
+            // A Surface with an href is a clickable block (button/card
+            // link) — wrap its content in a block-level anchor.
+            let href = value.get("href").and_then(|v| v.as_str()).unwrap_or("");
+            let has_href = !href.is_empty();
+            if has_href {
+                let target = value.get("target").and_then(|v| v.as_str());
+                let target_attr = target
+                    .map(|t| format!(" target=\"{t}\""))
+                    .unwrap_or_default();
+                let rel = if target == Some("_blank") {
+                    " rel=\"noopener noreferrer\""
+                } else {
+                    ""
+                };
+                html.push_str(&format!(
+                    "<a href=\"{href}\"{target_attr}{rel} style=\"display:block;text-decoration:none;color:inherit\">\n"
+                ));
+            }
             if let Some(children) = value.get("children").and_then(|v| v.as_array()) {
                 html.push_str("<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%\">\n");
                 for c in children {
                     emit_email_node(html, c);
                 }
                 html.push_str("</table>\n");
+            }
+            if has_href {
+                html.push_str("</a>\n");
             }
             html.push_str("</td></tr>\n");
         }

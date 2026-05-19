@@ -62,7 +62,8 @@ struct Profile {
     headings: bool,
     forms: bool,
     media_names: bool,
-    interactive: bool,
+    links: bool,
+    gestures: bool,
     landmarks: bool,
 }
 
@@ -94,12 +95,20 @@ fn divergences(
             expected.media_with_name_count, observed.media_with_name_count
         ));
     }
-    // Interactive is a floor: a target may legitimately *add* affordances
-    // (skip links, wrapping anchors) but must never drop them.
-    if p.interactive && observed.interactive_count < expected.interactive_count {
+    // Links/gestures are floors: a target may legitimately *add*
+    // affordances (skip links, wrapping anchors) but must never drop
+    // them. Tracked separately — a JS-less medium keeps links but not
+    // gestures, and conflating the two would hide that.
+    if p.links && observed.link_count < expected.link_count {
         out.push(format!(
-            "{name} [{target}]: interactive_count IR={} got={} (dropped)",
-            expected.interactive_count, observed.interactive_count
+            "{name} [{target}]: link_count IR={} got={} (dropped)",
+            expected.link_count, observed.link_count
+        ));
+    }
+    if p.gestures && observed.gesture_count < expected.gesture_count {
+        out.push(format!(
+            "{name} [{target}]: gesture_count IR={} got={} (dropped)",
+            expected.gesture_count, observed.gesture_count
         ));
     }
     if p.landmarks {
@@ -122,7 +131,8 @@ fn dom_oracle_preserves_ir_semantics() {
         headings: true,
         forms: true,
         media_names: true,
-        interactive: true,
+        links: true,
+        gestures: true,
         landmarks: true,
     };
     let mut failures = Vec::new();
@@ -150,7 +160,8 @@ fn hybrid_matches_oracle_contract() {
         headings: true,
         forms: true,
         media_names: true,
-        interactive: true,
+        links: true,
+        gestures: true,
         landmarks: true,
     };
     let mut failures = Vec::new();
@@ -173,18 +184,20 @@ fn hybrid_matches_oracle_contract() {
     );
 }
 
-/// Email is a constrained medium. Its *contract* is heading order and
-/// named media; links/forms/landmarks degrade by the medium's nature
-/// (and the current link flattening is tracked for Deliverable 5 in the
-/// compatibility matrix). Asserting only the required dimensions keeps
-/// this honest: a regression in what Email *must* keep still fails.
+/// Email is a constrained medium. Its *contract* is heading order,
+/// named media, and — since the Deliverable-5 anchor fix — interactive
+/// links. Forms and landmarks degrade by the medium's nature (email
+/// clients block forms; email layout is table-based with no landmark
+/// elements). Asserting the required dimensions keeps this honest: a
+/// regression in what Email *must* keep still fails.
 #[test]
 fn email_preserves_its_required_contract() {
     let p = Profile {
         headings: true,
         forms: false,
         media_names: true,
-        interactive: false,
+        links: true,
+        gestures: false,
         landmarks: false,
     };
     let mut failures = Vec::new();
@@ -217,9 +230,10 @@ fn diagnostic_html_family_dump() {
         println!("\n=== {name} ===");
         let row = |t: &str, s: &SemanticSummary| {
             println!(
-                "{t:6} h={:?} int={} form={} media={}/{} lm={:?}",
+                "{t:6} h={:?} link={} gest={} form={} media={}/{} lm={:?}",
                 s.heading_levels,
-                s.interactive_count,
+                s.link_count,
+                s.gesture_count,
                 s.form_field_count,
                 s.media_with_name_count,
                 s.media_decorative_count,

@@ -24,10 +24,18 @@
   inspection. **Deliverable-5 finding logged:** Email emits zero
   anchors for `links-and-nav` (4 links) — flagged ⚠ as a likely
   flattening bug (email *can* do links), not asserted as a gate yet.
+- ✅ **Deliverable 5 (Email-anchor ⚠ resolved):** the Email compiler
+  silently dropped `href` on TextNode and Surface. Both now emit
+  email-safe anchors (`target`/`rel` matching DOM; Surface wraps the
+  block in a `display:block` anchor). `links-and-nav` 0→4 anchors.
+  This also surfaced a model flaw: `interactive_count` conflated links
+  and gestures, which would have hidden that email legitimately can't
+  do JS gestures. Split into `link_count` + `gesture_count`; Email
+  profile now asserts link parity (✓) while gesture is documented ◐.
+  Matrix updated (Interactive row → Links + Gestures).
 - ⏳ **Remaining:** Slice 3 — SwiftUI / Compose language-specific
   extractors; WebGPU a11y-tree extractor; WASM (logic-only — partial).
-  Then Deliverable 5 (resolve the Email-anchor ⚠) and Deliverable 6
-  (CI `cross-target-parity` gate).
+  Then Deliverable 6 (CI `cross-target-parity` gate).
 - This slice also unblocks **S82 D7/D9** (axe-core CI runs on this
   corpus) and the **S91** conformance kit (which promotes this exact
   extractor to a normative, portable algorithm).

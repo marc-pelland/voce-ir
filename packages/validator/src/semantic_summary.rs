@@ -35,8 +35,13 @@ pub struct SemanticSummary {
     /// Heading levels (1–6) in document order. Order is semantically
     /// significant — screen-reader navigation depends on it.
     pub heading_levels: Vec<u8>,
-    /// Count of interactive elements (links, gesture targets).
-    pub interactive_count: usize,
+    /// Hyperlinks (TextNode/Surface with href). Distinct from gestures
+    /// because a constrained medium (e.g. email) can carry links but
+    /// not JS-driven gesture handlers — conflating them would hide
+    /// legitimate degradation.
+    pub link_count: usize,
+    /// JS-driven gesture targets (GestureHandler).
+    pub gesture_count: usize,
     /// Total form fields across all forms.
     pub form_field_count: usize,
     /// Images that carry an accessible name (alt text or a semantic ref).
@@ -83,7 +88,7 @@ impl SemanticSummary {
                             }
                         }
                         if t.href.as_ref().is_some_and(|h| !h.is_empty()) {
-                            self.interactive_count += 1;
+                            self.link_count += 1;
                         }
                     }
                 }
@@ -96,10 +101,10 @@ impl SemanticSummary {
                         .and_then(|v| v.as_str())
                         .is_some_and(|h| !h.is_empty());
                     if has_href {
-                        self.interactive_count += 1;
+                        self.link_count += 1;
                     }
                 }
-                "GestureHandler" => self.interactive_count += 1,
+                "GestureHandler" => self.gesture_count += 1,
                 "MediaNode" => {
                     if let Some(m) = child.as_type::<crate::ir::MediaNode>() {
                         if m.decorative.unwrap_or(false) {
@@ -150,9 +155,10 @@ impl SemanticSummary {
             i += 1;
         }
 
-        s.interactive_count = count_occurrences(&lower, "<a ")
-            + count_occurrences(&lower, "<button")
-            + count_occurrences(&lower, "role=\"button\"");
+        s.link_count = count_occurrences(&lower, "<a ");
+        // The DOM/Hybrid compilers mark JS gesture targets with
+        // data-voce-id; a JS-less medium (email) emits none.
+        s.gesture_count = count_occurrences(&lower, "data-voce-id=");
         s.form_field_count = count_occurrences(&lower, "<input")
             + count_occurrences(&lower, "<textarea")
             + count_occurrences(&lower, "<select");
