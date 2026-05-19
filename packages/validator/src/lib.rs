@@ -24,6 +24,7 @@ pub mod ir;
 pub mod manifest;
 pub mod passes;
 pub mod report;
+pub mod semantic_summary;
 
 pub use config::ValidatorConfig;
 pub use engine::{validate, validate_with_config};

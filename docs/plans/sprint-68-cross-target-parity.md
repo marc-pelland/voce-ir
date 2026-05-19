@@ -1,7 +1,28 @@
 # Sprint 68 — Cross-Target Parity
 
 **Phase:** 7 — Production Readiness
-**Status:** Planned
+**Status:** In progress
+
+## Implementation Status
+
+- ✅ **Slice 1 (oracle):** `SemanticSummary` promoted into the validator
+  library (`packages/validator/src/semantic_summary.rs`) with
+  `from_ir` (the contract) + `from_html` (observed) + unit tests.
+  `tests/cross_target_parity.rs` verifies the **DOM oracle** preserves
+  IR semantics (heading order, form fields, named media, interactive
+  floor, landmark superset) across the 13-fixture corpus reused from
+  `tests/fixtures/` (no duplicate `tests/cross-target/` dir — DRY).
+  All green on first run; the reference compiler is faithful.
+- ⏳ **Remaining:** observed extractors for Email / WebGPU / Hybrid
+  (HTML-family, reuse `from_html`), then SwiftUI / Compose / WASM
+  (language-specific); the compatibility matrix doc (Deliverable 4);
+  divergence fixes (Deliverable 5); CI gate (Deliverable 6). WASM is a
+  logic-only target — classify as partial, not full-parity.
+- This slice also unblocks **S82 D7/D9** (axe-core CI runs on this
+  corpus) and the **S91** conformance kit (which promotes this exact
+  extractor to a normative, portable algorithm).
+
+---
 **Goal:** Verify that all 7 compile targets (DOM, WebGPU, WASM, Hybrid, iOS SwiftUI, Android Compose, Email HTML) produce semantically equivalent output for the same IR. Today the iOS/Android/WebGPU compilers exist but their output is rarely cross-checked against DOM. Silent divergence is a real risk for the project's "one IR, every platform" pitch — this sprint closes it with a parity test matrix and a documented compatibility table.
 
 **Depends on:** all 7 compilers (S20, S31–S34, S45–S46, S49). Independent of S65–S67 / S69; can run in parallel.
