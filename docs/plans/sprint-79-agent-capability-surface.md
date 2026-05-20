@@ -107,10 +107,22 @@
   single-pass `voce fix` behavior unchanged; `--until-clean` runs the
   loop (preview by default, `--apply` writes); `--plan` emits the JSON
   envelope. 6 lib unit tests. Contract envelope count 4 → 5.
+- ✅ **B4 — contract-as-only-interface guarantee:**
+  `packages/validator/tests/contract_completeness.rs` codifies the
+  invariant that *every fact an agent needs is reachable through the
+  contract envelopes*. Seven representative agent-task scenarios
+  (understand a diagnostic, discover node types + validation codes,
+  discover compile targets, reason about IR structure, inspect
+  project health, drive headless repair, contract-version on every
+  envelope) plus one **cross-envelope drift gate** that walks the
+  whole `tests/` corpus and asserts every runtime-emitted diagnostic
+  code is declared in `skills.diagnostic_codes`. A new code added to
+  a pass that forgets its `CodeMeta` entry fails this test loudly,
+  forcing the registration that makes the code discoverable. All 8
+  passing on first run — the contract is *operationally* complete.
 - ⏳ **A4 Slice 3** (validator-output typed envelope refactor) ·
   **A5** (conformance runner skeleton, fully realized by S91) ·
-  **Part B remainder**: agent-authorability lint, contract-as-only-
-  interface guarantee.
+  **Part B remainder**: B3 agent-authorability lint.
 
 ---
 **Goal:** Consolidate Voce's scattered agent-facing affordances into one **documented, versioned, machine-consumable contract**. Today an agent learns Voce through MCP tool descriptions, `--list-passes`, `--list-codes`, `--perf-report`, and JSON Patch fixes — useful, but disjoint and undocumented as a stable interface. After this sprint, any AI agent (MCP client, the REPL, a third-party harness) can discover *everything Voce can do*, check *whether a project and toolchain are healthy*, inspect *the IR as a structured graph*, and rely on *a semver'd output schema* — without reading prose or source.
