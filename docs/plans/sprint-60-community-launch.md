@@ -38,8 +38,18 @@
   config (not in-repo) — flagged for the launch operator.
 - ⏳ **Slice 4 — Community infra:** GitHub Discussions, Discord
   server, response-SLA scaffolding.
-- ⏳ **Slice 5 — Launch content:** blog post, ProductHunt, Show HN,
-  demo video, X thread.
+- ✅ **Slice 5 — Launch content (drafts):** `docs/launch/` set
+  shipped — blog post (~1900 words, the canonical case), Show HN
+  copy (≤500 words, low-hype HN-appropriate framing), 10-post X
+  thread (each ≤280 chars, with media positions marked), 60–75 sec
+  demo-video shot list (7 scenes, concrete typing + browser cuts +
+  what NOT to film), plus a `docs/launch/README.md` index with
+  launch sequencing + voice notes + operator handoff. All
+  artifacts are first drafts intended for heavy editing before
+  publishing — the value is having something concrete to react to.
+  Heavy operator work (actually publishing, recording video,
+  posting to platforms) is the launch-day work, not draftable
+  here.
 - ⏳ **Slice 6 — v1.1.0 tag + GitHub Release.**
 
 ---
