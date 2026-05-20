@@ -16,13 +16,31 @@
   the live build: 9 passes / 52 codes (17 fixable) / 27 node types /
   7 targets / 12 CLI commands. `contract_version: "1.0.0"`. JSON is
   the contract; default output is a human-rendered summary.
-- ⏳ **A1 Slice 2 — MCP parity:** expose the same manifest as an MCP
-  tool (`voce_skills`) and resource so the conversational layer shares
-  the CLI's source. Deferred to keep this slice complete and tested
-  rather than half-spanning languages.
-- ⏳ **A2 (`voce doctor`) · A3 (`voce graph`) · A4 (versioned JSON
-  Schemas) · A5 (conformance runner skeleton, fully realized by S91)·
-  Part B differentiators.**
+- ✅ **A3 — `voce graph [--json]`:** `packages/validator/src/graph.rs`
+  exports composition tree + 9 typed reference-edge kinds (semantic,
+  animation/gesture/scroll/physics/live-region/focus-trap-container/
+  focus-trap-initial-focus/subscription target) with resolved/dangling
+  status, plus per-state-machine state list, transitions, and BFS
+  reachability with explicit `unreachable_states`. Reuses the existing
+  `NodeIndex` so the resolved/dangling verdict matches the validator's
+  reference pass — single source of truth. JSON is the contract,
+  human summary highlights dangling refs + unreachable states.
+  Carries `contract_version`. 5 lib unit tests.
+  
+  **Finding surfaced:** `state-machine.voce.json` uses an outdated
+  `"states": ["off","on"]` shape vs the schema's `Vec<State>`
+  objects — `as_type::<StateMachine>` silently returns None, so STA
+  checks are silently skipped on this fixture. The graph correctly
+  reports 0 state machines (faithful to the typed view). Logged as a
+  follow-up: fixture cleanup + validator-strictness ticket (the
+  silent skip on malformed typed nodes is a real lenience bug).
+- ⏳ **A1 Slice 2 — MCP parity:** expose `skills` (and now `graph`)
+  as MCP tools/resources so the conversational layer shares the CLI's
+  source. Deferred to keep slices complete and tested rather than
+  half-spanning languages.
+- ⏳ **A2 (`voce doctor`) · A4 (versioned JSON Schemas) ·
+  A5 (conformance runner skeleton, fully realized by S91) · Part B
+  differentiators.**
 
 ---
 **Goal:** Consolidate Voce's scattered agent-facing affordances into one **documented, versioned, machine-consumable contract**. Today an agent learns Voce through MCP tool descriptions, `--list-passes`, `--list-codes`, `--perf-report`, and JSON Patch fixes — useful, but disjoint and undocumented as a stable interface. After this sprint, any AI agent (MCP client, the REPL, a third-party harness) can discover *everything Voce can do*, check *whether a project and toolchain are healthy*, inspect *the IR as a structured graph*, and rely on *a semver'd output schema* — without reading prose or source.

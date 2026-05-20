@@ -180,6 +180,24 @@ enum Commands {
         json: bool,
     },
 
+    /// Export the IR's semantic graph (S79 A3).
+    ///
+    /// Composition tree + typed reference edges (semantic, gesture,
+    /// animation, scroll, physics, live-region, focus-trap,
+    /// subscription) with resolved/dangling status, plus state-machine
+    /// states/transitions with reachability. This is the differentiator
+    /// part of the contract: a UI IR exports semantic-UI/state/data
+    /// graph facts a general-purpose language toolchain structurally
+    /// cannot.
+    Graph {
+        /// Path to the IR file (.voce.json).
+        file: PathBuf,
+
+        /// Emit the JSON contract (default: rendered human summary).
+        #[arg(long)]
+        json: bool,
+    },
+
     /// Deploy compiled output to a hosting platform
     Deploy {
         /// Path to the IR file (.voce.json)
@@ -273,6 +291,7 @@ fn run(cli: Cli) -> Result<i32> {
             confidence,
         } => cmd_fix(&file, apply, &confidence),
         Commands::Skills { json } => cmd_skills(json),
+        Commands::Graph { file, json } => cmd_graph(&file, json),
         Commands::Deploy {
             file,
             adapter,
@@ -961,6 +980,63 @@ fn cmd_skills(json: bool) -> Result<i32> {
     }
     println!();
     println!("For the machine contract, run: voce skills --json");
+    Ok(0)
+}
+
+/// S79 A3 — export the IR semantic graph (composition + typed
+/// reference edges + state-machine reachability).
+fn cmd_graph(file: &PathBuf, json: bool) -> Result<i32> {
+    let text = std::fs::read_to_string(file)
+        .with_context(|| format!("Failed to read {}", file.display()))?;
+    let ir: voce_validator::ir::VoceIr = serde_json::from_str(&text)
+        .with_context(|| format!("Failed to parse IR JSON in {}", file.display()))?;
+    let index = voce_validator::index::NodeIndex::build(&ir);
+    let g = voce_validator::graph::build(&ir, &index);
+
+    if json {
+        println!("{}", serde_json::to_string_pretty(&g)?);
+        return Ok(0);
+    }
+
+    // Human summary — counts + the two things an operator actually
+    // wants to see at a glance: dangling refs and unreachable states.
+    println!("Voce graph (contract v{})", g.contract_version);
+    println!("  Source: {}", file.display());
+    println!(
+        "  Nodes: {}   composition edges: {}   reference edges: {}",
+        g.summary.node_count,
+        g.summary.composition_edge_count,
+        g.summary.reference_edge_count,
+    );
+    println!(
+        "  Dangling references: {}   state machines: {}   unreachable states: {}",
+        g.summary.dangling_reference_count,
+        g.summary.state_machine_count,
+        g.summary.unreachable_state_count,
+    );
+    if g.summary.dangling_reference_count > 0 {
+        println!();
+        println!("Dangling references:");
+        for e in g.reference_edges.iter().filter(|e| !e.to_resolved) {
+            println!("  - {:?}: {} → {} (at {})", e.kind, e.from, e.to, e.from_path);
+        }
+    }
+    if g.summary.unreachable_state_count > 0 {
+        println!();
+        println!("Unreachable states:");
+        for sm in &g.state_machines {
+            for s in &sm.unreachable_states {
+                println!(
+                    "  - {} (in StateMachine {}{})",
+                    s,
+                    sm.node_id.as_deref().unwrap_or("?"),
+                    sm.name.as_deref().map(|n| format!(" \"{n}\"")).unwrap_or_default(),
+                );
+            }
+        }
+    }
+    println!();
+    println!("For the machine contract, run: voce graph {} --json", file.display());
     Ok(0)
 }
 
