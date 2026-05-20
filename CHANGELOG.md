@@ -2,6 +2,86 @@
 
 ## [Unreleased] — Phase 7: Production Readiness
 
+### Added (2026-05-20: S65 / S66 / S69 parts 3–4 / S70 / S71 / S72 part 2 / S82 / S68 slices 1–2 + D5 D6 / S79 / S91 slice 1 / S60 slice 1)
+
+**S79 — Agent Capability Surface ("The Agent Contract"):** closed substantively; three items deferred (A5 → S91, A4 Slice 3 + B3 → S79b). Five contract-versioned envelopes shipped under `docs/schema/contract/v1/`, all `schemars`-derived (drift-gated against committed schemas) + live-conformance tested + cross-envelope completeness tested. Prompted by `vercel-labs/zero`.
+- **A1** — `voce skills [--json]`: reflected capability manifest (9 passes / 52 codes / 27 node types / 7 compile targets / 12 CLI commands). Live build numbers, all reflected from single sources of truth (`passes::all_passes()`, FlatBuffers `ENUM_VALUES_CHILD_UNION`, `targets::ALL`, clap subcommand introspection). `contract_version: 1.0.0`.
+- **A1 Slice 2** — MCP parity: `@voce-ir/mcp-server` 0.3.0 → 0.4.0; three new tools (`voce_skills`, `voce_graph`, `voce_doctor`); tool count 19 → 22.
+- **A2** — `voce doctor [--json] [--strict] [--cwd <path>] [--ir-set]`: toolchain + `.voce/` health with stable contract IDs (`DOC-TOOLCHAIN-NNN` / `DOC-VOCE-NNN` / `DOC-IRSET-NNN`). Opt-in IR-set walk (skip list pending `.gitignore`-aware enablement).
+- **A3** — `voce graph <file> [--json]`: composition tree + 9 typed reference-edge kinds (semantic / animation/gesture/scroll/physics target / live-region / focus-trap container + initial-focus / subscription) with `to_resolved: bool`; per-state-machine BFS reachability with `unreachable_states`.
+- **A4 Slices 1–2** — JSON Schemas for the four S79-owned + perf-report envelopes under `docs/schema/contract/v1/`, with `UPDATE_CONTRACT_SCHEMAS=1` escape hatch and CI-enforced drift gate. Versioning policy README (additive = minor, breaking = major, codes/IDs never reassigned).
+- **B2** — `voce fix --until-clean --plan`: convergent multi-step fix loop. Iteration cap (default 32) + non-progress detection via diagnostic-fingerprint comparison + graceful patch-failure → `converges: false`. Contract-versioned `FixPlan` envelope an agent can drive headlessly.
+- **B4** — contract-as-only-interface guarantee: 7 representative agent-task scenarios (understand a diagnostic, discover node types/validation, discover compile targets, reason about IR, inspect project health, drive headless repair, contract_version pinning) plus one cross-envelope drift gate (`no_runtime_diagnostic_lacks_a_manifest_entry`) walking the whole `tests/` corpus to assert every emitted code is declared in the manifest.
+
+**S91 — Conformance Specification & Certification (Slice 1):**
+- `voce conformance run --target <id> [--level core|standard|full] [--corpus <dir>] [--json]`: publishable conformance runner. `Level` (Core/Standard/Full) + `Profile` types as the public contract; `profile_for(target, level)` derives requirements from the canonical `targets::ConformanceClass`.
+- `ConformanceReport` envelope (6th contract envelope) — schema-locked under `docs/schema/contract/v1/conformance.schema.json`, same drift + live-conformance harness as the other five.
+- 6 compiler crates (`email`, `ios`, `android`, `webgpu`, `wasm`, `hybrid`) promoted from validator dev-deps to runtime deps so the user-facing CLI can certify every target. Zero impact on compiled-output runtime weight.
+- Verified end-to-end: DOM passes 13/13 at Full; Email passes 13/13 at Standard (D5 anchor fix holds); WebGPU classifies 13/13 as `NotApplicable` with honest "needs out-of-HTML-lens extractor" rationale.
+
+**S82 — Accessibility Deep Dive (closed):** compile-time-verifiable WCAG 2.2 AA pillar complete; runtime axe-core automation delegated to S89.
+- `A11Y007` color contrast pass (WCAG 1.4.3, both AA + AAA via `.voce/validator.toml`).
+- `A11Y008` positive `tab_index` warning (WCAG 2.4.3).
+- `A11Y009` 24×24 touch-target heuristic (WCAG 2.5.8).
+- `A11Y010` LiveRegion-required for dynamic content (WCAG 4.1.3 Status Messages).
+- Compiler-side accessible-name synthesis: icon-only `Surface` links now auto-emit `aria-label` from a descendant MediaNode's `alt` (D3).
+- `docs/accessibility/` set: OVERVIEW, RULES, WCAG_MAPPING, MANUAL_TESTING, EVIDENCE.
+- Integrity fix: three corpus fixtures (`form-contact`, `gesture-tap`, `links-and-nav`) were shipping `valid=false` against the project's own validator (`A11Y001`/`A11Y004`/`A11Y007`/contrast misses by 0.03, plus a latent forms-validation defect in `form-contact`). All fixed; snapshots reviewed (only intended deltas) and accepted.
+- D8 evidence is machine-checked, not rotting stubs: `packages/validator/tests/accessibility_evidence.rs` asserts the whole reference corpus validates with zero errors.
+
+**S68 — Cross-Target Parity (slices 1–2 + D5 + D6):**
+- `SemanticSummary` graduated into the validator library (`packages/validator/src/semantic_summary.rs`) with `from_ir` + `from_html`. The algorithm S91 promotes to a normative portable contract.
+- DOM oracle + Hybrid full-contract + Email required-contract verifiers across the 13-fixture corpus. `cross_target_parity.rs` integration tests.
+- D5 Email-anchor fix: `compiler-email` silently dropped `href` on both TextNode and Surface (`links-and-nav`: 4 links → 0 anchors). Now emits email-safe anchors with `target`/`rel` matching the DOM compiler. **Model refinement surfaced during the fix:** `SemanticSummary.interactive_count` was conflating links + JS gestures, hiding email's legitimate gesture-degradation behind link parity. Split into `link_count` + `gesture_count`.
+- D6 CI gate: dedicated `cross-target-parity` job in `.github/workflows/ci.yml` (`needs: check`) runs the verifier in isolation on every PR and uploads the divergence dump as a workflow artifact.
+- `docs/compatibility-matrix.md` with the ✓/◐/✗/⚠ legend.
+
+**S70 — Security Hardening:**
+- Hardened CSP with per-script SHA-256 + per-IR override; frame-ancestors/base-uri/form-action.
+- 5 new SEC rules: `SEC005` (http endpoints), `SEC006` (auth without HTTPS), `SEC007` (mutable action without CSRF), `SEC008` (password autocomplete), `SEC009` (JSON-LD breakout).
+- Prompt-injection delimiter + 15-attack corpus.
+- Adapter audit + STRIDE threat model in `docs/security/`.
+- Disclosure SLA in `SECURITY.md`.
+- `cargo audit` + `cargo deny` + CycloneDX SBOM in CI.
+
+**S71 — Perf Budgets:**
+- `playground-wasm`: 748 KB → 522 KB via workspace profile fix + `binaryen` wasm-opt.
+- `voce compile --perf-report <PATH>` writes a JSON sidecar (now also a contract envelope, S79 A4 Slice 2).
+- `--report-cache` appends a structured line to `.voce/perf-log.jsonl` and prints HIT / MISS / SKIPPED.
+- Per-fixture compile-budget gate (14 fixtures) in CI.
+- Lighthouse CI floor on the compiled landing page (perf 1.00 / a11y 0.95 / bp 0.96 / seo 1.00).
+- Nightly puppeteer runtime perf descoped — see `docs/perf-investigation.md`.
+
+**S65 — MCP Server Polish:**
+- `@voce-ir/mcp-server` 0.2.0 → 0.3.0: 19 tools, 4 resources.
+- `.voce/` storage layer with append-only `decisions.jsonl` / `drift-warnings.jsonl` + atomic `brief.md` / `user-profile.md` (`.voce/SCHEMA.md` pins the contract).
+- 5-phase generate workflow: `start` → `answer` → `propose` → `refine` → `finalize` with readiness + completeness gates.
+- Drift v1: incoming IR is checked against decision-log terms; conflicting decisions surface as `voce_check_drift` results before generate.
+- Conversational pillars baked into every tool description (~170-byte budget).
+- Walkthrough docs.
+
+**S66 — Standalone Conversational REPL:**
+- New package `@voce-ir/cli-chat` (binary `voce-chat`): sister to running `claude` / `gemini`.
+- Anthropic SDK tool-use loop; slash command framework + 18 commands; multi-line input; Ctrl+C.
+- `.voce/` persistence (shared with `@voce-ir/mcp-server`); readiness + drift UX.
+- Prompt caching; 78 ms cold start.
+- 6-pillar system prompt.
+
+**S69 parts 3–4 — Test coverage:**
+- `cargo-llvm-cov` coverage gate: 60% line floor.
+- `cargo-mutants` pilot on validator passes (informational; not gating yet).
+
+**S72 part 2 — Schema additions:**
+- `FormFieldStyle` and `FormLayout` shipped (closes the biggest gap identified by S72 part 1's completeness audit).
+
+**S60 — Community Launch (Slice 1):**
+- README discoverability: surfaced everything shipped since S59. New **Conversational Interfaces** section (voce-chat + mcp-server). New **Agent Contract (6 Envelopes)** Features subsection. New CLI surfaces (`voce skills` / `graph` / `doctor` / `conformance run` / `fix --until-clean --plan`) added to the CLI Reference. New Documentation links to the contract README, compatibility matrix, accessibility docs. Stale-number reconciliation (52 rules / 17 fix-codes / 391 tests).
+
+**Sprint plans newly scoped (no code yet):**
+- **S92 — Pluggable Providers & Per-Role Model Strategy:** Provider abstraction (Anthropic / OpenAI / Google / Ollama / Kilo Gateway), `.voce/agents.toml` per-role model assignment, API-key + permission management, custom user-defined roles, subagent delegation. Pillar gates (Discovery readiness, validator, drift) stay enforced regardless of provider. Prompted by Kilo Code.
+- **S93 — Intelligent Model Recommendations:** typed, explainable recommender on top of S92 — `voce profile`, `voce recommend`, `voce agents recommend --apply`. Deterministic ranker with per-rationale-bullet trace; no opaque ML.
+- **S79b — A4 Slice 3 + B3 follow-ups:** validator-output typed-envelope refactor + agent-authorability lint.
+
 ### Added (2026-05-01: S61 / S64 / S67 / S69 partial / S72 partial)
 
 **S67 — Validator diagnostic quality (entire sprint):**

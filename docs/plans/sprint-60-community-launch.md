@@ -24,9 +24,18 @@
   voce-validator / voce-compiler-dom) + npm (`@voce-ir/sdk`,
   `@voce-ir/mcp-server`, `@voce-ir/cli-chat`) + pre-built binaries
   (cargo-dist or release workflow) + Homebrew tap.
-- ⏳ **Slice 3 — Repo polish:** CHANGELOG.md regeneration from
-  commit history (recent S79/S91 work is undocumented), LICENSE /
-  CoC presence audit, issue + PR templates, branch protection.
+- ✅ **Slice 3 — Repo polish (in-repo bits):** CHANGELOG regenerated
+  for ~14 commits of work since 2026-05-01 — S65 / S66 / S69 parts
+  3–4 / S70 / S71 / S72 part 2 / S82 closeout / S68 slices 1–2 +
+  D5+D6 / S79 (entire sprint) / S91 slice 1 / S60 slice 1 — plus
+  pointers to the newly-scoped S92 / S93 / S79b. LICENSE / CoC /
+  CONTRIBUTING / SECURITY audit: all present at root, no action
+  needed. PR template + 2 issue templates (bug, feature) already
+  exist under `.github/`; added a 3rd template `new_compile_target.md`
+  per the S60 deliverables list, structured around the canonical
+  `ConformanceClass` taxonomy so proposals self-classify against
+  the contract from the start. **Branch protection** is GitHub-UI
+  config (not in-repo) — flagged for the launch operator.
 - ⏳ **Slice 4 — Community infra:** GitHub Discussions, Discord
   server, response-SLA scaffolding.
 - ⏳ **Slice 5 — Launch content:** blog post, ProductHunt, Show HN,

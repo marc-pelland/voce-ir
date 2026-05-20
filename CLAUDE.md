@@ -45,7 +45,7 @@ Voce IR is an open-source AI-native UI intermediate representation — "SPIR-V f
 | S93 (model recommendations) | Scoped — `docs/plans/sprint-93-intelligent-model-recommendations.md`; depends on S92 |
 | S82 (a11y deep dive) | **CLOSED** — A11Y007–A11Y010 + D3 compiler accessible-name synthesis; D8 machine-checked corpus evidence (3 invalid fixtures fixed); D10 `docs/accessibility/`. D7 axe-core + D9 runtime-audit CI delegated to S89 (already scoped "Builds on S82"). Compile-time a11y pillar complete & gated |
 | S68 (cross-target parity) | In progress — Slice 1–2 + D5 + D6 done: `SemanticSummary` (link/gesture split) in validator lib; DOM+Hybrid full-contract + Email required-contract verifiers; `docs/compatibility-matrix.md`; dedicated `cross-target-parity` CI job. HTML-family foundation complete + gated. Remaining: Slice 3 only — SwiftUI/Compose/WASM/WebGPU-a11y extractors |
-| S60 (community launch / v1.1.0) | In progress — Slice 1 shipped: README discoverability (Conversational Interfaces + Agent Contract sections, new CLI surfaces in reference, doc links, stale-number reconciliation). Remaining: package publishing, repo polish, community infra, launch content, v1.1.0 tag |
+| S60 (community launch / v1.1.0) | In progress — Slice 1 (README discoverability) + Slice 3 (repo polish: CHANGELOG regen for ~14 commits, third issue template for compile-target proposals, presence audit clean) shipped. Remaining: Slice 2 packaging, Slice 4 community infra, Slice 5 launch content, Slice 6 v1.1.0 tag |
 | S62, S63, S74 | Scoped, untouched |
 
 Current task status — update this section as work progresses:
