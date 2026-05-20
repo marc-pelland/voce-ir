@@ -1,7 +1,7 @@
 # Sprint 79 — Agent Capability Surface ("The Agent Contract")
 
 **Phase:** 7 — Production Readiness
-**Status:** In progress (A1 Slice 1: CLI shipped)
+**Status:** CLOSED — substantively complete; three items explicitly deferred (see below)
 
 ## Implementation Status
 
@@ -120,9 +120,43 @@
   a pass that forgets its `CodeMeta` entry fails this test loudly,
   forcing the registration that makes the code discoverable. All 8
   passing on first run — the contract is *operationally* complete.
-- ⏳ **A4 Slice 3** (validator-output typed envelope refactor) ·
-  **A5** (conformance runner skeleton, fully realized by S91) ·
-  **Part B remainder**: B3 agent-authorability lint.
+## Deferred (S79b / folded into other sprints)
+
+Three remaining items, each with explicit reasoning for the deferral:
+
+- **A5 — `voce conformance` runner skeleton:** intentionally **folded
+  into S91** rather than shipped here as a skeleton. S91 is the
+  conformance kit's purpose-built sprint; a skeleton here would be
+  duplicative work S91 would replace. The B4 contract-completeness
+  test is the foundation S91's certification gates build on.
+- **A4 Slice 3 — validator-output typed envelope:** `voce validate
+  --format json` is hand-rolled via `serde_json::json!()` in
+  `formatter.rs`. Schema-izing it needs a typed-envelope refactor
+  that touches every CLI/MCP/cli-chat call site — a real slice
+  carrying snapshot-review risk, not a derive-add. Tracked as **S79b
+  A4 Slice 3**; shape is stable today via S67 conventions so no
+  consumer is broken in the interim.
+- **B3 — agent-authorability lint** (extends S72 schema audit with a
+  "one obvious way" pass over the IR design space). Conceptually
+  novel; "ambiguity" is hard to define precisely without more usage
+  data. Tracked as **S79b B3**; revisit after the S78 telemetry
+  thread (if it ships) or once S92/S93 surface real authoring
+  patterns to mine.
+
+## Headline outcome
+
+The agent contract is **operationally real** — five contract-versioned
+envelopes (`skills`, `graph`, `doctor`, `perf-report`, `fix-plan`), all
+drift-gated against their schemars-derived schemas + live-conformance
+tested, reachable through CLI **and** MCP (3 new tools added to
+`@voce-ir/mcp-server`: `voce_skills` / `voce_graph` / `voce_doctor`),
+and the **B4 contract-as-only-interface guarantee** proves seven
+representative agent tasks are answerable using only envelope reads,
+plus a corpus-walking drift gate that fails CI if any pass emits a
+code without declaring it. The "no human-readable code in the
+pipeline" stance is now structurally defensible: an agent never has
+to fall back to reading source because there is no source to read,
+and the contract is sufficient.
 
 ---
 **Goal:** Consolidate Voce's scattered agent-facing affordances into one **documented, versioned, machine-consumable contract**. Today an agent learns Voce through MCP tool descriptions, `--list-passes`, `--list-codes`, `--perf-report`, and JSON Patch fixes — useful, but disjoint and undocumented as a stable interface. After this sprint, any AI agent (MCP client, the REPL, a third-party harness) can discover *everything Voce can do*, check *whether a project and toolchain are healthy*, inspect *the IR as a structured graph*, and rely on *a semver'd output schema* — without reading prose or source.
