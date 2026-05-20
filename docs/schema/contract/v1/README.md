@@ -13,6 +13,7 @@ shipped output doesn't match the schema, the binary is wrong.
 | `graph` | `voce graph <file> --json` | `graph.schema.json` |
 | `doctor` | `voce doctor --json` | `doctor.schema.json` |
 | `perf-report` | `voce compile --perf-report <path>` | `perf-report.schema.json` |
+| `fix-plan` | `voce fix <file> --plan` | `fix-plan.schema.json` |
 
 ### Planned for v1.x
 

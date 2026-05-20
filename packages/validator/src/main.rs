@@ -165,6 +165,20 @@ enum Commands {
         /// (i.e. less safe) are listed but skipped.
         #[arg(long, default_value = "safe", value_parser = ["safe", "suggested", "risky"])]
         confidence: String,
+
+        /// S79 B2 — run the convergent fix loop: validate → apply a
+        /// safe fix → re-validate → repeat until clean, or a step
+        /// makes no progress. Combine with `--apply` to write the
+        /// converged IR back. With `--plan`, emits the full multi-step
+        /// plan envelope (JSON contract).
+        #[arg(long)]
+        until_clean: bool,
+
+        /// S79 B2 — emit the multi-step fix plan as a contract-versioned
+        /// JSON envelope (always runs the loop). Use this when an agent
+        /// needs to inspect or drive the repair headlessly.
+        #[arg(long)]
+        plan: bool,
     },
 
     /// Emit the agent-contract capability manifest (S79 A1).
@@ -316,7 +330,9 @@ fn run(cli: Cli) -> Result<i32> {
             file,
             apply,
             confidence,
-        } => cmd_fix(&file, apply, &confidence),
+            until_clean,
+            plan,
+        } => cmd_fix(&file, apply, &confidence, until_clean, plan),
         Commands::Skills { json } => cmd_skills(json),
         Commands::Graph { file, json } => cmd_graph(&file, json),
         Commands::Doctor { cwd, json, strict, ir_set } => {
@@ -807,7 +823,13 @@ fn cmd_generate(prompt: &str, output: Option<&std::path::Path>) -> Result<i32> {
     Ok(0)
 }
 
-fn cmd_fix(file: &PathBuf, apply: bool, confidence_str: &str) -> Result<i32> {
+fn cmd_fix(
+    file: &PathBuf,
+    apply: bool,
+    confidence_str: &str,
+    until_clean: bool,
+    plan_mode: bool,
+) -> Result<i32> {
     use voce_validator::errors::Confidence;
 
     let json = std::fs::read_to_string(file)
@@ -819,6 +841,13 @@ fn cmd_fix(file: &PathBuf, apply: bool, confidence_str: &str) -> Result<i32> {
         "risky" => Confidence::Risky,
         other => anyhow::bail!("unknown confidence level: {other}"),
     };
+
+    // S79 B2 — `--until-clean` or `--plan` invokes the convergent
+    // multi-step loop. Falls through to today's single-pass behavior
+    // when neither is set, so existing callers see no change.
+    if until_clean || plan_mode {
+        return cmd_fix_loop(file, &json, threshold, apply, plan_mode);
+    }
 
     // Validate first to get diagnostics with their fixes attached.
     let config_dir = file.parent().unwrap_or(std::path::Path::new("."));
@@ -1011,6 +1040,78 @@ fn cmd_skills(json: bool) -> Result<i32> {
     println!();
     println!("For the machine contract, run: voce skills --json");
     Ok(0)
+}
+
+/// S79 B2 — convergent fix loop. Runs validate→apply→re-validate
+/// until the IR is clean (or a step makes no progress). When
+/// `plan_mode`, emits the contract envelope as JSON; otherwise prints
+/// a human summary. `apply` writes the final IR back to disk.
+fn cmd_fix_loop(
+    file: &PathBuf,
+    json: &str,
+    threshold: voce_validator::errors::Confidence,
+    apply: bool,
+    plan_mode: bool,
+) -> Result<i32> {
+    let result = voce_validator::fix_loop::run(
+        json,
+        &voce_validator::fix_loop::LoopOptions {
+            threshold,
+            ..voce_validator::fix_loop::LoopOptions::default()
+        },
+    )
+    .map_err(|e| anyhow::anyhow!("{e}"))?;
+
+    // Apply: write the converged (or partial) IR back to disk.
+    let mut plan = result.plan;
+    if apply && !plan.plan.is_empty() {
+        let pretty = serde_json::to_string_pretty(&result.final_ir)
+            .with_context(|| "failed to serialize patched IR")?;
+        std::fs::write(file, pretty)
+            .with_context(|| format!("failed to write {}", file.display()))?;
+        plan.applied = true;
+    }
+
+    if plan_mode {
+        println!("{}", serde_json::to_string_pretty(&plan)?);
+        return Ok(if plan.converges { 0 } else { 1 });
+    }
+
+    // Human summary.
+    println!("voce fix --until-clean (contract v{})", plan.contract_version);
+    println!(
+        "  Source: {}   threshold: {}   {}",
+        file.display(),
+        plan.confidence_threshold,
+        if plan.applied { "APPLIED" } else { "PREVIEW (use --apply to write)" },
+    );
+    println!(
+        "  Iterations: {}   converged: {}{}",
+        plan.iterations,
+        plan.converges,
+        if plan.hit_iteration_cap { "   (hit iteration cap)" } else { "" },
+    );
+    if plan.plan.is_empty() {
+        println!("  No fixes to apply at threshold {}.", plan.confidence_threshold);
+    } else {
+        println!();
+        println!("Plan ({} step(s)):", plan.plan.len());
+        for s in &plan.plan {
+            println!("  {}. [{}] {}  at {}", s.step, s.confidence, s.code, s.node_path);
+            println!("       → {}", s.rationale);
+        }
+    }
+    if !plan.residual_codes.is_empty() {
+        println!();
+        println!(
+            "Residual errors ({}): {} — need manual attention or a higher --confidence.",
+            plan.residual_codes.len(),
+            plan.residual_codes.join(", "),
+        );
+    }
+    println!();
+    println!("For the machine contract, run: voce fix {} --plan", file.display());
+    Ok(if plan.converges { 0 } else { 1 })
 }
 
 /// S79 A2 — toolchain + `.voce/` project health.

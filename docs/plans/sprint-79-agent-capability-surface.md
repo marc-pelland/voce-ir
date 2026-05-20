@@ -91,9 +91,26 @@
   json`) stays in the "Planned" table — it's hand-rolled via
   `serde_json::json!()` in `formatter.rs` and needs a typed-envelope
   refactor (tracked as A4 Slice 3, real slice not a derive add).
+- ✅ **B2 — `voce fix --until-clean --plan`:** the convergent
+  multi-step fix loop. New `packages/validator/src/fix_loop.rs`
+  composes S67 single-patch fixes into an ordered, contract-versioned
+  plan: validate → apply one safe fix → re-validate → repeat until
+  clean or non-progress. Convergence guarantees: iteration cap
+  (default 32) bounds runaway loops; non-progress (same diagnostic
+  fingerprint after applying a patch) is detected explicitly and
+  surfaced as `converges: false` with `residual_codes`; patch-apply
+  failures degrade to non-convergence instead of crashing the loop
+  (real edge case — FRM004's fix patch assumes a `validations` array
+  that doesn't always exist; the loop now reports this honestly).
+  Schema-locked under `docs/schema/contract/v1/fix-plan.schema.json`,
+  drift-gated + live-conformance per A4. CLI extended: existing
+  single-pass `voce fix` behavior unchanged; `--until-clean` runs the
+  loop (preview by default, `--apply` writes); `--plan` emits the JSON
+  envelope. 6 lib unit tests. Contract envelope count 4 → 5.
 - ⏳ **A4 Slice 3** (validator-output typed envelope refactor) ·
   **A5** (conformance runner skeleton, fully realized by S91) ·
-  **Part B** differentiators.
+  **Part B remainder**: agent-authorability lint, contract-as-only-
+  interface guarantee.
 
 ---
 **Goal:** Consolidate Voce's scattered agent-facing affordances into one **documented, versioned, machine-consumable contract**. Today an agent learns Voce through MCP tool descriptions, `--list-passes`, `--list-codes`, `--perf-report`, and JSON Patch fixes — useful, but disjoint and undocumented as a stable interface. After this sprint, any AI agent (MCP client, the REPL, a third-party harness) can discover *everything Voce can do*, check *whether a project and toolchain are healthy*, inspect *the IR as a structured graph*, and rely on *a semver'd output schema* — without reading prose or source.

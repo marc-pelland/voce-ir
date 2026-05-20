@@ -23,7 +23,7 @@ use std::path::PathBuf;
 
 use voce_validator::index::NodeIndex;
 use voce_validator::ir::VoceIr;
-use voce_validator::{doctor, graph, skills};
+use voce_validator::{doctor, fix_loop, graph, skills};
 
 fn workspace_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -116,6 +116,12 @@ fn doctor_schema_in_sync() {
 }
 
 #[test]
+fn fix_plan_schema_in_sync() {
+    let schema = serde_json::to_value(schemars::schema_for!(fix_loop::FixPlan)).unwrap();
+    assert_schema_in_sync("fix-plan", schema);
+}
+
+#[test]
 fn perf_report_schema_in_sync() {
     // PerfReport lives in voce-compiler-dom (where it's produced); the
     // contract schema lives here because docs/schema/contract/ is the
@@ -173,6 +179,27 @@ fn live_doctor_output_matches_schema() {
     let report = doctor::run(&workspace_root(), false);
     let instance = serde_json::to_value(&report).unwrap();
     validate_against(&schema, &instance, "doctor");
+}
+
+#[test]
+fn live_fix_plan_output_matches_schema() {
+    let path = contract_path("fix-plan");
+    let schema: serde_json::Value = match fs::read_to_string(&path) {
+        Ok(t) => serde_json::from_str(&t).expect("schema parses"),
+        Err(_) => return, // fix_plan_schema_in_sync owns the missing-file panic.
+    };
+    // Run the loop against an IR with at least one fixable diagnostic
+    // so the plan exercises the full envelope (steps + residue both
+    // populated would be ideal; a simple STR002 case is enough to
+    // produce a step, and residual_codes is an array either way).
+    let ir = r#"{
+        "root": { "node_id": "r", "children": [
+            { "value_type": "Surface", "value": { "decorative": true } }
+        ] }
+    }"#;
+    let r = fix_loop::run(ir, &fix_loop::LoopOptions::default()).expect("loop");
+    let instance = serde_json::to_value(&r.plan).unwrap();
+    validate_against(&schema, &instance, "fix-plan");
 }
 
 #[test]

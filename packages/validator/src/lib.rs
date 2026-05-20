@@ -17,6 +17,7 @@ pub mod contrast;
 pub mod doctor;
 pub mod engine;
 pub mod errors;
+pub mod fix_loop;
 pub mod fixes;
 pub mod formatter;
 pub mod graph;

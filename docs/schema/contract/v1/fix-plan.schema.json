@@ -1,0 +1,115 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "FixStep": {
+      "properties": {
+        "code": {
+          "description": "Diagnostic code this step targets.",
+          "type": "string"
+        },
+        "confidence": {
+          "description": "Confidence of the underlying fix (`safe`/`suggested`/`risky`).",
+          "type": "string"
+        },
+        "node_path": {
+          "description": "Path of the IR node this step modifies.",
+          "type": "string"
+        },
+        "patch": {
+          "items": {
+            "$ref": "#/definitions/PlanPatchOp"
+          },
+          "type": "array"
+        },
+        "rationale": {
+          "description": "One-line description of *what* the patch does (`FixPatch::preview`).",
+          "type": "string"
+        },
+        "step": {
+          "description": "1-based step index in the plan.",
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "code",
+        "confidence",
+        "node_path",
+        "patch",
+        "rationale",
+        "step"
+      ],
+      "type": "object"
+    },
+    "PlanPatchOp": {
+      "description": "One RFC-6902-shaped patch op as serialized into the plan contract. Mirrors `errors::PatchOp` with a `String` op for JSON ergonomics.",
+      "properties": {
+        "op": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "value": true
+      },
+      "required": [
+        "op",
+        "path"
+      ],
+      "type": "object"
+    }
+  },
+  "properties": {
+    "applied": {
+      "description": "Whether the plan was applied in-place (i.e. the file was rewritten). When `false`, this is a preview/plan-only run.",
+      "type": "boolean"
+    },
+    "confidence_threshold": {
+      "description": "Confidence threshold the loop respected.",
+      "type": "string"
+    },
+    "contract_version": {
+      "type": "string"
+    },
+    "converges": {
+      "description": "`true` if the loop drove error count to zero (or to the irreducible residue) without detecting non-progress.",
+      "type": "boolean"
+    },
+    "hit_iteration_cap": {
+      "description": "Hit the iteration cap before converging (separate signal from `converges`).",
+      "type": "boolean"
+    },
+    "iterations": {
+      "description": "Number of validate-apply iterations the loop performed.",
+      "format": "uint",
+      "minimum": 0.0,
+      "type": "integer"
+    },
+    "plan": {
+      "items": {
+        "$ref": "#/definitions/FixStep"
+      },
+      "type": "array"
+    },
+    "residual_codes": {
+      "description": "Codes still firing after the loop terminated. Empty when the IR is clean.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "applied",
+    "confidence_threshold",
+    "contract_version",
+    "converges",
+    "hit_iteration_cap",
+    "iterations",
+    "plan",
+    "residual_codes"
+  ],
+  "title": "FixPlan",
+  "type": "object"
+}
