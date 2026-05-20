@@ -198,6 +198,13 @@ enum Commands {
         /// Treat warnings as failures (exit non-zero, ok=false).
         #[arg(long)]
         strict: bool,
+
+        /// Walk the project for `*.voce.json` files and validate each.
+        /// Opt-in until the walk respects .gitignore (today the skip
+        /// list is a fixed basename set, which would false-fire on
+        /// intentional invalid-fixture directories).
+        #[arg(long)]
+        ir_set: bool,
     },
 
     /// Export the IR's semantic graph (S79 A3).
@@ -312,7 +319,9 @@ fn run(cli: Cli) -> Result<i32> {
         } => cmd_fix(&file, apply, &confidence),
         Commands::Skills { json } => cmd_skills(json),
         Commands::Graph { file, json } => cmd_graph(&file, json),
-        Commands::Doctor { cwd, json, strict } => cmd_doctor(cwd.as_deref(), json, strict),
+        Commands::Doctor { cwd, json, strict, ir_set } => {
+            cmd_doctor(cwd.as_deref(), json, strict, ir_set)
+        }
         Commands::Deploy {
             file,
             adapter,
@@ -1005,12 +1014,20 @@ fn cmd_skills(json: bool) -> Result<i32> {
 }
 
 /// S79 A2 — toolchain + `.voce/` project health.
-fn cmd_doctor(cwd: Option<&std::path::Path>, json: bool, strict: bool) -> Result<i32> {
+fn cmd_doctor(
+    cwd: Option<&std::path::Path>,
+    json: bool,
+    strict: bool,
+    ir_set: bool,
+) -> Result<i32> {
     let root = match cwd {
         Some(p) => p.to_path_buf(),
         None => std::env::current_dir().context("could not resolve current directory")?,
     };
-    let report = voce_validator::doctor::run(&root, strict);
+    let report = voce_validator::doctor::run_with(
+        &root,
+        voce_validator::doctor::RunOptions { strict, walk_ir_set: ir_set },
+    );
 
     if json {
         println!("{}", serde_json::to_string_pretty(&report)?);

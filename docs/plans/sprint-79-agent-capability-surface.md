@@ -74,9 +74,26 @@
   the docs/CI step. Discoverability nit: the conversational layer
   (`@voce-ir/cli-chat`, S66) is invisible in the public README —
   logged for the S60 launch pass.
-- ⏳ **A2 Slice 2** (IR-set validation walk) · **A4 Slice 2**
-  (validator + perf-report schemas) · **A5** (conformance runner
-  skeleton, fully realized by S91) · **Part B** differentiators.
+- ✅ **A2 Slice 2 — IR-set walk:** `voce doctor --ir-set` walks the
+  project for `*.voce.json` files and validates each. New check
+  `DOC-IRSET-001`. Opt-in (gated by `--ir-set` flag and matching MCP
+  `ir_set` arg) until the walk respects `.gitignore`; today's fixed
+  skip list (node_modules / target / dist / .git / etc.) would
+  false-fire on intentional invalid-fixture directories like Voce's
+  own `tests/schema/invalid/`. 4 new doctor tests cover skip-by-
+  default, clean corpus, invalid file detection (with code in detail),
+  and node_modules/target skip behavior.
+- ✅ **A4 Slice 2 — `perf-report` schema:** `PerfReport` now derives
+  `JsonSchema`; `docs/schema/contract/v1/perf-report.schema.json`
+  committed, drift-gated + live-conformance-tested by the same
+  contract harness as skills/graph/doctor. Contract envelope count
+  3 → 4. Validator-output JSON envelope (`voce validate --format
+  json`) stays in the "Planned" table — it's hand-rolled via
+  `serde_json::json!()` in `formatter.rs` and needs a typed-envelope
+  refactor (tracked as A4 Slice 3, real slice not a derive add).
+- ⏳ **A4 Slice 3** (validator-output typed envelope refactor) ·
+  **A5** (conformance runner skeleton, fully realized by S91) ·
+  **Part B** differentiators.
 
 ---
 **Goal:** Consolidate Voce's scattered agent-facing affordances into one **documented, versioned, machine-consumable contract**. Today an agent learns Voce through MCP tool descriptions, `--list-passes`, `--list-codes`, `--perf-report`, and JSON Patch fixes — useful, but disjoint and undocumented as a stable interface. After this sprint, any AI agent (MCP client, the REPL, a third-party harness) can discover *everything Voce can do*, check *whether a project and toolchain are healthy*, inspect *the IR as a structured graph*, and rely on *a semver'd output schema* — without reading prose or source.

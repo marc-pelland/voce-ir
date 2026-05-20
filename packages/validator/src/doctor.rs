@@ -64,12 +64,38 @@ fn docs(id: &str) -> String {
     format!("https://voce-ir.xyz/docs/doctor/{id}")
 }
 
+/// Options controlling which optional checks the doctor runs.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct RunOptions {
+    /// `--strict` — promote warnings to a non-zero exit.
+    pub strict: bool,
+    /// `--ir-set` — walk the project for `*.voce.json` files and
+    /// validate each. Opt-in for now; will become always-on once the
+    /// walk respects `.gitignore` (a follow-up — today the skip list
+    /// is a fixed basename set, which would false-fire on intentional
+    /// invalid-fixture directories like Voce's own `tests/schema/invalid/`).
+    pub walk_ir_set: bool,
+}
+
 /// Run the full doctor suite against `project_root`. `strict` promotes
 /// `warn` to a non-zero exit when the report drives a process exit.
 pub fn run(project_root: &Path, strict: bool) -> DoctorReport {
+    run_with(project_root, RunOptions { strict, ..RunOptions::default() })
+}
+
+/// Run the doctor with explicit options. Existing callers using
+/// `run(root, strict)` get today's behavior (no IR-set walk).
+pub fn run_with(project_root: &Path, opts: RunOptions) -> DoctorReport {
     let mut checks = Vec::new();
     checks.extend(toolchain_checks());
     checks.extend(voce_dir_checks(project_root));
+    checks.push(if opts.walk_ir_set {
+        ir_set_check(project_root)
+    } else {
+        ir_set_skip_check()
+    });
+
+    let strict = opts.strict;
 
     let mut summary = ReportSummary::default();
     for c in &checks {
@@ -300,6 +326,171 @@ fn jsonl_parseable(
     }
 }
 
+// ─── IR-set walk (A2 Slice 2, opt-in via --ir-set) ───────────────
+
+fn ir_set_skip_check() -> Check {
+    const ID: &str = "DOC-IRSET-001";
+    Check {
+        id: ID,
+        title: "*.voce.json files validate",
+        status: CheckStatus::Skip,
+        detail: Some(
+            "Walk disabled (pass --ir-set to enable). \
+             A future revision will respect .gitignore and enable by default."
+                .into(),
+        ),
+        hint: None,
+        docs_url: docs(ID),
+    }
+}
+
+
+/// Directories the IR walk skips by name — node_modules / build outputs
+/// / VCS metadata / our own snapshot dirs. Walk depth is bounded so the
+/// doctor stays responsive in a large workspace.
+const IR_WALK_SKIP_DIRS: &[&str] = &[
+    ".git",
+    ".voce/sessions",
+    "node_modules",
+    "target",
+    "dist",
+    "build",
+    ".next",
+    ".nuxt",
+    ".turbo",
+    ".cargo",
+    "vendor",
+];
+const IR_WALK_MAX_DEPTH: usize = 8;
+
+fn ir_set_check(project_root: &Path) -> Check {
+    const ID: &str = "DOC-IRSET-001";
+    let mut files: Vec<std::path::PathBuf> = Vec::new();
+    walk_ir_files(project_root, 0, &mut files);
+
+    if files.is_empty() {
+        return Check {
+            id: ID,
+            title: "*.voce.json files validate",
+            status: CheckStatus::Skip,
+            detail: Some(format!(
+                "no *.voce.json files under {} (depth ≤ {IR_WALK_MAX_DEPTH}; skip dirs: {})",
+                project_root.display(),
+                IR_WALK_SKIP_DIRS.join(", ")
+            )),
+            hint: None,
+            docs_url: docs(ID),
+        };
+    }
+
+    let mut failures: Vec<String> = Vec::new();
+    let mut total_warns = 0usize;
+    for path in &files {
+        let text = match std::fs::read_to_string(path) {
+            Ok(t) => t,
+            Err(e) => {
+                failures.push(format!("{}: read error: {e}", short(path, project_root)));
+                continue;
+            }
+        };
+        match crate::engine::validate(&text) {
+            Ok(result) => {
+                let errs: Vec<&str> = result
+                    .diagnostics
+                    .iter()
+                    .filter(|d| matches!(d.severity, crate::errors::Severity::Error))
+                    .map(|d| d.code.as_str())
+                    .collect();
+                if !errs.is_empty() {
+                    failures.push(format!(
+                        "{}: {} error(s) [{}]",
+                        short(path, project_root),
+                        errs.len(),
+                        errs.join(", ")
+                    ));
+                }
+                total_warns += result
+                    .diagnostics
+                    .iter()
+                    .filter(|d| matches!(d.severity, crate::errors::Severity::Warning))
+                    .count();
+            }
+            Err(e) => {
+                failures.push(format!("{}: validator error: {e}", short(path, project_root)));
+            }
+        }
+    }
+
+    if failures.is_empty() {
+        Check {
+            id: ID,
+            title: "*.voce.json files validate",
+            status: CheckStatus::Pass,
+            detail: Some(format!(
+                "{} file(s) clean ({} warning(s) total)",
+                files.len(),
+                total_warns
+            )),
+            hint: None,
+            docs_url: docs(ID),
+        }
+    } else {
+        Check {
+            id: ID,
+            title: "*.voce.json files validate",
+            status: CheckStatus::Fail,
+            detail: Some(format!(
+                "{} of {} file(s) failed:\n      {}",
+                failures.len(),
+                files.len(),
+                failures.join("\n      ")
+            )),
+            hint: Some(
+                "Accessibility is a compile error in Voce — shipped *.voce.json files must \
+                 validate clean. Run `voce validate <file>` per failure for full diagnostics, \
+                 or `voce fix <file>` for safe auto-patches.",
+            ),
+            docs_url: docs(ID),
+        }
+    }
+}
+
+fn walk_ir_files(dir: &Path, depth: usize, out: &mut Vec<std::path::PathBuf>) {
+    if depth > IR_WALK_MAX_DEPTH {
+        return;
+    }
+    let entries = match std::fs::read_dir(dir) {
+        Ok(e) => e,
+        Err(_) => return,
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let name = match path.file_name().and_then(|s| s.to_str()) {
+            Some(n) => n.to_string(),
+            None => continue,
+        };
+        if path.is_dir() {
+            // Skip by basename match (cheap) — IR_WALK_SKIP_DIRS members
+            // with a slash (e.g. ".voce/sessions") are matched by suffix.
+            let skip = IR_WALK_SKIP_DIRS
+                .iter()
+                .any(|s| name == *s || path.ends_with(s));
+            if skip {
+                continue;
+            }
+            walk_ir_files(&path, depth + 1, out);
+        } else if name.ends_with(".voce.json") {
+            out.push(path);
+        }
+    }
+}
+
+fn short(path: &Path, root: &Path) -> String {
+    path.strip_prefix(root)
+        .map(|p| p.display().to_string())
+        .unwrap_or_else(|_| path.display().to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -395,6 +586,11 @@ mod tests {
                 assert!(matches!(c.status, CheckStatus::Pass | CheckStatus::Warn));
                 continue;
             }
+            // IR-set walk is opt-in (Skip when --ir-set not passed).
+            if c.id == "DOC-IRSET-001" {
+                assert_eq!(c.status, CheckStatus::Skip);
+                continue;
+            }
             assert!(
                 matches!(c.status, CheckStatus::Pass),
                 "{} should pass, got {:?} ({:?})",
@@ -403,5 +599,77 @@ mod tests {
                 c.detail
             );
         }
+    }
+
+    fn run_with_ir_set(root: &Path) -> DoctorReport {
+        run_with(root, RunOptions { strict: false, walk_ir_set: true })
+    }
+
+    #[test]
+    fn ir_set_walk_skipped_by_default() {
+        let root = tmpdir();
+        let r = run(&root, false);
+        let irset = r.checks.iter().find(|c| c.id == "DOC-IRSET-001").unwrap();
+        assert_eq!(irset.status, CheckStatus::Skip);
+        assert!(irset.detail.as_deref().unwrap_or("").contains("--ir-set"));
+    }
+
+    #[test]
+    fn ir_set_walk_passes_on_clean_corpus() {
+        let root = tmpdir();
+        // A minimal valid IR — the validator accepts ViewRoot-only.
+        fs::write(
+            root.join("clean.voce.json"),
+            r#"{ "root": { "node_id": "r" } }"#,
+        )
+        .unwrap();
+        let r = run_with_ir_set(&root);
+        let irset = r.checks.iter().find(|c| c.id == "DOC-IRSET-001").unwrap();
+        assert_eq!(irset.status, CheckStatus::Pass);
+    }
+
+    #[test]
+    fn ir_set_walk_flags_invalid_files() {
+        let root = tmpdir();
+        // Surface with href but no semantic_node_id and no link text
+        // trips A11Y006 (error). Validator rejects accessibility holes.
+        fs::write(
+            root.join("bad.voce.json"),
+            r#"{ "root": { "node_id": "r", "children": [
+                { "value_type": "TextNode", "value": {
+                    "node_id": "t", "content": "", "href": "/x"
+                } }
+            ] } }"#,
+        )
+        .unwrap();
+        let r = run_with_ir_set(&root);
+        let irset = r.checks.iter().find(|c| c.id == "DOC-IRSET-001").unwrap();
+        assert_eq!(irset.status, CheckStatus::Fail);
+        assert!(!r.ok, "any fail flips ok");
+        let detail = irset.detail.as_deref().unwrap_or("");
+        assert!(detail.contains("bad.voce.json"), "expected file name in detail, got {detail}");
+        assert!(detail.contains("A11Y006"), "expected A11Y006 code in detail, got {detail}");
+    }
+
+    #[test]
+    fn ir_set_walk_skips_target_and_node_modules() {
+        let root = tmpdir();
+        fs::create_dir_all(root.join("node_modules/foo")).unwrap();
+        fs::write(
+            root.join("node_modules/foo/leaked.voce.json"),
+            r#"{ "root": { "node_id": "r" } }"#,
+        )
+        .unwrap();
+        fs::create_dir_all(root.join("target/debug")).unwrap();
+        fs::write(
+            root.join("target/debug/leaked.voce.json"),
+            r#"{ "root": { "node_id": "r" } }"#,
+        )
+        .unwrap();
+        let r = run_with_ir_set(&root);
+        let irset = r.checks.iter().find(|c| c.id == "DOC-IRSET-001").unwrap();
+        assert_eq!(irset.status, CheckStatus::Skip, "no files should be found");
+        let detail = irset.detail.as_deref().unwrap_or("");
+        assert!(detail.contains("no *.voce.json files"));
     }
 }

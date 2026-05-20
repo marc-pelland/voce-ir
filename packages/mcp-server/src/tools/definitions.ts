@@ -254,6 +254,10 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
       properties: {
         strict: { type: "boolean", description: "Treat warnings as failures (default false)." },
         cwd: { type: "string", description: "Project root to check (default: server cwd)." },
+        ir_set: {
+          type: "boolean",
+          description: "Walk for *.voce.json files and validate each (default false; opt-in until .gitignore-aware).",
+        },
       },
     },
   },

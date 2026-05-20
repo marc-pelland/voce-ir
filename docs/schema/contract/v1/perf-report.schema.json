@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "PhaseTime": {
+      "description": "One phase's timing in a PerfReport. Serialized as `{ name, us }` so consumers can index into a phase by name without tuple-position guessing.",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "us": {
+          "description": "Wall time in microseconds.",
+          "format": "uint128",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "us"
+      ],
+      "type": "object"
+    }
+  },
+  "description": "Single-compile perf report. Fields match the S71 spec format.",
+  "properties": {
+    "compiled_at": {
+      "description": "ISO-8601 timestamp at the moment compile started. e.g. \"2026-05-03T12:45:00Z\".",
+      "type": "string"
+    },
+    "input_bytes": {
+      "description": "Bytes of input JSON consumed by `compile()`.",
+      "format": "uint",
+      "minimum": 0.0,
+      "type": "integer"
+    },
+    "node_count": {
+      "description": "Number of nodes in the lowered CompilerIr.",
+      "format": "uint",
+      "minimum": 0.0,
+      "type": "integer"
+    },
+    "output_bytes": {
+      "description": "Bytes of HTML output produced.",
+      "format": "uint",
+      "minimum": 0.0,
+      "type": "integer"
+    },
+    "phases": {
+      "description": "Per-phase microseconds. Insertion-ordered; iterating yields phases in the order they ran.",
+      "items": {
+        "$ref": "#/definitions/PhaseTime"
+      },
+      "type": "array"
+    },
+    "total_us": {
+      "description": "Total `compile()` wall time, microseconds. Sum of phases plus a small overhead for the bookkeeping itself.",
+      "format": "uint128",
+      "minimum": 0.0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "compiled_at",
+    "input_bytes",
+    "node_count",
+    "output_bytes",
+    "phases",
+    "total_us"
+  ],
+  "title": "PerfReport",
+  "type": "object"
+}

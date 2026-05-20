@@ -12,17 +12,13 @@ shipped output doesn't match the schema, the binary is wrong.
 | `skills` | `voce skills --json` | `skills.schema.json` |
 | `graph` | `voce graph <file> --json` | `graph.schema.json` |
 | `doctor` | `voce doctor --json` | `doctor.schema.json` |
+| `perf-report` | `voce compile --perf-report <path>` | `perf-report.schema.json` |
 
 ### Planned for v1.x
 
 | Envelope | Produced by | Status |
 | --- | --- | --- |
-| `validator` | `voce validate --format json` | Pre-dates A4; schema-ization deferred to follow-up slice. Shape is stable today via S67 conventions. |
-| `perf-report` | `voce compile --perf-report` | Pre-dates A4; same. |
-
-Both will land as additive minors once their underlying types receive
-`JsonSchema` derives (mechanical; deferred only to keep this slice
-complete and tested rather than sprawling). |
+| `validator` | `voce validate --format json` | Pre-dates A4. Hand-built via `serde_json::json!()` in `formatter.rs`; schema-izing requires a typed-envelope refactor (a real slice, not a derive add). Shape is stable today via S67 conventions; tracked as A4 Slice 3. |
 
 ## Versioning policy (semver)
 

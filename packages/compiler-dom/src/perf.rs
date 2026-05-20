@@ -17,7 +17,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 /// One phase's timing in a PerfReport. Serialized as `{ name, us }` so
 /// consumers can index into a phase by name without tuple-position guessing.
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, schemars::JsonSchema)]
 pub struct PhaseTime {
     pub name: String,
     /// Wall time in microseconds.
@@ -25,7 +25,7 @@ pub struct PhaseTime {
 }
 
 /// Single-compile perf report. Fields match the S71 spec format.
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, schemars::JsonSchema)]
 pub struct PerfReport {
     /// Bytes of input JSON consumed by `compile()`.
     pub input_bytes: usize,

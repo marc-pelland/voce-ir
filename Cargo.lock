@@ -2664,6 +2664,7 @@ dependencies = [
  "fast_image_resize",
  "image",
  "insta",
+ "schemars",
  "serde",
  "serde_json",
  "sha2",

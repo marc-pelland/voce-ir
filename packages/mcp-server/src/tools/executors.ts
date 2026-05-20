@@ -381,9 +381,14 @@ function graphFromIr(irJson: string): ToolResult {
   }
 }
 
-function doctorReport(strict: boolean, cwdArg: string | undefined): ToolResult {
+function doctorReport(
+  strict: boolean,
+  cwdArg: string | undefined,
+  irSet: boolean,
+): ToolResult {
   const parts: string[] = ["doctor", "--json"];
   if (strict) parts.push("--strict");
+  if (irSet) parts.push("--ir-set");
   if (cwdArg) parts.push("--cwd", `"${cwdArg}"`);
   // voce doctor exits 1 when problems exist — that is NOT an error;
   // the JSON envelope describes the problems. Surface stdout in that
@@ -474,6 +479,7 @@ export function executeTool(
         return doctorReport(
           (a.strict as boolean | undefined) ?? false,
           a.cwd as string | undefined,
+          (a.ir_set as boolean | undefined) ?? false,
         );
       default:
         return errorResult(`Unknown tool: ${name}`);

@@ -115,6 +115,17 @@ fn doctor_schema_in_sync() {
     assert_schema_in_sync("doctor", schema);
 }
 
+#[test]
+fn perf_report_schema_in_sync() {
+    // PerfReport lives in voce-compiler-dom (where it's produced); the
+    // contract schema lives here because docs/schema/contract/ is the
+    // single home for the agent contract. validator already depends on
+    // compiler-dom.
+    let schema =
+        serde_json::to_value(schemars::schema_for!(voce_compiler_dom::perf::PerfReport)).unwrap();
+    assert_schema_in_sync("perf-report", schema);
+}
+
 // ─── Live conformance ────────────────────────────────────────────
 
 #[test]
@@ -162,4 +173,25 @@ fn live_doctor_output_matches_schema() {
     let report = doctor::run(&workspace_root(), false);
     let instance = serde_json::to_value(&report).unwrap();
     validate_against(&schema, &instance, "doctor");
+}
+
+#[test]
+fn live_perf_report_output_matches_schema() {
+    let path = contract_path("perf-report");
+    let schema: serde_json::Value = match fs::read_to_string(&path) {
+        Ok(t) => serde_json::from_str(&t).expect("schema parses"),
+        Err(_) => return, // perf_report_schema_in_sync owns the missing-file panic.
+    };
+    // Compile a fixture with perf collection enabled and validate the
+    // real PerfReport, not a hand-built struct.
+    let json = std::fs::read_to_string(workspace_root().join("tests/fixtures/text-heading.voce.json"))
+        .expect("read fixture");
+    let opts = voce_compiler_dom::CompileOptions {
+        collect_perf_report: true,
+        ..Default::default()
+    };
+    let result = voce_compiler_dom::compile(&json, &opts).expect("compile");
+    let report = result.perf_report.expect("perf_report present when collect=true");
+    let instance = serde_json::to_value(&report).unwrap();
+    validate_against(&schema, &instance, "perf-report");
 }
