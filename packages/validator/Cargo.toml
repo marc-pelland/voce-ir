@@ -22,6 +22,16 @@ voce-adapter-static = { path = "../adapter-static", version = "0.1.0" }
 voce-adapter-vercel = { path = "../adapter-vercel", version = "0.1.0" }
 voce-adapter-cloudflare = { path = "../adapter-cloudflare", version = "0.1.0" }
 voce-adapter-netlify = { path = "../adapter-netlify", version = "0.1.0" }
+# S91 Slice 1 — `voce conformance run --target X` needs every shipped
+# compiler at runtime, not just in dev-deps. Promoted from dev-deps;
+# zero impact on the *compiled* output's runtime weight (these emit
+# source strings), only on the toolchain binary's build/size.
+voce-compiler-email = { path = "../compiler-email", version = "0.1.0" }
+voce-compiler-ios = { path = "../compiler-ios", version = "0.1.0" }
+voce-compiler-android = { path = "../compiler-android", version = "0.1.0" }
+voce-compiler-webgpu = { path = "../compiler-webgpu", version = "0.1.0" }
+voce-compiler-wasm = { path = "../compiler-wasm", version = "0.1.0" }
+voce-compiler-hybrid = { path = "../compiler-hybrid", version = "0.1.0" }
 thiserror.workspace = true
 anyhow.workspace = true
 clap.workspace = true
@@ -42,12 +52,6 @@ criterion.workspace = true
 proptest = "1.5"
 # Validate real CLI envelope output against the committed contract.
 jsonschema = "0.30"
-voce-compiler-email = { path = "../compiler-email", version = "0.1.0" }
-voce-compiler-ios = { path = "../compiler-ios", version = "0.1.0" }
-voce-compiler-android = { path = "../compiler-android", version = "0.1.0" }
-voce-compiler-webgpu = { path = "../compiler-webgpu", version = "0.1.0" }
-voce-compiler-wasm = { path = "../compiler-wasm", version = "0.1.0" }
-voce-compiler-hybrid = { path = "../compiler-hybrid", version = "0.1.0" }
 
 [[bench]]
 name = "validate_bench"

@@ -13,6 +13,7 @@
 //! ```
 
 pub mod config;
+pub mod conformance;
 pub mod contrast;
 pub mod doctor;
 pub mod engine;

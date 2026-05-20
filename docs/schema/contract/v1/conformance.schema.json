@@ -1,0 +1,169 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "ConformanceSummary": {
+      "properties": {
+        "fail": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "not_applicable": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "pass": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "pass_degraded": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "fail",
+        "not_applicable",
+        "pass",
+        "pass_degraded"
+      ],
+      "type": "object"
+    },
+    "FixtureResult": {
+      "description": "Result of one fixture × target check. Status semantics:\n\n- `Pass` — every required dimension preserved exactly. - `PassDegraded` — required dimensions preserved; some optional dimension legitimately differed (recorded in `divergences`). - `Fail` — a required dimension diverged. Bug. - `NotApplicable` — HTML-scraping is the wrong lens (e.g. WebGPU paints on GPU); needs an out-of-band extractor.",
+      "properties": {
+        "divergences": {
+          "description": "Human-readable divergence notes. Empty on `Pass`; populated for `PassDegraded` / `Fail` so an agent can route remediation.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "fixture": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/FixtureStatus"
+        }
+      },
+      "required": [
+        "divergences",
+        "fixture",
+        "status"
+      ],
+      "type": "object"
+    },
+    "FixtureStatus": {
+      "enum": [
+        "pass",
+        "pass-degraded",
+        "fail",
+        "not-applicable"
+      ],
+      "type": "string"
+    },
+    "Level": {
+      "description": "Capability tier a target may certify at. Higher tiers include everything in the lower ones.",
+      "oneOf": [
+        {
+          "description": "Layout, text, semantics, named media. Every conformant target MUST pass Core.",
+          "enum": [
+            "core"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "+ forms, landmarks, links.",
+          "enum": [
+            "standard"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "+ gestures (JS-driven interactivity).",
+          "enum": [
+            "full"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "Profile": {
+      "description": "Which semantic dimensions a target is *required* to preserve under the chosen level. A `false` flag means the medium legitimately may degrade that dimension (informational, not a failure).",
+      "properties": {
+        "forms": {
+          "type": "boolean"
+        },
+        "gestures": {
+          "type": "boolean"
+        },
+        "headings": {
+          "type": "boolean"
+        },
+        "landmarks": {
+          "type": "boolean"
+        },
+        "links": {
+          "type": "boolean"
+        },
+        "media_names": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "forms",
+        "gestures",
+        "headings",
+        "landmarks",
+        "links",
+        "media_names"
+      ],
+      "type": "object"
+    }
+  },
+  "properties": {
+    "contract_version": {
+      "type": "string"
+    },
+    "fixtures": {
+      "items": {
+        "$ref": "#/definitions/FixtureResult"
+      },
+      "type": "array"
+    },
+    "level": {
+      "$ref": "#/definitions/Level"
+    },
+    "overall": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/FixtureStatus"
+        }
+      ],
+      "description": "Overall: `Pass` if no `Fail`s and every required fixture passed (degraded counts as pass); `Fail` if any `Fail`."
+    },
+    "profile": {
+      "$ref": "#/definitions/Profile"
+    },
+    "summary": {
+      "$ref": "#/definitions/ConformanceSummary"
+    },
+    "target": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "contract_version",
+    "fixtures",
+    "level",
+    "overall",
+    "profile",
+    "summary",
+    "target"
+  ],
+  "title": "ConformanceReport",
+  "type": "object"
+}

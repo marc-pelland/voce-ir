@@ -30,6 +30,30 @@ enum OutputFormat {
     Json,
 }
 
+/// Subcommands under `voce conformance`.
+#[derive(Subcommand)]
+enum ConformanceCmd {
+    /// Run conformance against a target.
+    Run {
+        /// Target id from `voce skills` (e.g. `dom`, `email`, `hybrid`).
+        #[arg(long)]
+        target: String,
+
+        /// Conformance level: `core`, `standard`, or `full`.
+        #[arg(long, default_value = "full")]
+        level: String,
+
+        /// Directory containing the corpus fixtures (defaults to
+        /// `tests/fixtures/` relative to CWD).
+        #[arg(long, value_name = "DIR")]
+        corpus: Option<PathBuf>,
+
+        /// Emit the JSON contract envelope (default: human summary).
+        #[arg(long)]
+        json: bool,
+    },
+}
+
 #[derive(Subcommand)]
 enum Commands {
     /// Validate an IR file against all quality rules
@@ -221,6 +245,18 @@ enum Commands {
         ir_set: bool,
     },
 
+    /// Run cross-target conformance against a fixture corpus (S91 Slice 1).
+    ///
+    /// For the chosen target + level, compile every fixture, extract a
+    /// semantic summary, diff against the IR-derived contract, and
+    /// report per-fixture pass / pass-degraded / fail / n/a along with
+    /// an overall verdict. Third parties wiring a new compiler can
+    /// drive this same runner to certify their output.
+    Conformance {
+        #[command(subcommand)]
+        sub: ConformanceCmd,
+    },
+
     /// Export the IR's semantic graph (S79 A3).
     ///
     /// Composition tree + typed reference edges (semantic, gesture,
@@ -335,6 +371,11 @@ fn run(cli: Cli) -> Result<i32> {
         } => cmd_fix(&file, apply, &confidence, until_clean, plan),
         Commands::Skills { json } => cmd_skills(json),
         Commands::Graph { file, json } => cmd_graph(&file, json),
+        Commands::Conformance { sub } => match sub {
+            ConformanceCmd::Run { target, level, corpus, json } => {
+                cmd_conformance_run(&target, &level, corpus.as_deref(), json)
+            }
+        },
         Commands::Doctor { cwd, json, strict, ir_set } => {
             cmd_doctor(cwd.as_deref(), json, strict, ir_set)
         }
@@ -1040,6 +1081,128 @@ fn cmd_skills(json: bool) -> Result<i32> {
     println!();
     println!("For the machine contract, run: voce skills --json");
     Ok(0)
+}
+
+/// S91 Slice 1 — run conformance against a target.
+fn cmd_conformance_run(
+    target_id: &str,
+    level_str: &str,
+    corpus_arg: Option<&std::path::Path>,
+    json: bool,
+) -> Result<i32> {
+    use voce_validator::conformance;
+
+    let target = conformance::find_target(target_id).ok_or_else(|| {
+        anyhow::anyhow!(
+            "unknown target '{target_id}'. Available: {}",
+            voce_validator::targets::ALL
+                .iter()
+                .map(|t| t.id)
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    })?;
+    let level: conformance::Level = level_str
+        .parse()
+        .map_err(|e: String| anyhow::anyhow!("{e}"))?;
+
+    let corpus_root = corpus_arg
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| std::env::current_dir().unwrap_or_default().join("tests/fixtures"));
+    if !corpus_root.is_dir() {
+        anyhow::bail!(
+            "corpus directory not found: {} (pass --corpus to override)",
+            corpus_root.display()
+        );
+    }
+
+    // Per-target compile function. Every shipped target is wired here;
+    // adding a new target = one arm. Each arm consumes IR JSON, returns
+    // the text-serialized output (HTML for HTML-family targets,
+    // empty/placeholder for non-HTML-lens targets — the conformance
+    // runner short-circuits those to NotApplicable per fixture).
+    let compile = |ir_json: &str| -> Result<String, String> {
+        match target_id {
+            "dom" => voce_compiler_dom::compile(ir_json, &voce_compiler_dom::CompileOptions::default())
+                .map(|r| r.html)
+                .map_err(|e| format!("{e:?}")),
+            "hybrid" => voce_compiler_hybrid::compile_hybrid(
+                ir_json,
+                &voce_compiler_hybrid::HybridCompileOptions::default(),
+            )
+            .map(|r| r.html)
+            .map_err(|e| format!("{e:?}")),
+            "email" => voce_compiler_email::compile_email(ir_json)
+                .map(|r| r.html)
+                .map_err(|e| format!("{e:?}")),
+            // Non-HTML-lens targets: still invoke their compiler to
+            // exercise the compile path (smoke-coverage), but the
+            // runner classifies fixtures NotApplicable so we don't
+            // pretend to verify what the lens can't see.
+            "webgpu" => voce_compiler_webgpu::compile_webgpu(
+                ir_json,
+                &voce_compiler_webgpu::WebGpuCompileOptions::default(),
+            )
+            .map(|r| r.html)
+            .map_err(|e| format!("{e:?}")),
+            "wasm" => voce_compiler_wasm::compile_to_wat(ir_json)
+                .map(|r| r.wat)
+                .map_err(|e| format!("{e:?}")),
+            "ios-swiftui" => voce_compiler_ios::compile_swiftui(ir_json)
+                .map(|r| r.swift)
+                .map_err(|e| format!("{e:?}")),
+            "android-compose" => voce_compiler_android::compile_compose(ir_json)
+                .map(|r| r.kotlin)
+                .map_err(|e| format!("{e:?}")),
+            other => Err(format!("no compile-fn wired for target '{other}'")),
+        }
+    };
+
+    let report = conformance::run(
+        target,
+        level,
+        &corpus_root,
+        conformance::DEFAULT_CORPUS,
+        compile,
+    );
+
+    if json {
+        println!("{}", serde_json::to_string_pretty(&report)?);
+    } else {
+        use voce_validator::conformance::FixtureStatus;
+        let glyph = |s: FixtureStatus| match s {
+            FixtureStatus::Pass => "✓",
+            FixtureStatus::PassDegraded => "◐",
+            FixtureStatus::Fail => "✗",
+            FixtureStatus::NotApplicable => "—",
+        };
+        println!(
+            "voce conformance — target {} ({:?}), level {:?} (contract v{})",
+            report.target, target.conformance_class, report.level, report.contract_version
+        );
+        println!(
+            "  Overall: {:?}  (pass {}, degraded {}, fail {}, n/a {})",
+            report.overall,
+            report.summary.pass,
+            report.summary.pass_degraded,
+            report.summary.fail,
+            report.summary.not_applicable,
+        );
+        println!();
+        for f in &report.fixtures {
+            println!("  [{}] {}", glyph(f.status), f.fixture);
+            for d in &f.divergences {
+                println!("        - {d}");
+            }
+        }
+        println!();
+        println!("For the machine contract, run with --json.");
+    }
+
+    Ok(match report.overall {
+        voce_validator::conformance::FixtureStatus::Fail => 1,
+        _ => 0,
+    })
 }
 
 /// S79 B2 — convergent fix loop. Runs validate→apply→re-validate

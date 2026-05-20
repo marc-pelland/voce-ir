@@ -1,7 +1,40 @@
 # Sprint 91 — Voce Conformance Specification & Certification Suite
 
 **Phase:** 7 — Production Readiness → Ecosystem
-**Status:** Planned
+**Status:** In progress (Slice 1: publishable runner shipped)
+
+## Implementation Status
+
+- ✅ **Slice 1 — publishable `voce conformance run` runner:**
+  `packages/validator/src/conformance.rs` graduates the S68
+  cross-target-parity test machinery into a library API + CLI
+  command. Adds `Level` (`Core`/`Standard`/`Full`) and `Profile`
+  types as the public contract; `profile_for(target, level)` derives
+  per-target preservation requirements from the canonical
+  `targets::ConformanceClass` so target classification is the single
+  source of truth. Dependency-injected runner (callers supply
+  `compile_fn`) keeps the lib free of cross-compiler dep coupling
+  while the CLI wires every shipped compiler. **6 shipped compiler
+  crates promoted from validator dev-deps to runtime deps** so the
+  user-facing CLI can certify every target — zero impact on
+  *compiled-output* runtime weight per Voce's stance. Six new lib
+  unit tests + schema-locked `ConformanceReport` envelope under
+  `docs/schema/contract/v1/conformance.schema.json` (drift gate +
+  live conformance, same harness as the other 5 envelopes —
+  contract count 5 → 6). MCP `voce_conformance_*` tools tracked
+  for Slice 2.
+  
+  Verified end-to-end: DOM passes all 13 fixtures at Full;
+  Email passes all 13 at Standard (D5 link fix from S68 holds);
+  WebGPU classifies all 13 as NotApplicable with explicit
+  "needs out-of-HTML-lens extractor (Slice 2+)" rationale — no
+  pretending to verify what the lens can't see.
+- ⏳ **Slice 2 — MCP parity** (`voce_conformance_run`) +
+  **third-party adapter protocol** (a documented CLI-contract for
+  certifying compilers not shipped in-tree).
+- ⏳ **D1 (normative spec) · D5 (attestation + badge registry) ·
+  D6 (dashboard) · D7 (release gate) · D8 (spec↔suite guard) ·
+  out-of-HTML-lens extractors for WebGPU / Swift / Kotlin / WAT.**
 **Goal:** Turn Voce from "one implementation with internal parity tests" into **an open standard with a portable, versioned conformance suite anyone can certify against**. S68 proves *our* 7 compilers agree internally. S91 generalizes that into a public artifact: a formal IR-semantics specification, a language-agnostic conformance test kit, a certification harness with capability profiles and conformance levels, a public conformance dashboard at `voce-ir.xyz/conformance`, and a self-certification + badge program. This is the open-source leverage play — a single vendor (Vercel) ships one toolchain; an open conformance standard lets *the whole ecosystem* build conformant compilers, adapters, and tooling and prove it, which a closed product structurally cannot match.
 
 **Depends on:** S68 (cross-target parity — provides the fixture set + `SemanticSummary` extractor this generalizes), S79 (agent contract — provides `contract_version`, the versioning policy, and the JSON Schema discipline this reuses). Schema (S02–S05) and validator (S06–S07) as the normative reference. Should follow S68 and S79; can start the spec authoring (D1) in parallel with S68.

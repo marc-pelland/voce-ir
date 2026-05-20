@@ -14,6 +14,7 @@ shipped output doesn't match the schema, the binary is wrong.
 | `doctor` | `voce doctor --json` | `doctor.schema.json` |
 | `perf-report` | `voce compile --perf-report <path>` | `perf-report.schema.json` |
 | `fix-plan` | `voce fix <file> --plan` | `fix-plan.schema.json` |
+| `conformance` | `voce conformance run --target <id> --json` | `conformance.schema.json` |
 
 ### Planned for v1.x
 

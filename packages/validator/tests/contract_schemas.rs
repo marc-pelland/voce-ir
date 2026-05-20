@@ -23,7 +23,7 @@ use std::path::PathBuf;
 
 use voce_validator::index::NodeIndex;
 use voce_validator::ir::VoceIr;
-use voce_validator::{doctor, fix_loop, graph, skills};
+use voce_validator::{conformance, doctor, fix_loop, graph, skills};
 
 fn workspace_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -122,6 +122,12 @@ fn fix_plan_schema_in_sync() {
 }
 
 #[test]
+fn conformance_schema_in_sync() {
+    let schema = serde_json::to_value(schemars::schema_for!(conformance::ConformanceReport)).unwrap();
+    assert_schema_in_sync("conformance", schema);
+}
+
+#[test]
 fn perf_report_schema_in_sync() {
     // PerfReport lives in voce-compiler-dom (where it's produced); the
     // contract schema lives here because docs/schema/contract/ is the
@@ -200,6 +206,32 @@ fn live_fix_plan_output_matches_schema() {
     let r = fix_loop::run(ir, &fix_loop::LoopOptions::default()).expect("loop");
     let instance = serde_json::to_value(&r.plan).unwrap();
     validate_against(&schema, &instance, "fix-plan");
+}
+
+#[test]
+fn live_conformance_output_matches_schema() {
+    let path = contract_path("conformance");
+    let schema: serde_json::Value = match fs::read_to_string(&path) {
+        Ok(t) => serde_json::from_str(&t).expect("schema parses"),
+        Err(_) => return, // conformance_schema_in_sync owns the missing-file panic.
+    };
+    // Run conformance against DOM (oracle, in-process, fast). Uses the
+    // ship's corpus path; the live test thus exercises the same code
+    // path a real `voce conformance run --target dom` invocation would.
+    let dom = conformance::find_target("dom").expect("dom registered");
+    let report = conformance::run(
+        dom,
+        conformance::Level::Full,
+        &workspace_root().join("tests/fixtures"),
+        conformance::DEFAULT_CORPUS,
+        |ir| {
+            voce_compiler_dom::compile(ir, &voce_compiler_dom::CompileOptions::default())
+                .map(|r| r.html)
+                .map_err(|e| format!("{e:?}"))
+        },
+    );
+    let instance = serde_json::to_value(&report).unwrap();
+    validate_against(&schema, &instance, "conformance");
 }
 
 #[test]
