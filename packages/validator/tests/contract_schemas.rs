@@ -23,7 +23,7 @@ use std::path::PathBuf;
 
 use voce_validator::index::NodeIndex;
 use voce_validator::ir::VoceIr;
-use voce_validator::{graph, skills};
+use voce_validator::{doctor, graph, skills};
 
 fn workspace_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -109,6 +109,12 @@ fn graph_schema_in_sync() {
     assert_schema_in_sync("graph", schema);
 }
 
+#[test]
+fn doctor_schema_in_sync() {
+    let schema = serde_json::to_value(schemars::schema_for!(doctor::DoctorReport)).unwrap();
+    assert_schema_in_sync("doctor", schema);
+}
+
 // ─── Live conformance ────────────────────────────────────────────
 
 #[test]
@@ -142,4 +148,18 @@ fn live_graph_output_matches_schema() {
     let g = graph::build(&ir, &idx);
     let instance = serde_json::to_value(&g).unwrap();
     validate_against(&schema, &instance, "graph");
+}
+
+#[test]
+fn live_doctor_output_matches_schema() {
+    let path = contract_path("doctor");
+    let schema: serde_json::Value = match fs::read_to_string(&path) {
+        Ok(t) => serde_json::from_str(&t).expect("schema parses"),
+        Err(_) => return, // doctor_schema_in_sync owns the missing-file panic.
+    };
+    // Run doctor against the workspace root — a known-good .voce/ is
+    // present and toolchain checks exercise real machine state.
+    let report = doctor::run(&workspace_root(), false);
+    let instance = serde_json::to_value(&report).unwrap();
+    validate_against(&schema, &instance, "doctor");
 }

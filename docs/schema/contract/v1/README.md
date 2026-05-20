@@ -11,6 +11,7 @@ shipped output doesn't match the schema, the binary is wrong.
 | --- | --- | --- |
 | `skills` | `voce skills --json` | `skills.schema.json` |
 | `graph` | `voce graph <file> --json` | `graph.schema.json` |
+| `doctor` | `voce doctor --json` | `doctor.schema.json` |
 
 ### Planned for v1.x
 
@@ -51,7 +52,7 @@ versioning above:
 - **CLI subcommand names** (`skills`, `graph`, `validate`, …) — same.
 - **Compile target IDs** (`dom`, `email`, …) — same.
 - **Reference-edge `kind`s** in `graph` output — same.
-- **Doctor check IDs** (when A2 lands) — same.
+- **Doctor check IDs** (`DOC-TOOLCHAIN-NNN`, `DOC-VOCE-NNN`) — same.
 
 The historical gap in `A11Y00*` (no `A11Y002`) is intentional and
 permanent — codes are never reassigned, even when retired.

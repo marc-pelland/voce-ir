@@ -14,6 +14,7 @@
 
 pub mod config;
 pub mod contrast;
+pub mod doctor;
 pub mod engine;
 pub mod errors;
 pub mod fixes;

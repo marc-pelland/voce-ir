@@ -180,6 +180,26 @@ enum Commands {
         json: bool,
     },
 
+    /// Report toolchain + `.voce/` project health (S79 A2).
+    ///
+    /// Project-level analog of `voce fix`. Each check carries a stable
+    /// contract ID (DOC-TOOLCHAIN-NNN, DOC-VOCE-NNN), status, hint,
+    /// and docs URL. Exit code: 0 if no failures; 1 if any fail (or,
+    /// with `--strict`, any warn).
+    Doctor {
+        /// Project root to check (defaults to current directory).
+        #[arg(long, value_name = "PATH")]
+        cwd: Option<PathBuf>,
+
+        /// Emit the JSON contract (default: rendered human summary).
+        #[arg(long)]
+        json: bool,
+
+        /// Treat warnings as failures (exit non-zero, ok=false).
+        #[arg(long)]
+        strict: bool,
+    },
+
     /// Export the IR's semantic graph (S79 A3).
     ///
     /// Composition tree + typed reference edges (semantic, gesture,
@@ -292,6 +312,7 @@ fn run(cli: Cli) -> Result<i32> {
         } => cmd_fix(&file, apply, &confidence),
         Commands::Skills { json } => cmd_skills(json),
         Commands::Graph { file, json } => cmd_graph(&file, json),
+        Commands::Doctor { cwd, json, strict } => cmd_doctor(cwd.as_deref(), json, strict),
         Commands::Deploy {
             file,
             adapter,
@@ -981,6 +1002,55 @@ fn cmd_skills(json: bool) -> Result<i32> {
     println!();
     println!("For the machine contract, run: voce skills --json");
     Ok(0)
+}
+
+/// S79 A2 — toolchain + `.voce/` project health.
+fn cmd_doctor(cwd: Option<&std::path::Path>, json: bool, strict: bool) -> Result<i32> {
+    let root = match cwd {
+        Some(p) => p.to_path_buf(),
+        None => std::env::current_dir().context("could not resolve current directory")?,
+    };
+    let report = voce_validator::doctor::run(&root, strict);
+
+    if json {
+        println!("{}", serde_json::to_string_pretty(&report)?);
+    } else {
+        use voce_validator::doctor::CheckStatus;
+        let marker = |s: CheckStatus| match s {
+            CheckStatus::Pass => "✓",
+            CheckStatus::Warn => "!",
+            CheckStatus::Fail => "✗",
+            CheckStatus::Skip => "-",
+        };
+        println!("voce doctor (contract v{})", report.contract_version);
+        println!("  root:    {}", report.project_root);
+        println!(
+            "  result:  {}  ({} pass, {} warn, {} fail, {} skip{})",
+            if report.ok { "OK" } else { "PROBLEMS" },
+            report.summary.pass,
+            report.summary.warn,
+            report.summary.fail,
+            report.summary.skip,
+            if strict { ", strict" } else { "" },
+        );
+        println!();
+        for c in &report.checks {
+            println!("  [{}] {:<22}  {}", marker(c.status), c.id, c.title);
+            if let Some(d) = &c.detail {
+                println!("        {d}");
+            }
+            if !matches!(c.status, CheckStatus::Pass) {
+                if let Some(h) = c.hint {
+                    println!("        hint: {h}");
+                }
+                println!("        docs: {}", c.docs_url);
+            }
+        }
+        println!();
+        println!("For the machine contract, run: voce doctor --json");
+    }
+
+    Ok(if report.ok { 0 } else { 1 })
 }
 
 /// S79 A3 — export the IR semantic graph (composition + typed

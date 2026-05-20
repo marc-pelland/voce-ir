@@ -1,0 +1,128 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "Check": {
+      "properties": {
+        "detail": {
+          "description": "Concrete observation (e.g. \"flatc 24.3.25 found at /usr/local/bin/flatc\").",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "docs_url": {
+          "type": "string"
+        },
+        "hint": {
+          "description": "Actionable next step when status is warn/fail.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "description": "Stable, contract-versioned ID. Format: `DOC-<DOMAIN>-NNN`.",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/CheckStatus"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "docs_url",
+        "id",
+        "status",
+        "title"
+      ],
+      "type": "object"
+    },
+    "CheckStatus": {
+      "oneOf": [
+        {
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Not applicable in this context (e.g. `.voce/` checks when the project doesn't use `.voce/` at all).",
+          "enum": [
+            "skip"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "ReportSummary": {
+      "properties": {
+        "fail": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "pass": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "skip": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "warn": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "fail",
+        "pass",
+        "skip",
+        "warn"
+      ],
+      "type": "object"
+    }
+  },
+  "properties": {
+    "checks": {
+      "items": {
+        "$ref": "#/definitions/Check"
+      },
+      "type": "array"
+    },
+    "contract_version": {
+      "type": "string"
+    },
+    "ok": {
+      "description": "`true` when no `fail` (and, under `--strict`, no `warn`) checks.",
+      "type": "boolean"
+    },
+    "project_root": {
+      "description": "Resolved CWD checks were run against.",
+      "type": "string"
+    },
+    "strict": {
+      "type": "boolean"
+    },
+    "summary": {
+      "$ref": "#/definitions/ReportSummary"
+    }
+  },
+  "required": [
+    "checks",
+    "contract_version",
+    "ok",
+    "project_root",
+    "strict",
+    "summary"
+  ],
+  "title": "DoctorReport",
+  "type": "object"
+}

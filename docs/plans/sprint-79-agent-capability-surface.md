@@ -48,11 +48,26 @@
   deferred to a follow-up slice (documented as planned in the README;
   mechanical, gated on adding `JsonSchema` derives to pre-existing
   types).
-- ⏳ **A1 Slice 2 — MCP parity:** expose `skills` + `graph` as MCP
-  tools/resources so the conversational layer shares the CLI's source.
-- ⏳ **A2 (`voce doctor`) · A4 Slice 2 (validator + perf-report
-  schemas) · A5 (conformance runner skeleton, fully realized by S91)·
-  Part B differentiators.**
+- ✅ **A2 — `voce doctor [--json] [--strict] [--cwd <path>]`:**
+  toolchain + `.voce/` project-health checks with stable contract
+  IDs (`DOC-TOOLCHAIN-NNN`, `DOC-VOCE-NNN`), structured status, hint,
+  and docs URL per check. Slice 1 covers `flatc` availability,
+  contract pinning, `.voce/` presence, `brief.md` presence, and
+  per-line JSONL validity for `decisions.jsonl` / `drift-warnings.jsonl`
+  per `.voce/SCHEMA.md`. Exit code 0/1 with `--strict` promoting
+  warnings. Schema-locked under `docs/schema/contract/v1/doctor.schema.json`
+  (drift gate + live conformance, same as skills/graph). 6 lib unit
+  tests. **Self-surfaced finding:** this repo's own `.voce/` is missing
+  `brief.md` — flagged honestly as a warn. IR-set check (validate
+  every `*.voce.json` in CWD) deferred to A2 Slice 2.
+- ⏳ **A1 Slice 2 — MCP parity:** expose `skills` + `graph` + now
+  `doctor` as MCP tools/resources so the conversational layer (already
+  shipped as `@voce-ir/cli-chat` + `@voce-ir/mcp-server` per S65/S66)
+  shares the CLI's source. The whole sprint exists to make these
+  surfaces discoverable from inside Claude Code / `voce-chat`.
+- ⏳ **A2 Slice 2** (IR-set validation walk) · **A4 Slice 2**
+  (validator + perf-report schemas) · **A5** (conformance runner
+  skeleton, fully realized by S91) · **Part B** differentiators.
 
 ---
 **Goal:** Consolidate Voce's scattered agent-facing affordances into one **documented, versioned, machine-consumable contract**. Today an agent learns Voce through MCP tool descriptions, `--list-passes`, `--list-codes`, `--perf-report`, and JSON Patch fixes — useful, but disjoint and undocumented as a stable interface. After this sprint, any AI agent (MCP client, the REPL, a third-party harness) can discover *everything Voce can do*, check *whether a project and toolchain are healthy*, inspect *the IR as a structured graph*, and rely on *a semver'd output schema* — without reading prose or source.
