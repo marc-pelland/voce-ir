@@ -538,7 +538,7 @@ Sprints not yet scoped as full plans, but identified as load-bearing or high-lev
 
 ### Compiler & Schema
 
-- **S73 — AI Bridge Multi-Agent Maturity:** harden the multi-agent orchestrator (S22) with explicit handoff state machine, error recovery, and per-agent test coverage. Currently partially built; finish.
+- **S73 — AI Bridge Multi-Agent Maturity:** harden the multi-agent orchestrator (S22) with explicit handoff state machine, error recovery, and per-agent test coverage. Currently partially built; finish. **Newly load-bearing as the prerequisite for S92** — promote to a full plan before S92 starts.
 - **S75 — Style Pack Polish:** make `style-packs/` real — discoverable, versioned, applied via CLI. Builds on S24/S48.
 - **S83 — i18n Runtime Path:** the schema has i18n; the compiler's runtime emission for dynamic locale switching is incomplete. Wire it to ContentSlot and DataNode.
 - **S90 — Image Optimization v2:** AVIF support, content-aware crops, automatic responsive `srcset`/`sizes`. Builds on S51.
@@ -546,6 +546,8 @@ Sprints not yet scoped as full plans, but identified as load-bearing or high-lev
 ### Tools & Integrations
 
 - **S79 — Agent Capability Surface ("The Agent Contract"):** unify scattered agent-facing affordances into one versioned, machine-consumable contract — `voce skills` / `doctor` / `graph` + published JSON Schemas + self-correcting fix loop + conformance runner. Prompted by `vercel-labs/zero` as external validation of the AI-native-tooling thesis. **Full plan: `docs/plans/sprint-79-agent-capability-surface.md`.**
+- **S92 — Pluggable Providers & Per-Role Model Strategy:** generalize the S22 orchestrator beyond Claude — any provider/model per role (Discovery / Design / Generator / Repair / user-defined custom roles like Reviewer or Documenter), API-key + permission management, subagent delegation. Pillar gates (Discovery readiness, validator, drift) stay enforced regardless of provider. Prompted by Kilo Code's per-mode model selection; Voce's no-source-text IR makes this structurally cleaner than for source-code generators. **Depends on S73 (orchestrator hardening — promote first). Full plan: `docs/plans/sprint-92-pluggable-providers-per-role.md`.**
+- **S93 — Intelligent Model Recommendations:** typed, explainable recommender on top of S92 — `voce profile` (project shape from `voce_graph`), `voce recommend` (deterministic ranker with per-rationale-bullet trace), `voce agents recommend --apply`. No black-box ML; rationale always shown. Opt-in feedback loop via S78. **Depends on S92. Full plan: `docs/plans/sprint-93-intelligent-model-recommendations.md`.**
 - **S86 — IDE Integrations:** VS Code, JetBrains, Vim/Neovim plugins. Promotes the `voce-vscode` stub from S74 into a published extension.
 - **S80 — Migration Tooling:** import from React/Svelte/Vue components → IR; design tokens import. Lowers the activation barrier for existing projects.
 - **S89 — A11y Audit Automation:** axe-core / Lighthouse / Pa11y integrated into deployment adapters so every published page has a fresh report. Builds on S82.

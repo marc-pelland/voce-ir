@@ -41,6 +41,8 @@ Voce IR is an open-source AI-native UI intermediate representation — "SPIR-V f
 | S72 (schema audit) | Complete — FormFieldStyle + FormLayout shipped |
 | S79 (agent capability surface) | In progress — A1 (`voce skills`) + A1 Slice 2 (MCP parity: 3 new tools in @voce-ir/mcp-server, 19→22) + A2 (`voce doctor` Slice 1) + A3 (`voce graph`) + A4 Slice 1 (JSON Schemas for all 3 envelopes, schemars-derived, drift-gated + live-conformance tested) shipped. `docs/schema/contract/v1/` with policy README. Remaining: A2 Slice 2 (IR-set walk), A4 Slice 2 (validator + perf-report schemas), A5 conformance runner, Part B |
 | S91 (conformance spec + certification) | Scoped — `docs/plans/sprint-91-conformance-spec-and-certification.md`; generalizes S68 into an open standard |
+| S92 (pluggable providers, per-role) | Scoped — `docs/plans/sprint-92-pluggable-providers-per-role.md`; prompted by Kilo Code. Depends on S73 promotion |
+| S93 (model recommendations) | Scoped — `docs/plans/sprint-93-intelligent-model-recommendations.md`; depends on S92 |
 | S82 (a11y deep dive) | **CLOSED** — A11Y007–A11Y010 + D3 compiler accessible-name synthesis; D8 machine-checked corpus evidence (3 invalid fixtures fixed); D10 `docs/accessibility/`. D7 axe-core + D9 runtime-audit CI delegated to S89 (already scoped "Builds on S82"). Compile-time a11y pillar complete & gated |
 | S68 (cross-target parity) | In progress — Slice 1–2 + D5 + D6 done: `SemanticSummary` (link/gesture split) in validator lib; DOM+Hybrid full-contract + Email required-contract verifiers; `docs/compatibility-matrix.md`; dedicated `cross-target-parity` CI job. HTML-family foundation complete + gated. Remaining: Slice 3 only — SwiftUI/Compose/WASM/WebGPU-a11y extractors |
 | S60, S62, S63, S74 | Scoped, untouched |
