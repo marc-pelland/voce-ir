@@ -337,6 +337,10 @@ jobs:
           - target: aarch64-apple-darwin
             os: macos-latest
             artifact: voce-macos-aarch64
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            artifact: voce-windows-x86_64
+            exe: .exe
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -352,15 +356,100 @@ jobs:
           echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
       - name: Build
         run: cargo build --release --target ${{ matrix.target }} -p voce-validator
+      # Cross-shell packaging — bash on linux/macos, the same actions
+      # bash runner is available on windows so we lean on it everywhere
+      # for one tarball recipe instead of branching on os.
       - name: Package
+        shell: bash
         run: |
           mkdir -p dist
-          cp target/${{ matrix.target }}/release/voce dist/voce
-          tar -czf ${{ matrix.artifact }}.tar.gz -C dist voce
+          cp "target/${{ matrix.target }}/release/voce${{ matrix.exe }}" "dist/voce${{ matrix.exe }}"
+          tar -czf "${{ matrix.artifact }}.tar.gz" -C dist "voce${{ matrix.exe }}"
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
           path: ${{ matrix.artifact }}.tar.gz
+
+  publish-crates:
+    name: Publish to crates.io (S60 slice 2)
+    needs: check
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment: release-crates-io  # gated; requires manual approval per protection rules
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      # Publish in dependency order. Each `cargo publish` waits for
+      # the prior version to actually appear in the registry index
+      # before the next dependent crate's publish can resolve it; the
+      # short sleeps cover the index-refresh window (5-15s in practice).
+      # CARGO_REGISTRY_TOKEN is required — set it under repo
+      # Settings → Secrets and variables → Actions.
+      - name: Publish voce-schema
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish -p voce-schema
+      - name: Wait for crates.io index
+        run: sleep 30
+      - name: Publish voce-compiler-dom
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish -p voce-compiler-dom
+      - name: Wait for crates.io index
+        run: sleep 30
+      - name: Publish voce-validator
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish -p voce-validator
+
+  publish-npm:
+    name: Publish to npm (S60 slice 2)
+    needs: check
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment: release-npm  # gated; requires manual approval per protection rules
+    permissions:
+      contents: read
+      id-token: write  # for npm provenance when token type supports it
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+      # Publish in dependency order: mcp-server (no internal deps),
+      # then cli-chat (depends on @voce-ir/mcp-server semver range),
+      # then sdk (independent). Each package's prepublishOnly runs
+      # `npm run build` first so dist/ is fresh from source.
+      # NPM_TOKEN is required — set it under repo Settings → Secrets
+      # and variables → Actions.
+      - name: npm install (mcp-server)
+        working-directory: packages/mcp-server
+        run: npm ci --ignore-scripts
+      - name: Publish @voce-ir/mcp-server
+        working-directory: packages/mcp-server
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --provenance
+      - name: Wait for npm registry
+        run: sleep 15
+      - name: npm install (cli-chat)
+        working-directory: packages/cli-chat
+        run: npm ci --ignore-scripts
+      - name: Publish @voce-ir/cli-chat
+        working-directory: packages/cli-chat
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --provenance
+      - name: npm install (sdk)
+        working-directory: packages/sdk
+        run: npm ci --ignore-scripts
+      - name: Publish @voce-ir/sdk
+        working-directory: packages/sdk
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --provenance
 
   publish-release:
     name: Create GitHub Release

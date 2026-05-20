@@ -11,6 +11,7 @@ blank page.
 | [`show-hn.md`](show-hn.md) | Hacker News Show HN copy | ~500 words |
 | [`x-thread.md`](x-thread.md) | 10-post X / Twitter thread | 10 posts |
 | [`demo-video-shotlist.md`](demo-video-shotlist.md) | 60–75 sec demo video scenes | 7 scenes |
+| [`release-runbook.md`](release-runbook.md) | Operator checklist for the actual tag-and-publish | — |
 
 ## How these fit together
 

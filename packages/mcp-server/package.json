@@ -23,13 +23,41 @@
     }
   },
   "bin": {
-    "voce-mcp": "dist/index.js"
+    "voce-mcp": "dist/index.js",
+    "voce-mcp-server": "dist/index.js"
   },
+  "license": "Apache-2.0",
+  "author": "Marc Pelland",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marc-pelland/voce-ir.git",
+    "directory": "packages/mcp-server"
+  },
+  "homepage": "https://voce-ir.xyz",
+  "bugs": {
+    "url": "https://github.com/marc-pelland/voce-ir/issues"
+  },
+  "keywords": [
+    "voce-ir",
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "claude",
+    "agent",
+    "tools",
+    "ui-ir"
+  ],
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0"

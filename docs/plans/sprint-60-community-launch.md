@@ -20,10 +20,51 @@
   → 52, "12 fix codes" → 17, "172 tests" → 391 (321 Rust + 70
   vitest). The S54 historical roadmap entry left as-is (accurate
   point-in-time marker).
-- ⏳ **Slice 2 — Package publishing:** crates.io (voce-schema /
-  voce-validator / voce-compiler-dom) + npm (`@voce-ir/sdk`,
-  `@voce-ir/mcp-server`, `@voce-ir/cli-chat`) + pre-built binaries
-  (cargo-dist or release workflow) + Homebrew tap.
+- ✅ **Slice 2 — Package publishing prep (in-repo bits):** every
+  in-repo piece of the publish path now exists; only credentials +
+  GitHub Environment setup + the actual tag-push remain operator
+  work (documented in `docs/launch/release-runbook.md`).
+  - **Cargo:** workspace metadata audit clean — `voce-schema`,
+    `voce-validator`, `voce-compiler-dom` all carry name / version
+    (workspace-inherited) / license (Apache-2.0) / repository /
+    rust-version / description / keywords / categories / readme.
+    Cargo publish-readiness verified.
+  - **npm:** the three target packages (`@voce-ir/sdk`,
+    `@voce-ir/mcp-server`, `@voce-ir/cli-chat`) gained license /
+    repository (with `directory`) / homepage / bugs / keywords /
+    author / `files` allowlist / `prepublishOnly` build hook.
+    Each now ships its own `LICENSE` + a focused per-package
+    `README.md` (proper npm landing pages, not the kitchen-sink
+    workspace README).
+  - **Real publish-blockers found and fixed:** (1) `cli-chat`
+    depended on `"@voce-ir/mcp-server": "file:../mcp-server"`,
+    invalid for a published package — converted to `^0.4.0`;
+    (2) `@voce-ir/mcp-server` exposed only the `voce-mcp` binary
+    but launch docs / Claude Code config snippets reference
+    `voce-mcp-server` — added `voce-mcp-server` as a bin alias
+    (non-breaking, both names work). (3) Added a root
+    `package.json` with `workspaces: ["packages/*"]` so fresh
+    clones resolve `@voce-ir/*` locally via symlinks rather than
+    failing against the (unpublished) registry.
+  - **CI release workflow** extended in `.github/workflows/ci.yml`:
+    new `publish-crates` job (publishes schema → compiler-dom →
+    validator in dependency order with index-refresh sleeps, gated
+    on `refs/tags/v*` + a `release-crates-io` GitHub Environment for
+    manual approval); new `publish-npm` job (mcp-server → cli-chat
+    → sdk, gated on `release-npm` Environment); Windows x86_64
+    added to the binary release matrix (now 5 targets: linux x86_64
+    / linux aarch64 / macos x86_64 / macos aarch64 / **windows
+    x86_64**).
+  - **Launch-blocker finding surfaced loudly:** the workspace
+    `LICENSE` is the Apache-2.0 *header stub*, not the full
+    ~200-line license text. Three options presented in the runbook
+    (replace with full Apache 2.0; switch to MIT; keep as-is and
+    accept the compliance gap). Not auto-fixed — legal-posture call.
+  - **`docs/launch/release-runbook.md`:** the operator checklist —
+    required secrets (`CARGO_REGISTRY_TOKEN`, `NPM_TOKEN`),
+    Environment protection rules, tag-and-push flow, rollback paths,
+    dry-run commands, post-publish smoke. Homebrew tap explicitly
+    deferred — not blocking.
 - ✅ **Slice 3 — Repo polish (in-repo bits):** CHANGELOG regenerated
   for ~14 commits of work since 2026-05-01 — S65 / S66 / S69 parts
   3–4 / S70 / S71 / S72 part 2 / S82 closeout / S68 slices 1–2 +
