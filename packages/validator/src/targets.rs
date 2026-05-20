@@ -10,7 +10,7 @@
 //! parallel to docs.
 
 /// Stability of a target's output contract.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum Stability {
     /// Output shape is committed; semver applies.
@@ -22,7 +22,7 @@ pub enum Stability {
 }
 
 /// Metadata describing one compile target.
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, schemars::JsonSchema)]
 pub struct TargetInfo {
     /// Stable identifier used in CLI flags, JSON contracts, and docs.
     pub id: &'static str,
@@ -42,7 +42,7 @@ pub struct TargetInfo {
 /// Maps onto the S68 capability-profile model: full preservation
 /// (oracle/superset), required-contract-only (medium-constrained),
 /// non-HTML-semantic (visual/GPU), or logic-only (no UI).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum ConformanceClass {
     OracleFull,

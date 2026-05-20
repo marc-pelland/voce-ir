@@ -34,13 +34,25 @@
   reports 0 state machines (faithful to the typed view). Logged as a
   follow-up: fixture cleanup + validator-strictness ticket (the
   silent skip on malformed typed nodes is a real lenience bug).
-- ⏳ **A1 Slice 2 — MCP parity:** expose `skills` (and now `graph`)
-  as MCP tools/resources so the conversational layer shares the CLI's
-  source. Deferred to keep slices complete and tested rather than
-  half-spanning languages.
-- ⏳ **A2 (`voce doctor`) · A4 (versioned JSON Schemas) ·
-  A5 (conformance runner skeleton, fully realized by S91) · Part B
-  differentiators.**
+- ✅ **A4 Slice 1 — versioned JSON Schemas (skills + graph):**
+  derived from the live structs via `schemars` so the published
+  schema can't silently drift; committed under
+  `docs/schema/contract/v1/{skills,graph}.schema.json` with a policy
+  README. `packages/validator/tests/contract_schemas.rs` enforces two
+  guarantees on every PR: (1) **drift gate** — regenerated schema
+  must equal the committed file (escape via
+  `UPDATE_CONTRACT_SCHEMAS=1`), forcing a conscious `contract_version`
+  bump on any field change; (2) **live conformance** — real
+  envelope output (built in-process) validated against the committed
+  schema via `jsonschema`. Validator-output + perf-report schemas
+  deferred to a follow-up slice (documented as planned in the README;
+  mechanical, gated on adding `JsonSchema` derives to pre-existing
+  types).
+- ⏳ **A1 Slice 2 — MCP parity:** expose `skills` + `graph` as MCP
+  tools/resources so the conversational layer shares the CLI's source.
+- ⏳ **A2 (`voce doctor`) · A4 Slice 2 (validator + perf-report
+  schemas) · A5 (conformance runner skeleton, fully realized by S91)·
+  Part B differentiators.**
 
 ---
 **Goal:** Consolidate Voce's scattered agent-facing affordances into one **documented, versioned, machine-consumable contract**. Today an agent learns Voce through MCP tool descriptions, `--list-passes`, `--list-codes`, `--perf-report`, and JSON Patch fixes — useful, but disjoint and undocumented as a stable interface. After this sprint, any AI agent (MCP client, the REPL, a third-party harness) can discover *everything Voce can do*, check *whether a project and toolchain are healthy*, inspect *the IR as a structured graph*, and rely on *a semver'd output schema* — without reading prose or source.

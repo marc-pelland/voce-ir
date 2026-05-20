@@ -26,20 +26,20 @@ pub const CONTRACT_VERSION: &str = "1.0.0";
 
 /// One CLI subcommand description, supplied by the binary because clap's
 /// `Command` lives in `main.rs` (not the lib).
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, schemars::JsonSchema)]
 pub struct CliCommand {
     pub name: String,
     pub about: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, schemars::JsonSchema)]
 pub struct PassEntry {
     pub name: &'static str,
     /// Codes this pass owns, in the order the engine registers them.
     pub codes: Vec<&'static str>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, schemars::JsonSchema)]
 pub struct CodeEntry {
     pub code: &'static str,
     pub pass: &'static str,
@@ -51,14 +51,14 @@ pub struct CodeEntry {
     pub docs_url: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, schemars::JsonSchema)]
 pub struct NodeTypeEntry {
     pub name: &'static str,
     /// FlatBuffers union discriminant — stable across schema minors.
     pub union_tag: u8,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, schemars::JsonSchema)]
 pub struct Manifest {
     pub contract_version: &'static str,
     pub voce_version: &'static str,

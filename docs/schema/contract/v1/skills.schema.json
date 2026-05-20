@@ -1,0 +1,221 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "CliCommand": {
+      "description": "One CLI subcommand description, supplied by the binary because clap's `Command` lives in `main.rs` (not the lib).",
+      "properties": {
+        "about": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "about",
+        "name"
+      ],
+      "type": "object"
+    },
+    "CodeEntry": {
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "docs_url": {
+          "type": "string"
+        },
+        "fixable": {
+          "description": "`true` when the code carries a JSON-Patch fix (S67); the actual confidence level rides on each runtime diagnostic.",
+          "type": "boolean"
+        },
+        "hint": {
+          "type": "string"
+        },
+        "pass": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "docs_url",
+        "fixable",
+        "hint",
+        "pass",
+        "summary"
+      ],
+      "type": "object"
+    },
+    "ConformanceClass": {
+      "description": "Maps onto the S68 capability-profile model: full preservation (oracle/superset), required-contract-only (medium-constrained), non-HTML-semantic (visual/GPU), or logic-only (no UI).",
+      "enum": [
+        "oracle-full",
+        "oracle-full-superset",
+        "required-contract",
+        "non-html-visual",
+        "logic-only",
+        "native"
+      ],
+      "type": "string"
+    },
+    "NodeTypeEntry": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "union_tag": {
+          "description": "FlatBuffers union discriminant — stable across schema minors.",
+          "format": "uint8",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "union_tag"
+      ],
+      "type": "object"
+    },
+    "PassEntry": {
+      "properties": {
+        "codes": {
+          "description": "Codes this pass owns, in the order the engine registers them.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "codes",
+        "name"
+      ],
+      "type": "object"
+    },
+    "Stability": {
+      "description": "Stability of a target's output contract.",
+      "oneOf": [
+        {
+          "description": "Output shape is committed; semver applies.",
+          "enum": [
+            "stable"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Output is functional but may change between minor releases.",
+          "enum": [
+            "beta"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Output exists but is exploratory.",
+          "enum": [
+            "experimental"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "TargetInfo": {
+      "description": "Metadata describing one compile target.",
+      "properties": {
+        "conformance_class": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/ConformanceClass"
+            }
+          ],
+          "description": "Conformance class — what the target is *required* to preserve. See `docs/compatibility-matrix.md` for the live verification."
+        },
+        "id": {
+          "description": "Stable identifier used in CLI flags, JSON contracts, and docs.",
+          "type": "string"
+        },
+        "name": {
+          "description": "Human-readable display name.",
+          "type": "string"
+        },
+        "notes": {
+          "description": "One-line note — what this target is for / its constraints.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Output artifact kinds this target emits (e.g. `[\"html\"]`, `[\"swift\"]`, `[\"html\", \"wat\"]`).",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "stability": {
+          "$ref": "#/definitions/Stability"
+        }
+      },
+      "required": [
+        "conformance_class",
+        "id",
+        "name",
+        "notes",
+        "outputs",
+        "stability"
+      ],
+      "type": "object"
+    }
+  },
+  "properties": {
+    "cli_commands": {
+      "items": {
+        "$ref": "#/definitions/CliCommand"
+      },
+      "type": "array"
+    },
+    "compile_targets": {
+      "items": {
+        "$ref": "#/definitions/TargetInfo"
+      },
+      "type": "array"
+    },
+    "contract_version": {
+      "type": "string"
+    },
+    "diagnostic_codes": {
+      "items": {
+        "$ref": "#/definitions/CodeEntry"
+      },
+      "type": "array"
+    },
+    "node_types": {
+      "items": {
+        "$ref": "#/definitions/NodeTypeEntry"
+      },
+      "type": "array"
+    },
+    "validation_passes": {
+      "items": {
+        "$ref": "#/definitions/PassEntry"
+      },
+      "type": "array"
+    },
+    "voce_version": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "cli_commands",
+    "compile_targets",
+    "contract_version",
+    "diagnostic_codes",
+    "node_types",
+    "validation_passes",
+    "voce_version"
+  ],
+  "title": "Manifest",
+  "type": "object"
+}

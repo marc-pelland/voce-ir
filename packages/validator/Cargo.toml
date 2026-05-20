@@ -29,6 +29,10 @@ serde.workspace = true
 serde_json.workspace = true
 toml.workspace = true
 colored = "3"
+# S79 A4: derive JSON Schemas for contract envelopes (skills, graph)
+# off the same structs that produce them, so the published schema
+# can never silently drift from the live shape.
+schemars = "0.8"
 
 [dev-dependencies]
 insta.workspace = true
@@ -36,6 +40,8 @@ assert_cmd = "2"
 predicates = "3"
 criterion.workspace = true
 proptest = "1.5"
+# Validate real CLI envelope output against the committed contract.
+jsonschema = "0.30"
 voce-compiler-email = { path = "../compiler-email", version = "0.1.0" }
 voce-compiler-ios = { path = "../compiler-ios", version = "0.1.0" }
 voce-compiler-android = { path = "../compiler-android", version = "0.1.0" }

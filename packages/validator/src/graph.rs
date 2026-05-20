@@ -20,7 +20,7 @@ use crate::index::NodeIndex;
 use crate::ir::{ChildNode, VoceIr};
 
 /// One node in the composition tree.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, schemars::JsonSchema)]
 pub struct GraphNode {
     pub id: String,
     pub type_name: String,
@@ -30,7 +30,7 @@ pub struct GraphNode {
 
 /// Composition tree edge — emitted explicitly so a graph consumer
 /// doesn't have to derive it by re-traversing `parent_id`.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, schemars::JsonSchema)]
 pub struct CompositionEdge {
     pub parent: String,
     pub child: String,
@@ -38,7 +38,7 @@ pub struct CompositionEdge {
 
 /// Typed reference edge. `to_resolved` mirrors the validator's
 /// reference-pass result (`true` ⇒ target exists in the document).
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, schemars::JsonSchema)]
 pub struct ReferenceEdge {
     pub from: String,
     pub from_path: String,
@@ -47,7 +47,7 @@ pub struct ReferenceEdge {
     pub to_resolved: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum ReferenceKind {
     Semantic,
@@ -61,7 +61,7 @@ pub enum ReferenceKind {
     SubscriptionTarget,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, schemars::JsonSchema)]
 pub struct StateNode {
     pub name: String,
     pub initial: bool,
@@ -69,7 +69,7 @@ pub struct StateNode {
     pub reachable: bool,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, schemars::JsonSchema)]
 pub struct StateTransition {
     pub event: Option<String>,
     pub from: String,
@@ -78,7 +78,7 @@ pub struct StateTransition {
     pub valid: bool,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, schemars::JsonSchema)]
 pub struct StateMachineGraph {
     pub node_id: Option<String>,
     pub name: Option<String>,
@@ -88,7 +88,7 @@ pub struct StateMachineGraph {
     pub unreachable_states: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, schemars::JsonSchema)]
 pub struct GraphSummary {
     pub node_count: usize,
     pub composition_edge_count: usize,
@@ -98,7 +98,7 @@ pub struct GraphSummary {
     pub unreachable_state_count: usize,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, schemars::JsonSchema)]
 pub struct GraphExport {
     pub contract_version: &'static str,
     pub nodes: Vec<GraphNode>,

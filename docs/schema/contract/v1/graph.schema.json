@@ -1,0 +1,269 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "CompositionEdge": {
+      "description": "Composition tree edge — emitted explicitly so a graph consumer doesn't have to derive it by re-traversing `parent_id`.",
+      "properties": {
+        "child": {
+          "type": "string"
+        },
+        "parent": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "child",
+        "parent"
+      ],
+      "type": "object"
+    },
+    "GraphNode": {
+      "description": "One node in the composition tree.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "parent_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "path": {
+          "type": "string"
+        },
+        "type_name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "path",
+        "type_name"
+      ],
+      "type": "object"
+    },
+    "GraphSummary": {
+      "properties": {
+        "composition_edge_count": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "dangling_reference_count": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "node_count": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "reference_edge_count": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "state_machine_count": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "unreachable_state_count": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "composition_edge_count",
+        "dangling_reference_count",
+        "node_count",
+        "reference_edge_count",
+        "state_machine_count",
+        "unreachable_state_count"
+      ],
+      "type": "object"
+    },
+    "ReferenceEdge": {
+      "description": "Typed reference edge. `to_resolved` mirrors the validator's reference-pass result (`true` ⇒ target exists in the document).",
+      "properties": {
+        "from": {
+          "type": "string"
+        },
+        "from_path": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/definitions/ReferenceKind"
+        },
+        "to": {
+          "type": "string"
+        },
+        "to_resolved": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "from",
+        "from_path",
+        "kind",
+        "to",
+        "to_resolved"
+      ],
+      "type": "object"
+    },
+    "ReferenceKind": {
+      "enum": [
+        "semantic",
+        "animation-target",
+        "gesture-target",
+        "scroll-target",
+        "physics-target",
+        "live-region-target",
+        "focus-trap-container",
+        "focus-trap-initial-focus",
+        "subscription-target"
+      ],
+      "type": "string"
+    },
+    "StateMachineGraph": {
+      "properties": {
+        "initial_state": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "node_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "states": {
+          "items": {
+            "$ref": "#/definitions/StateNode"
+          },
+          "type": "array"
+        },
+        "transitions": {
+          "items": {
+            "$ref": "#/definitions/StateTransition"
+          },
+          "type": "array"
+        },
+        "unreachable_states": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "states",
+        "transitions",
+        "unreachable_states"
+      ],
+      "type": "object"
+    },
+    "StateNode": {
+      "properties": {
+        "initial": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "reachable": {
+          "type": "boolean"
+        },
+        "terminal": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "initial",
+        "name",
+        "reachable",
+        "terminal"
+      ],
+      "type": "object"
+    },
+    "StateTransition": {
+      "properties": {
+        "event": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "valid": {
+          "description": "Both endpoints reference declared states.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "from",
+        "to",
+        "valid"
+      ],
+      "type": "object"
+    }
+  },
+  "properties": {
+    "composition_edges": {
+      "items": {
+        "$ref": "#/definitions/CompositionEdge"
+      },
+      "type": "array"
+    },
+    "contract_version": {
+      "type": "string"
+    },
+    "nodes": {
+      "items": {
+        "$ref": "#/definitions/GraphNode"
+      },
+      "type": "array"
+    },
+    "reference_edges": {
+      "items": {
+        "$ref": "#/definitions/ReferenceEdge"
+      },
+      "type": "array"
+    },
+    "state_machines": {
+      "items": {
+        "$ref": "#/definitions/StateMachineGraph"
+      },
+      "type": "array"
+    },
+    "summary": {
+      "$ref": "#/definitions/GraphSummary"
+    }
+  },
+  "required": [
+    "composition_edges",
+    "contract_version",
+    "nodes",
+    "reference_edges",
+    "state_machines",
+    "summary"
+  ],
+  "title": "GraphExport",
+  "type": "object"
+}
