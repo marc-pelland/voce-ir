@@ -351,6 +351,62 @@ function featureCompleteness(irJson: string): ToolResult {
  * isError: true rather than thrown — callers (MCP transport, cli-chat
  * tool-use loop) hand the result straight to the model so it can react.
  */
+// ── Agent contract (S79) ───────────────────────────────────────
+
+function skills(): ToolResult {
+  try {
+    const out = execSync(`"${VOCE_BIN}" skills --json`, {
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    return { content: [{ type: "text", text: out }] };
+  } catch (e) {
+    return errorResult(`voce skills failed: ${(e as Error).message}`);
+  }
+}
+
+function graphFromIr(irJson: string): ToolResult {
+  const tmpFile = join(tmpdir(), `voce-mcp-graph-${Date.now()}.voce.json`);
+  writeFileSync(tmpFile, irJson);
+  try {
+    const out = execSync(`"${VOCE_BIN}" graph "${tmpFile}" --json`, {
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    return { content: [{ type: "text", text: out }] };
+  } catch (e) {
+    return errorResult(`voce graph failed: ${(e as Error).message}`);
+  } finally {
+    try { unlinkSync(tmpFile); } catch { /* ignore */ }
+  }
+}
+
+function doctorReport(strict: boolean, cwdArg: string | undefined): ToolResult {
+  const parts: string[] = ["doctor", "--json"];
+  if (strict) parts.push("--strict");
+  if (cwdArg) parts.push("--cwd", `"${cwdArg}"`);
+  // voce doctor exits 1 when problems exist — that is NOT an error;
+  // the JSON envelope describes the problems. Surface stdout in that
+  // case so the agent sees the structured report rather than a thrown
+  // exception with no detail.
+  try {
+    const out = execSync(`"${VOCE_BIN}" ${parts.join(" ")}`, {
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    return { content: [{ type: "text", text: out }] };
+  } catch (e) {
+    const err = e as { stdout?: Buffer | string; message: string };
+    const stdout = typeof err.stdout === "string"
+      ? err.stdout
+      : err.stdout?.toString("utf-8") ?? "";
+    if (stdout.trim().length > 0) {
+      return { content: [{ type: "text", text: stdout }] };
+    }
+    return errorResult(`voce doctor failed: ${err.message}`);
+  }
+}
+
 export function executeTool(
   name: string,
   args: Record<string, unknown> | undefined,
@@ -410,6 +466,15 @@ export function executeTool(
         return generationReadiness(a.session_id as string);
       case "voce_feature_completeness":
         return featureCompleteness(a.ir_json as string);
+      case "voce_skills":
+        return skills();
+      case "voce_graph":
+        return graphFromIr(a.ir_json as string);
+      case "voce_doctor":
+        return doctorReport(
+          (a.strict as boolean | undefined) ?? false,
+          a.cwd as string | undefined,
+        );
       default:
         return errorResult(`Unknown tool: ${name}`);
     }

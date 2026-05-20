@@ -224,4 +224,37 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
       required: ["ir_json"],
     },
   },
+
+  // ── Agent contract (S79) ───────────────────────────────────────
+  // Reflected / structured contract envelopes — discover capabilities,
+  // inspect the IR as a graph, check project health. All carry
+  // contract_version; schemas live in docs/schema/contract/v1/.
+  {
+    name: "voce_skills",
+    description:
+      "Discover what this Voce build can do — validation passes, diagnostic codes, node types, compile targets, CLI commands. Call once early so every later move is grounded in real capabilities, not assumptions.",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
+    name: "voce_graph",
+    description:
+      "Export an IR's semantic graph — composition tree, typed reference edges with resolved/dangling status, state-machine reachability. Read before refactoring or chasing dangling refs; the verdict matches the validator's reference pass.",
+    inputSchema: {
+      type: "object",
+      properties: { ir_json: { type: "string", description: "Voce IR JSON to graph" } },
+      required: ["ir_json"],
+    },
+  },
+  {
+    name: "voce_doctor",
+    description:
+      "Report toolchain + .voce/ project health. Run when something feels off (missing brief, stale memory) or before a release. Each check has a stable contract ID and a hint — fix what's flagged, don't guess.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        strict: { type: "boolean", description: "Treat warnings as failures (default false)." },
+        cwd: { type: "string", description: "Project root to check (default: server cwd)." },
+      },
+    },
+  },
 ];

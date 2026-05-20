@@ -1,7 +1,7 @@
 {
   "name": "@voce-ir/mcp-server",
-  "version": "0.3.0",
-  "description": "Voce IR MCP server — exposes IR tools for Claude Code and MCP clients",
+  "version": "0.4.0",
+  "description": "Voce IR MCP server — exposes IR tools for Claude Code and MCP clients (22 tools incl. S79 agent contract: skills/graph/doctor)",
   "type": "module",
   "main": "dist/index.js",
   "exports": {

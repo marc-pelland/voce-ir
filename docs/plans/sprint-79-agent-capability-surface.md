@@ -60,11 +60,20 @@
   tests. **Self-surfaced finding:** this repo's own `.voce/` is missing
   `brief.md` — flagged honestly as a warn. IR-set check (validate
   every `*.voce.json` in CWD) deferred to A2 Slice 2.
-- ⏳ **A1 Slice 2 — MCP parity:** expose `skills` + `graph` + now
-  `doctor` as MCP tools/resources so the conversational layer (already
-  shipped as `@voce-ir/cli-chat` + `@voce-ir/mcp-server` per S65/S66)
-  shares the CLI's source. The whole sprint exists to make these
-  surfaces discoverable from inside Claude Code / `voce-chat`.
+- ✅ **A1 Slice 2 — MCP parity (skills + graph + doctor):**
+  `@voce-ir/mcp-server` 0.3.0 → 0.4.0. Three new tools
+  (`voce_skills`, `voce_graph`, `voce_doctor`) added to
+  `tools/definitions.ts` + `tools/executors.ts` following the
+  established shell-out pattern; tool count 19 → 22. Discovery test
+  updated for the new alphabetized list. Three focused integration
+  tests assert each tool produces a contract-versioned envelope
+  matching the CLI shape (the in-process invariants pass through the
+  MCP boundary unchanged). Also caught a real "stale release binary"
+  issue: `findVoceBinary` preferred `target/release/voce` which
+  pre-dated S79; rebuilding release fixes it but is a useful flag for
+  the docs/CI step. Discoverability nit: the conversational layer
+  (`@voce-ir/cli-chat`, S66) is invisible in the public README —
+  logged for the S60 launch pass.
 - ⏳ **A2 Slice 2** (IR-set validation walk) · **A4 Slice 2**
   (validator + perf-report schemas) · **A5** (conformance runner
   skeleton, fully realized by S91) · **Part B** differentiators.

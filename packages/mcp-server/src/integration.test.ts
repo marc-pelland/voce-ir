@@ -72,6 +72,7 @@ describe("MCP server — discovery surface", () => {
       "voce_compile",
       "voce_decisions_list",
       "voce_decisions_log",
+      "voce_doctor",
       "voce_examples",
       "voce_feature_completeness",
       "voce_generate",
@@ -81,9 +82,11 @@ describe("MCP server — discovery surface", () => {
       "voce_generate_refine",
       "voce_generate_start",
       "voce_generation_readiness",
+      "voce_graph",
       "voce_inspect",
       "voce_schema",
       "voce_session_resume",
+      "voce_skills",
       "voce_validate",
     ]);
   });
@@ -247,6 +250,69 @@ describe("MCP server — generation workflow", () => {
     // Either completeness blocks it before validate, or validate fails.
     // Both produce ok: false. The point is we never silently finalize bad IR.
     expect((result as { ok: boolean }).ok).toBe(false);
+  });
+});
+
+describe("MCP server — agent contract (S79)", () => {
+  it("voce_skills returns the reflected manifest with contract_version", async () => {
+    const manifest = (await callJson("voce_skills", {})) as {
+      contract_version: string;
+      validation_passes: Array<{ name: string; codes: string[] }>;
+      compile_targets: Array<{ id: string }>;
+      diagnostic_codes: Array<{ code: string; pass: string }>;
+    };
+    expect(manifest.contract_version).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(manifest.validation_passes.length).toBeGreaterThan(0);
+    expect(manifest.compile_targets.find((t) => t.id === "dom")).toBeDefined();
+    // Every code must reference a real pass — same invariant the lib tests
+    // enforce in-process; this checks it survives the MCP boundary.
+    const passNames = new Set(manifest.validation_passes.map((p) => p.name));
+    for (const c of manifest.diagnostic_codes) expect(passNames.has(c.pass)).toBe(true);
+  });
+
+  it("voce_graph exports composition + reference edges + summary", async () => {
+    const irJson = JSON.stringify({
+      root: {
+        node_id: "r",
+        semantic_nodes: [{ node_id: "s", role: "button", label: "Go" }],
+        children: [
+          { value_type: "Surface", value: { node_id: "btn", semantic_node_id: "s" } },
+        ],
+      },
+    });
+    const g = (await callJson("voce_graph", { ir_json: irJson })) as {
+      contract_version: string;
+      nodes: Array<{ id: string }>;
+      composition_edges: Array<{ parent: string; child: string }>;
+      reference_edges: Array<{ kind: string; to_resolved: boolean }>;
+      summary: { dangling_reference_count: number };
+    };
+    expect(g.contract_version).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(g.nodes.find((n) => n.id === "btn")).toBeDefined();
+    expect(g.composition_edges.find((e) => e.parent === "r" && e.child === "btn")).toBeDefined();
+    const semRef = g.reference_edges.find((e) => e.kind === "semantic");
+    expect(semRef?.to_resolved).toBe(true);
+    expect(g.summary.dangling_reference_count).toBe(0);
+  });
+
+  it("voce_doctor returns structured checks with stable contract IDs", async () => {
+    const report = (await callJson("voce_doctor", {})) as {
+      contract_version: string;
+      ok: boolean;
+      strict: boolean;
+      checks: Array<{ id: string; title: string; status: string; docs_url: string }>;
+      summary: { pass: number; warn: number; fail: number; skip: number };
+    };
+    expect(report.contract_version).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(report.strict).toBe(false);
+    // Two checks are deterministic across environments: contract pinned
+    // and the toolchain check exists (its pass/warn varies by env).
+    expect(report.checks.find((c) => c.id === "DOC-TOOLCHAIN-002")?.status).toBe("pass");
+    expect(report.checks.find((c) => c.id === "DOC-TOOLCHAIN-001")).toBeDefined();
+    for (const c of report.checks) {
+      expect(c.docs_url).toMatch(/^https:\/\/voce-ir\.xyz\/docs\/doctor\//);
+      expect(["pass", "warn", "fail", "skip"]).toContain(c.status);
+    }
   });
 });
 
