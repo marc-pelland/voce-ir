@@ -51,21 +51,38 @@ No React. No CSS cascade. No dependency tree. Just a typed IR that compiles to o
 | **Android** | Jetpack Compose with TalkBack | Native Android apps |
 | **Email** | Table layouts, inline CSS, Outlook compat | Marketing emails |
 
-### 9 Validation Passes (46 Rules)
+### 9 Validation Passes (52 Rules, 17 auto-fixable)
 
-Every IR document is validated before compilation:
+Every IR document is validated before compilation. Every diagnostic carries a stable code, a `hint`, a `docs_url`, and — for 17 codes — a JSON Patch `fix` proposal:
 
 | Pass | Rules | What It Catches |
 |------|-------|-----------------|
 | Structural | STR001-005 | Missing root, duplicate IDs, empty content |
 | References | REF001-009 | Broken node references, missing targets |
 | State Machine | STA001-004 | Invalid transitions, unreachable states |
-| Accessibility | A11Y001-005 | Missing labels, heading skips, no keyboard equiv |
-| Security | SEC001-004 | Missing CSRF, no auth redirect, HTTP URLs |
+| Accessibility | A11Y001-010 | Labels, headings, contrast (WCAG 2.2 AA), focus order, touch targets, live regions for dynamic content |
+| Security | SEC001-009 | Missing CSRF, no auth redirect, HTTP URLs, JSON-LD injection, hardened CSP |
 | SEO | SEO001-007 | Missing title, description length, OG completeness |
-| Forms | FRM001-009 | Unlabeled fields, missing validation |
+| Forms | FRM001-009 | Unlabeled fields, missing validation, missing submission |
 | Internationalization | I18N001-003 | Empty localized keys, missing defaults |
 | Motion | MOT001-005 | No ReducedMotion, excessive duration |
+
+Run `voce skills --json` for the live machine-readable list (see [Agent Contract](#agent-contract-6-envelopes) below).
+
+### Agent Contract (6 Envelopes)
+
+Voce has no human-readable source text, so the **agent contract is the only interface** — and it's a real one. Six contract-versioned, schema-locked JSON envelopes, drift-gated in CI:
+
+| Envelope | Command | Use |
+|----------|---------|-----|
+| `skills` | `voce skills --json` | What this build can do: passes, codes, node types, targets, CLI |
+| `graph` | `voce graph <file> --json` | IR semantic graph: composition, typed reference edges with resolved/dangling status, state-machine reachability |
+| `doctor` | `voce doctor --json` | Toolchain + `.voce/` project health with stable check IDs |
+| `fix-plan` | `voce fix <file> --plan` | Convergent multi-step repair plan (apply→re-validate→repeat) with explicit `converges` + `residual_codes` |
+| `perf-report` | `voce compile <file> --perf-report <out>` | Per-phase compile timing (S71) |
+| `conformance` | `voce conformance run --target <id> --json` | Cross-target semantic equivalence report at Core / Standard / Full level |
+
+Schemas live under [`docs/schema/contract/v1/`](docs/schema/contract/v1/). Versioning policy: additive = minor, breaking = major; codes / target ids / check ids are never reassigned.
 
 ### 27 Node Types
 
@@ -143,7 +160,7 @@ Create `hello.voce.json`:
 ### Validate, Compile, Preview
 
 ```bash
-# Validate against all 46 quality rules
+# Validate against all 52 quality rules
 voce validate hello.voce.json
 
 # Compile to a single HTML file (output: dist/hello.html)
@@ -157,18 +174,47 @@ voce deploy hello.voce.json --adapter static
 voce deploy hello.voce.json --adapter cloudflare --dry-run
 ```
 
+## Conversational Interfaces
+
+Voce ships two surfaces for working with the IR in plain English — one standalone, one embedded.
+
+### Standalone REPL: `voce-chat`
+
+A self-contained conversational terminal — sister to running `claude` or `gemini`. Tool-use loop driven by the Anthropic SDK, persistent `.voce/` memory (project brief, decision log, drift detection), 18 slash commands, multi-line input, prompt caching, ~78 ms cold start.
+
+```bash
+npm install -g @voce-ir/cli-chat
+voce-chat
+```
+
+### Embed via MCP: `@voce-ir/mcp-server`
+
+Plug Voce into any [Model Context Protocol](https://modelcontextprotocol.io) client — Claude Code, Cursor, Continue, your own agent — and the same 22 tools (validate, compile, inspect, generate, brief, decisions, drift, generation workflow, skills, graph, doctor) plus 4 resources become first-class for the assistant.
+
+```bash
+npm install -g @voce-ir/mcp-server
+```
+
+```jsonc
+// Claude Code config
+{ "mcpServers": { "voce-ir": { "command": "voce-mcp-server" } } }
+```
+
+Both share the same store, the same workflow gates, and the same agent contract — pick the one that fits your flow.
+
 ## CLI Reference
 
 ```
-voce validate <file>     Validate IR (9 passes, 41 rules)
+# IR pipeline
+voce validate <file>     Validate IR (9 passes, 52 rules)
                          [--format terminal|json] [--verbose-passes]
-                         [--list-passes]   Print canonical pass list and exit
-                         [--list-codes]    Print rule catalog (code, summary, hint, fix_confidence, docs_url) and exit
-                         [--warn-as-error]
-voce fix <file>          Apply auto-fix proposals
-                         [--apply]                       Write changes (default: preview)
-                         [--confidence safe|suggested|risky]   Threshold (default: safe)
-voce compile <file>      Compile to HTML [--minify] [--skip-fonts] [--no-cache] [--debug]
+                         [--list-passes] [--list-codes] [--warn-as-error]
+voce fix <file>          Apply auto-fix proposals (17 codes have JSON Patch fixes)
+                         [--apply]                              Write changes (default: preview)
+                         [--confidence safe|suggested|risky]    Threshold (default: safe)
+                         [--until-clean]                        Convergent loop: apply → re-validate → repeat
+                         [--plan]                               Emit the multi-step plan as JSON contract envelope
+voce compile <file>      Compile to HTML [--minify] [--skip-fonts] [--no-cache] [--debug] [--perf-report <out>]
 voce deploy <file>       Deploy [--adapter static|vercel|cloudflare|netlify] [--dry-run]
 voce inspect <file>      IR summary (node counts, types, features)
 voce preview <file>      Compile and open in browser
@@ -176,9 +222,14 @@ voce report <file>       Quality report (a11y, security, performance)
 voce manifest <file>     Application manifest
 voce json2bin <file>     JSON to FlatBuffers binary
 voce bin2json <file>     FlatBuffers binary to JSON
-```
 
-Every diagnostic from `voce validate` carries an actionable `hint` and (for 12 codes) a `fix` proposal as a JSON Patch. Run `voce fix --apply` after editing the IR to auto-apply safe fixes; suggested-confidence fixes need review.
+# Agent contract — see "Agent Contract" above
+voce skills              Reflected capability manifest [--json]
+voce graph <file>        IR semantic graph: composition + typed refs + state-machine reachability [--json]
+voce doctor              Toolchain + .voce/ project health [--json] [--strict] [--ir-set] [--cwd <path>]
+voce conformance run     Cross-target conformance against the fixture corpus
+                         --target <id> [--level core|standard|full] [--corpus <dir>] [--json]
+```
 
 Project config: drop a `.voce/validator.toml` next to your IR to escalate rule severity per project — e.g. `[severity] SEO007 = "error"` to require og:image.
 
@@ -237,7 +288,7 @@ Every decision in Voce IR is anchored to three non-negotiable principles:
 voce-ir/
 ├── packages/
 │   ├── schema/              FlatBuffers IR schema (12 .fbs files, 27 node types)
-│   ├── validator/           Validator + voce CLI binary (9 passes, 46 rules)
+│   ├── validator/           Validator + voce CLI binary (9 passes, 52 rules)
 │   ├── compiler-dom/        DOM compiler (HTML/CSS/JS, image pipeline, font pipeline)
 │   ├── compiler-webgpu/     WebGPU compiler (WGSL, PBR, particles)
 │   ├── compiler-wasm/       WASM compiler (state machines -> WAT)
@@ -272,7 +323,7 @@ voce-ir/
     └── regenerate-schema.sh FlatBuffers codegen
 ```
 
-**15 Rust crates** | **4 TypeScript packages** | **172 tests** | **30 documentation pages**
+**15 Rust crates** | **4 TypeScript packages** | **391 tests** (321 Rust + 70 vitest) | **6 contract envelopes** | **30 documentation pages**
 
 ## Performance
 
@@ -293,7 +344,7 @@ Production landing page output: **7.6KB** (unminified), **7.3KB** (minified).
 # Build everything
 cargo build --workspace
 
-# Run all tests (172 tests)
+# Run all tests (391 total: 321 Rust + 70 vitest)
 cargo test --workspace
 
 # Lint (zero warnings policy)
@@ -318,6 +369,12 @@ cd docs/site && mdbook build
 - **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** -- Technical architecture, crate dependency graph, key decisions
 - **[Schema Reference](docs/site/src/schema/overview.md)** -- Every node type with field tables and JSON examples
 - **[Playground](https://voce-ir.xyz/playground)** -- Try Voce IR in the browser (WASM-powered)
+
+### For agent and tool authors
+
+- **[Agent Contract](docs/schema/contract/v1/README.md)** -- The six contract envelopes, versioning policy, drift-gate machinery
+- **[Compatibility Matrix](docs/compatibility-matrix.md)** -- Per-target semantic-parity classification (✓ / ◐ / ✗ / ⚠)
+- **[Accessibility](docs/accessibility/OVERVIEW.md)** -- Compile-time WCAG 2.2 AA model, every A11Y rule mapped to a WCAG SC, manual-testing checklist, machine-checked evidence
 
 Build docs locally:
 

@@ -1,7 +1,39 @@
 # Sprint 60 — Community Launch & v1.1.0
 
 **Phase:** 7 — Production Readiness
-**Status:** Planned
+**Status:** In progress (Slice 1: README discoverability shipped)
+
+## Implementation Status
+
+- ✅ **Slice 1 — README discoverability:** the technical moat was
+  meaningfully ahead of the front door. Surfaced everything shipped
+  since the last README pass: a new **Conversational Interfaces**
+  section documenting `voce-chat` (S66) and `@voce-ir/mcp-server`
+  (S65 + S79; 22 tools) — both previously invisible to anyone landing
+  on the repo. A new **Agent Contract (6 envelopes)** Features
+  subsection with the schema-locked envelope table, and the new CLI
+  surfaces (`voce skills` / `graph` / `doctor` / `conformance run` /
+  `fix --until-clean --plan`) added to the CLI Reference. New
+  Documentation links to `docs/schema/contract/v1/`,
+  `docs/compatibility-matrix.md`, and `docs/accessibility/OVERVIEW.md`
+  (all three verified present). Reconciled stale numbers: "46 rules"
+  → 52, "12 fix codes" → 17, "172 tests" → 391 (321 Rust + 70
+  vitest). The S54 historical roadmap entry left as-is (accurate
+  point-in-time marker).
+- ⏳ **Slice 2 — Package publishing:** crates.io (voce-schema /
+  voce-validator / voce-compiler-dom) + npm (`@voce-ir/sdk`,
+  `@voce-ir/mcp-server`, `@voce-ir/cli-chat`) + pre-built binaries
+  (cargo-dist or release workflow) + Homebrew tap.
+- ⏳ **Slice 3 — Repo polish:** CHANGELOG.md regeneration from
+  commit history (recent S79/S91 work is undocumented), LICENSE /
+  CoC presence audit, issue + PR templates, branch protection.
+- ⏳ **Slice 4 — Community infra:** GitHub Discussions, Discord
+  server, response-SLA scaffolding.
+- ⏳ **Slice 5 — Launch content:** blog post, ProductHunt, Show HN,
+  demo video, X thread.
+- ⏳ **Slice 6 — v1.1.0 tag + GitHub Release.**
+
+---
 **Goal:** Public launch of Voce IR as an open-source project. Publish to npm and crates.io, set up community infrastructure, write launch content, and gather the first 10 external users. Tag v1.1.0.
 
 **Depends on:** Sprint 55 (docs site live), Sprint 58 (production demo proves viability), Sprint 59 (performance meets targets)
