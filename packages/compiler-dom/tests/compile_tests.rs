@@ -652,3 +652,37 @@ fn intrinsic_length_units_and_gap_unit_are_respected() {
     );
     assert!(!html.contains("gap:1.5px"));
 }
+
+#[test]
+fn reduced_motion_strategies_all_reduce() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "Surface", "value": { "node_id": "a", "children": [] } },
+            { "value_type": "Surface", "value": { "node_id": "b", "children": [] } },
+            { "value_type": "AnimationTransition", "value": {
+                "node_id": "anim-a", "target_node_id": "a",
+                "properties": [ { "property": "opacity", "from": "0", "to": "1" } ],
+                "duration": { "ms": 400 },
+                "reduced_motion": { "strategy": "ReduceDuration", "reduced_duration": { "ms": 20 } }
+            } },
+            { "value_type": "AnimationTransition", "value": {
+                "node_id": "anim-b", "target_node_id": "b",
+                "properties": [ { "property": "opacity", "from": "0", "to": "1" } ],
+                "duration": { "ms": 400 },
+                "reduced_motion": { "strategy": "Simplify" }
+            } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    // ReduceDuration shortens rather than removing.
+    assert!(
+        html.contains("[data-voce-id=\"a\"]{transition-duration:20ms!important;}"),
+        "ReduceDuration must emit a shortened duration: {html}"
+    );
+    // Simplify (no simplified data available) falls back to removing motion,
+    // never to doing nothing.
+    assert!(
+        html.contains("[data-voce-id=\"b\"]{transition:none!important;}"),
+        "Simplify must fall back to a safe floor: {html}"
+    );
+}

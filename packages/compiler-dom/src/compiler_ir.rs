@@ -157,6 +157,8 @@ pub struct CompiledAnimation {
     pub easing_css: String,
     pub has_reduced_motion: bool,
     pub reduced_motion_strategy: String,
+    /// For the ReduceDuration strategy: the reduced transition duration in ms.
+    pub reduced_duration_ms: Option<f64>,
 }
 
 /// A gesture handler ready for JS compilation.

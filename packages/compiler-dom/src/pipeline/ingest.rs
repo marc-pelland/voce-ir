@@ -736,6 +736,10 @@ fn extract_animation(value: &Value) -> Option<CompiledAnimation> {
         .and_then(|v| v.as_str())
         .unwrap_or("Remove")
         .to_string();
+    let reduced_duration_ms = rm
+        .and_then(|r| r.get("reduced_duration"))
+        .and_then(|d| d.get("ms"))
+        .and_then(|v| v.as_f64());
 
     Some(CompiledAnimation {
         id,
@@ -745,6 +749,7 @@ fn extract_animation(value: &Value) -> Option<CompiledAnimation> {
         easing_css,
         has_reduced_motion,
         reduced_motion_strategy,
+        reduced_duration_ms,
     })
 }
 

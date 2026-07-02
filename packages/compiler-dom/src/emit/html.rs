@@ -282,16 +282,33 @@ fn emit_head(
         }
     }
 
-    // Reduced motion overrides
+    // Reduced motion overrides. Every animation that declares a ReducedMotion
+    // must actually reduce motion for prefers-reduced-motion users (WCAG 2.3.3);
+    // previously only the "Remove" strategy did anything and the other three
+    // silently played the full animation. ReduceDuration shortens the
+    // transition; every other strategy (Simplify/Functional/unknown) falls back
+    // to removing the transition, which is a safe floor and never "does
+    // nothing".
     let has_animations = !ir.animations.is_empty();
     if has_animations {
         html.push_str("@media(prefers-reduced-motion:reduce){\n");
         for anim in &ir.animations {
-            if anim.has_reduced_motion && anim.reduced_motion_strategy == "Remove" {
-                html.push_str(&format!(
-                    "[data-voce-id=\"{}\"]{{transition:none!important;}}\n",
-                    css_selector_value(&anim.target_node_id)
-                ));
+            if !anim.has_reduced_motion {
+                continue;
+            }
+            let sel = css_selector_value(&anim.target_node_id);
+            match anim.reduced_motion_strategy.as_str() {
+                "ReduceDuration" => {
+                    let ms = anim.reduced_duration_ms.unwrap_or(1.0);
+                    html.push_str(&format!(
+                        "[data-voce-id=\"{sel}\"]{{transition-duration:{ms}ms!important;}}\n"
+                    ));
+                }
+                _ => {
+                    html.push_str(&format!(
+                        "[data-voce-id=\"{sel}\"]{{transition:none!important;}}\n"
+                    ));
+                }
             }
         }
         html.push_str("}\n");
