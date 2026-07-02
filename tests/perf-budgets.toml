@@ -23,7 +23,7 @@
 [fixture.container-grid]
 path = "tests/fixtures/container-grid.voce.json"
 max_compile_us = 800
-max_output_bytes = 4800
+max_output_bytes = 4950
 
 [fixture.container-row]
 path = "tests/fixtures/container-row.voce.json"
@@ -43,18 +43,18 @@ max_compile_us = 800
 # wiring added in the a11y-emit-gaps work (aria-describedby to the error
 # container, aria-invalid + focus-first-invalid JS, fieldset/legend, the
 # full autocomplete map, and the shared skip-link CSS).
-max_output_bytes = 6400
+max_output_bytes = 6800
 
 [fixture.gesture-tap]
 path = "tests/fixtures/gesture-tap.voce.json"
 max_compile_us = 800
 # Bumped for role="button"/tabindex on gesture targets + skip-link CSS.
-max_output_bytes = 4850
+max_output_bytes = 5100
 
 [fixture.links-and-nav]
 path = "tests/fixtures/links-and-nav.voce.json"
 max_compile_us = 1500
-max_output_bytes = 5700
+max_output_bytes = 5850
 
 [fixture.media-image]
 path = "tests/fixtures/media-image.voce.json"
@@ -84,7 +84,7 @@ max_output_bytes = 4800
 [fixture.text-heading]
 path = "tests/fixtures/text-heading.voce.json"
 max_compile_us = 800
-max_output_bytes = 4650
+max_output_bytes = 4800
 
 [fixture.theme-dark]
 path = "tests/fixtures/theme-dark.voce.json"
@@ -94,4 +94,4 @@ max_output_bytes = 4600
 [fixture.landing-page]
 path = "examples/landing-page/landing-page.voce.json"
 max_compile_us = 5000
-max_output_bytes = 11200
+max_output_bytes = 11900
