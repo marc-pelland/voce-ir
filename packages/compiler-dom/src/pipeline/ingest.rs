@@ -269,11 +269,11 @@ fn ingest_children(
                     .and_then(|v| v.as_str())
                     .unwrap_or("Start")
                     .to_string(),
-                gap: value
-                    .get("gap")
-                    .and_then(|g| g.get("value"))
-                    .and_then(|v| v.as_f64())
-                    .map(|v| format!("{v}px")),
+                gap: {
+                    // Respect the gap's unit (rem/%/px/…) instead of assuming px.
+                    let g = length_to_css(value.get("gap"));
+                    if g.is_empty() { None } else { Some(g) }
+                },
                 wrap: value.get("wrap").and_then(|v| v.as_bool()).unwrap_or(false),
             },
             "Surface" => NodeKind::Surface {
@@ -1136,8 +1136,17 @@ fn extract_styles(value: &Value, type_name: &str) -> HashMap<String, String> {
 
 fn length_to_css(val: Option<&Value>) -> String {
     val.and_then(|v| {
-        let num = v.get("value")?.as_f64()?;
         let unit = v.get("unit").and_then(|u| u.as_str()).unwrap_or("Px");
+        // Intrinsic-size keywords carry no numeric value; emitting `0px` for
+        // them (the old `_ => "px"` fallback) silently corrupted the size.
+        match unit {
+            "Auto" => return Some("auto".to_string()),
+            "FitContent" => return Some("fit-content".to_string()),
+            "MinContent" => return Some("min-content".to_string()),
+            "MaxContent" => return Some("max-content".to_string()),
+            _ => {}
+        }
+        let num = v.get("value")?.as_f64()?;
         let css_unit = match unit {
             "Rem" => "rem",
             "Em" => "em",

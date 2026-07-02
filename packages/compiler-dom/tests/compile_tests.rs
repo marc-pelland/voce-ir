@@ -629,3 +629,26 @@ fn top_responsive_breakpoint_is_unbounded() {
         "top breakpoint must be unbounded"
     );
 }
+
+#[test]
+fn intrinsic_length_units_and_gap_unit_are_respected() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "Container", "value": { "node_id": "c", "layout": "Stack",
+                "width": { "value": 0, "unit": "Auto" },
+                "gap": { "value": 1.5, "unit": "Rem" },
+                "children": [] } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(
+        html.contains("width:auto"),
+        "Auto must emit `auto`, not 0px: {html}"
+    );
+    assert!(!html.contains("width:0px"));
+    assert!(
+        html.contains("gap:1.5rem"),
+        "gap must keep its unit: {html}"
+    );
+    assert!(!html.contains("gap:1.5px"));
+}
