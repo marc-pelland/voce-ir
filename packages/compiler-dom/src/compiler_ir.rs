@@ -34,6 +34,23 @@ pub struct CompilerIr {
     pub semantic_map: HashMap<String, SemanticInfo>,
     /// Responsive rules — media queries with property overrides.
     pub responsive_rules: Vec<CompiledResponsiveRule>,
+    /// Live regions — aria-live attributes to attach to their target nodes.
+    pub live_regions: Vec<CompiledLiveRegion>,
+}
+
+/// A live region resolved for emission onto its target element.
+#[derive(Debug, Clone)]
+pub struct CompiledLiveRegion {
+    /// The visual node the aria-live attributes attach to.
+    pub target_node_id: String,
+    /// `aria-live` value: "polite", "assertive", or "off".
+    pub politeness: String,
+    /// `aria-atomic` value.
+    pub atomic: bool,
+    /// `aria-relevant` value (e.g. "additions", "all").
+    pub relevant: String,
+    /// Optional `aria-roledescription`.
+    pub role_description: Option<String>,
 }
 
 /// A responsive media query rule.
@@ -57,7 +74,26 @@ pub struct SemanticInfo {
     pub label: Option<String>,
     pub labelled_by: Option<String>,
     pub described_by: Option<String>,
+    /// aria-controls target.
+    pub controls: Option<String>,
+    /// tab_index; `-2` in the schema means "not set" and maps to `None`.
     pub tab_index: Option<i32>,
+    /// aria-hidden.
+    pub hidden: bool,
+    /// aria-expanded (`None` = not set).
+    pub expanded: Option<bool>,
+    /// aria-selected (`None` = not set).
+    pub selected: Option<bool>,
+    /// aria-checked: `None` = not set, `Some(0/1/2)` = false/true/mixed.
+    pub checked: Option<i8>,
+    /// aria-disabled.
+    pub disabled: bool,
+    /// aria-required.
+    pub required: bool,
+    /// aria-invalid.
+    pub invalid: bool,
+    /// Custom ARIA attributes (escape hatch): (attribute, value) pairs.
+    pub custom_aria: Vec<(String, String)>,
 }
 
 /// A form ready for HTML + JS compilation.

@@ -86,6 +86,11 @@ pub fn emit(ir: &CompilerIr, options: &CompileOptions) -> HtmlOutput {
 
     // Body
     html.push_str("<body>\n");
+    // Skip link (WCAG 2.4.1) when the page declares a main landmark.
+    let has_main = ir.nodes.iter().any(|n| is_main_landmark(n, ir));
+    if has_main {
+        html.push_str("<a class=\"skip-link\" href=\"#main\">Skip to main content</a>\n");
+    }
     let root = &ir.nodes[ir.root.0];
     for &child_id in &root.children {
         emit_node_safe(&mut html, ir, child_id, 1, options, &interactive_targets);
@@ -210,6 +215,10 @@ fn emit_head(
     html.push_str("*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}\n");
     html.push_str("body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5;background:var(--voce-bg);color:var(--voce-fg)}\n");
     html.push_str("img{max-width:100%;height:auto;display:block}\n");
+    // Skip link: off-screen until focused, then visible at the top-left.
+    html.push_str(".skip-link{position:absolute;left:-9999px;top:0;z-index:1000;padding:8px 16px;background:var(--voce-bg);color:var(--voce-fg);border:2px solid var(--voce-primary)}\n");
+    html.push_str(".skip-link:focus{left:8px;top:8px}\n");
+    html.push_str("[id=\"main\"]:focus{outline:none}\n");
 
     // S64: typography rhythm. Headings get tight line-height + bottom margin;
     // paragraphs and list items get a comfortable rhythm. Last-child resets
@@ -448,19 +457,62 @@ fn emit_node(
                 attrs.push_str(&format!(" aria-label=\"{}\"", escape_attr(label)));
             }
             if let Some(ref lb) = sem.labelled_by {
-                attrs.push_str(&format!(" aria-labelledby=\"{lb}\""));
+                attrs.push_str(&format!(" aria-labelledby=\"{}\"", escape_attr(lb)));
             }
             if let Some(ref db) = sem.described_by {
-                attrs.push_str(&format!(" aria-describedby=\"{db}\""));
+                attrs.push_str(&format!(" aria-describedby=\"{}\"", escape_attr(db)));
             }
+            if let Some(ref c) = sem.controls {
+                attrs.push_str(&format!(" aria-controls=\"{}\"", escape_attr(c)));
+            }
+            // -1 (programmatic focus) is valid and must be emitted; only the
+            // schema's "not set" sentinel is skipped (already mapped to None).
             if let Some(ti) = sem.tab_index {
-                if ti >= 0 {
+                if ti >= -1 {
                     attrs.push_str(&format!(" tabindex=\"{ti}\""));
+                }
+            }
+            if sem.hidden {
+                attrs.push_str(" aria-hidden=\"true\"");
+            }
+            if let Some(v) = sem.expanded {
+                attrs.push_str(&format!(" aria-expanded=\"{v}\""));
+            }
+            if let Some(v) = sem.selected {
+                attrs.push_str(&format!(" aria-selected=\"{v}\""));
+            }
+            if let Some(c) = sem.checked {
+                let v = match c {
+                    1 => "true",
+                    2 => "mixed",
+                    _ => "false",
+                };
+                attrs.push_str(&format!(" aria-checked=\"{v}\""));
+            }
+            if sem.disabled {
+                attrs.push_str(" aria-disabled=\"true\"");
+            }
+            if sem.required {
+                attrs.push_str(" aria-required=\"true\"");
+            }
+            if sem.invalid {
+                attrs.push_str(" aria-invalid=\"true\"");
+            }
+            for (k, v) in &sem.custom_aria {
+                // Only allow well-formed aria-*/data-* attribute names.
+                let safe_name = k.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
+                    && (k.starts_with("aria-") || k.starts_with("data-"));
+                if safe_name {
+                    attrs.push_str(&format!(" {k}=\"{}\"", escape_attr(v)));
                 }
             }
             attrs
         })
         .unwrap_or_default();
+
+    // Append aria-live attributes if a LiveRegion targets this node, so dynamic
+    // content is actually announced (the node itself is otherwise dropped).
+    let aria_attrs = format!("{aria_attrs}{}", live_region_attrs(ir, &node.id));
 
     match &node.kind {
         NodeKind::ViewRoot { .. } => {
@@ -516,9 +568,17 @@ fn emit_node(
 
             // Map SemanticNode role to semantic HTML element
             let semantic_tag = semantic_html_tag(node, ir);
+            let btn_attrs = gesture_button_attrs(ir, &node.id, &aria_attrs);
+            // The main landmark gets a stable id + tabindex so the skip link can
+            // target it and move focus.
+            let landmark_attrs = if is_main_landmark(node, ir) {
+                " id=\"main\" tabindex=\"-1\""
+            } else {
+                ""
+            };
 
             html.push_str(&format!(
-                "{indent}<{semantic_tag} style=\"{style}\"{aria_attrs}{data_attr}>\n"
+                "{indent}<{semantic_tag} style=\"{style}\"{aria_attrs}{btn_attrs}{landmark_attrs}{data_attr}>\n"
             ));
             for &child_id in &node.children {
                 emit_node_safe(html, ir, child_id, depth + 1, options, interactive_targets);
@@ -560,8 +620,15 @@ fn emit_node(
                 }
                 html.push_str(&format!("{indent}</a>\n"));
             } else {
+                // A non-link Surface that is an activate-gesture target becomes
+                // a focusable button so keyboard users can operate it.
+                let btn_attrs = if *decorative {
+                    String::new()
+                } else {
+                    gesture_button_attrs(ir, &node.id, &aria_attrs)
+                };
                 html.push_str(&format!(
-                    "{indent}<div style=\"{style}\"{aria}{aria_attrs}{data_attr}>\n"
+                    "{indent}<div style=\"{style}\"{aria}{aria_attrs}{btn_attrs}{data_attr}>\n"
                 ));
                 for &child_id in &node.children {
                     emit_node_safe(html, ir, child_id, depth + 1, options, interactive_targets);
@@ -692,7 +759,7 @@ fn emit_node(
             // FormNode is the exception — it emits <form> HTML.
             if type_name == "FormNode" {
                 if let Some(form) = ir.forms.iter().find(|f| f.id == node.id) {
-                    emit_form(html, form, &indent);
+                    emit_form(html, form, &indent, &aria_attrs);
                 }
             }
         }
@@ -844,12 +911,14 @@ fn emit_rich_text_spans(html: &mut String, spans: &[crate::compiler_ir::RichText
     }
 }
 
-fn emit_form(html: &mut String, form: &crate::compiler_ir::CompiledForm, indent: &str) {
+fn emit_form(html: &mut String, form: &crate::compiler_ir::CompiledForm, indent: &str, aria: &str) {
     let method = &form.action_method;
     let action = form.action_endpoint.as_deref().unwrap_or("#");
 
+    // The FormNode's SemanticNode (role/aria-label) is emitted on the <form>;
+    // A11Y001 makes that node mandatory, so dropping it left the form unnamed.
     html.push_str(&format!(
-        "{indent}<form id=\"{id}\" method=\"{method}\" action=\"{action}\" novalidate>\n",
+        "{indent}<form id=\"{id}\" method=\"{method}\" action=\"{action}\"{aria} novalidate>\n",
         id = form.id
     ));
 
@@ -875,17 +944,24 @@ fn emit_form(html: &mut String, form: &crate::compiler_ir::CompiledForm, indent:
             _ => "text",
         };
 
-        // Label
-        html.push_str(&format!(
-            "{inner}<label for=\"{field_id}\">{label}</label>\n",
-            label = escape_html(&field.label)
-        ));
+        // Standalone label. Checkboxes and radios label themselves (a wrapping
+        // <label> / a <fieldset><legend>), and hidden fields have no visible
+        // control, so a `for=` label there would be dead or duplicated.
+        let self_labeled = matches!(input_type, "checkbox" | "radio" | "hidden");
+        if !self_labeled {
+            html.push_str(&format!(
+                "{inner}<label for=\"{field_id}\">{label}</label>\n",
+                label = escape_html(&field.label)
+            ));
+        }
 
-        // Description (aria-describedby)
+        // aria-describedby: always reference the (present-but-empty) error
+        // container so a validation message is programmatically associated with
+        // the field, plus the description container when there is one.
         let describedby = if field.description.is_some() {
-            format!(" aria-describedby=\"{field_id}-desc\"")
+            format!(" aria-describedby=\"{field_id}-desc {field_id}-error\"")
         } else {
-            String::new()
+            format!(" aria-describedby=\"{field_id}-error\"")
         };
 
         // Required attribute
@@ -902,13 +978,23 @@ fn emit_form(html: &mut String, form: &crate::compiler_ir::CompiledForm, indent:
             .as_ref()
             .map(|a| {
                 let val = match a.as_str() {
-                    "Email" => "email",
+                    "On" => "on",
                     "Name" => "name",
                     "GivenName" => "given-name",
                     "FamilyName" => "family-name",
+                    "Email" => "email",
+                    "Username" => "username",
                     "NewPassword" => "new-password",
                     "CurrentPassword" => "current-password",
                     "Tel" => "tel",
+                    "StreetAddress" => "street-address",
+                    "City" => "address-level2",
+                    "State" => "address-level1",
+                    "PostalCode" => "postal-code",
+                    "Country" => "country",
+                    "CreditCardNumber" => "cc-number",
+                    "CreditCardExp" => "cc-exp",
+                    "CreditCardCsc" => "cc-csc",
                     _ => "off",
                 };
                 format!(" autocomplete=\"{val}\"")
@@ -956,16 +1042,22 @@ fn emit_form(html: &mut String, form: &crate::compiler_ir::CompiledForm, indent:
                 ));
             }
             "radio" => {
-                // Radio: one input per option
+                // Radio group: a fieldset + legend names the group (WCAG 1.3.1),
+                // and the error container is associated at the group level.
+                html.push_str(&format!(
+                    "{inner}<fieldset{describedby}><legend>{legend}</legend>\n",
+                    legend = escape_html(&field.label)
+                ));
                 for (i, opt) in field.options.iter().enumerate() {
                     let opt_id = format!("{field_id}-{i}");
                     html.push_str(&format!(
-                        "{inner}<label><input id=\"{opt_id}\" name=\"{name}\" type=\"radio\" value=\"{val}\"{required_attr}> {label}</label>\n",
+                        "{inner}  <label><input id=\"{opt_id}\" name=\"{name}\" type=\"radio\" value=\"{val}\"{required_attr}> {label}</label>\n",
                         name = field.name,
                         val = escape_attr(opt),
                         label = escape_html(opt)
                     ));
                 }
+                html.push_str(&format!("{inner}</fieldset>\n"));
             }
             _ => {
                 html.push_str(&format!(
@@ -1024,6 +1116,16 @@ fn alignment_to_css(align: &str) -> &str {
 
 /// Map a node's SemanticNode role to the correct HTML element.
 /// Falls back to "div" if no semantic role is attached.
+/// True when this node is the page's `main` landmark (role="main"), which the
+/// skip link targets.
+fn is_main_landmark(node: &CNode, ir: &CompilerIr) -> bool {
+    node.semantic_node_id
+        .as_ref()
+        .and_then(|s| ir.semantic_map.get(s))
+        .and_then(|s| s.role.as_deref())
+        == Some("main")
+}
+
 fn semantic_html_tag<'a>(node: &'a CNode, ir: &'a CompilerIr) -> &'a str {
     node.semantic_node_id
         .as_ref()
@@ -1246,6 +1348,46 @@ fn css_fragment(s: &str) -> String {
         .replace('{', "\\7b ")
         .replace('}', "\\7d ")
         .replace(';', "\\3b ")
+}
+
+/// aria-live attributes for a node that a LiveRegion targets. Empty when no
+/// live region attaches to this node.
+fn live_region_attrs(ir: &CompilerIr, node_id: &str) -> String {
+    let Some(lr) = ir.live_regions.iter().find(|l| l.target_node_id == node_id) else {
+        return String::new();
+    };
+    let mut s = format!(" aria-live=\"{}\"", lr.politeness);
+    if lr.atomic {
+        s.push_str(" aria-atomic=\"true\"");
+    }
+    s.push_str(&format!(" aria-relevant=\"{}\"", lr.relevant));
+    if let Some(ref rd) = lr.role_description {
+        s.push_str(&format!(" aria-roledescription=\"{}\"", escape_attr(rd)));
+    }
+    s
+}
+
+/// Extra attributes that make a non-interactive element operable as a button
+/// when it is the target of an activate-like gesture (Tap/Click/DoubleTap).
+/// Adds `role="button"` and `tabindex="0"` unless a SemanticNode already
+/// supplied a role or tabindex (checked via the already-built aria string), so
+/// the JS keyboard handler emitted for the gesture can actually receive focus.
+fn gesture_button_attrs(ir: &CompilerIr, node_id: &str, existing_aria: &str) -> String {
+    let is_activate_target = ir.gesture_handlers.iter().any(|gh| {
+        gh.target_node_id == node_id
+            && matches!(gh.gesture_type.as_str(), "Tap" | "Click" | "DoubleTap")
+    });
+    if !is_activate_target {
+        return String::new();
+    }
+    let mut extra = String::new();
+    if !existing_aria.contains("role=") {
+        extra.push_str(" role=\"button\"");
+    }
+    if !existing_aria.contains("tabindex=") {
+        extra.push_str(" tabindex=\"0\"");
+    }
+    extra
 }
 
 /// Build the `@media` prelude for a breakpoint range `[min_width, max_width)`.

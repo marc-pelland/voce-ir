@@ -761,3 +761,196 @@ fn rich_text_table_is_wrapped_for_horizontal_scroll() {
     );
     assert!(html.contains("<table>"));
 }
+
+// ─── Accessibility: interactive widgets ─────────────────────────
+
+#[test]
+fn gesture_target_is_a_focusable_operable_button() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "Surface", "value": { "node_id": "toggle", "children": [
+                { "value_type": "TextNode", "value": { "node_id": "lbl", "content": "Toggle" } }
+            ] } },
+            { "value_type": "StateMachine", "value": { "node_id": "sm", "initial_state": "off",
+                "states": ["off", "on"],
+                "transitions": [ { "from": "off", "event": "tap", "to": "on" } ] } },
+            { "value_type": "GestureHandler", "value": { "node_id": "g", "target_node_id": "toggle",
+                "gesture_type": "Tap", "trigger_event": "tap", "trigger_state_machine": "sm" } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    // The div target is now a focusable button.
+    assert!(html.contains("role=\"button\""), "got: {html}");
+    assert!(html.contains("tabindex=\"0\""));
+    // And keyboard-operable: Enter and Space activate it, Space preventDefault'd.
+    assert!(
+        html.contains("e.key==='Enter'||e.key===' '"),
+        "keyboard equiv missing: {html}"
+    );
+    assert!(html.contains("e.preventDefault()"));
+}
+
+#[test]
+fn live_region_emits_aria_live_on_target() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "Container", "value": { "node_id": "status", "children": [] } },
+            { "value_type": "LiveRegion", "value": { "node_id": "lr", "target_node_id": "status",
+                "politeness": "Assertive", "atomic": true, "relevant": "All",
+                "role_description": "Cart updates" } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(html.contains("aria-live=\"assertive\""), "got: {html}");
+    assert!(html.contains("aria-atomic=\"true\""));
+    assert!(html.contains("aria-relevant=\"all\""));
+    assert!(html.contains("aria-roledescription=\"Cart updates\""));
+}
+
+#[test]
+fn form_field_errors_are_wired_and_autocomplete_is_complete() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "FormNode", "value": { "node_id": "f", "action_endpoint": "/x", "action_method": "post",
+                "fields": [
+                    { "name": "addr", "field_type": "text", "label": "Address",
+                      "autocomplete": "StreetAddress",
+                      "validations": [ { "rule_type": "Required", "message": "Required" } ] }
+                ] } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    // F10: the full autocomplete vocabulary maps (no longer collapses to off).
+    assert!(
+        html.contains("autocomplete=\"street-address\""),
+        "got: {html}"
+    );
+    // F9: error container is programmatically associated with the field...
+    assert!(html.contains("aria-describedby=\"f-addr-error\""));
+    // ...and the JS marks invalidity + focuses the first invalid field.
+    assert!(html.contains("setAttribute('aria-invalid','true')"));
+    assert!(html.contains("firstInvalid.focus()"));
+}
+
+#[test]
+fn form_radio_and_hidden_fields_are_labelled_correctly() {
+    let json = r#"{
+        "root": { "node_id": "root",
+            "semantic_nodes": [ { "node_id": "form-sem", "role": "form", "label": "Signup" } ],
+            "children": [
+            { "value_type": "FormNode", "value": { "node_id": "f", "semantic_node_id": "form-sem",
+                "action_endpoint": "/x", "action_method": "post",
+                "fields": [
+                    { "name": "plan", "field_type": "Radio", "label": "Plan",
+                      "options": ["Free", "Pro"], "validations": [] },
+                    { "name": "token", "field_type": "Hidden", "label": "Token", "validations": [] }
+                ] } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    // F6: the FormNode's SemanticNode reaches the <form>.
+    assert!(
+        html.contains("aria-label=\"Signup\""),
+        "form aria-label missing: {html}"
+    );
+    // F8: radio group uses fieldset+legend, not a dead `for=` label.
+    assert!(html.contains("<fieldset"), "radio needs a fieldset: {html}");
+    assert!(html.contains("<legend>Plan</legend>"));
+    assert!(
+        !html.contains("<label for=\"f-plan\">"),
+        "no dead group label"
+    );
+    // Hidden field gets no visible label.
+    assert!(
+        !html.contains("<label for=\"f-token\">"),
+        "hidden field must not be labelled"
+    );
+}
+
+#[test]
+fn main_landmark_gets_skip_link_and_focus_target() {
+    let json = r#"{
+        "root": { "node_id": "root",
+            "semantic_nodes": [ { "node_id": "m", "role": "main" } ],
+            "children": [
+                { "value_type": "Container", "value": { "node_id": "content", "semantic_node_id": "m", "children": [] } }
+            ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    // Skip link present and points at the main landmark.
+    assert!(
+        html.contains("<a class=\"skip-link\" href=\"#main\">"),
+        "got: {html}"
+    );
+    // Main landmark is a <main> with a focusable id target.
+    assert!(html.contains("<main"));
+    assert!(html.contains("id=\"main\" tabindex=\"-1\""));
+}
+
+#[test]
+fn no_skip_link_without_a_main_landmark() {
+    let json = r#"{ "root": { "node_id": "root", "children": [
+        { "value_type": "TextNode", "value": { "node_id": "t", "content": "Hi" } }
+    ] } }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(
+        !html.contains("skip-link\" href"),
+        "no skip link without a main landmark"
+    );
+}
+
+#[test]
+fn semantic_node_aria_states_are_emitted() {
+    let json = r#"{
+        "root": { "node_id": "root",
+            "semantic_nodes": [ { "node_id": "s", "role": "button", "controls": "panel",
+                "aria_expanded": 0, "aria_disabled": true, "tab_index": -1,
+                "custom_aria": [ { "key": "aria-haspopup", "value": "menu" } ] } ],
+            "children": [
+                { "value_type": "Surface", "value": { "node_id": "btn", "semantic_node_id": "s", "children": [] } }
+            ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(html.contains("aria-controls=\"panel\""), "got: {html}");
+    assert!(html.contains("aria-expanded=\"false\""));
+    assert!(html.contains("aria-disabled=\"true\""));
+    assert!(html.contains("tabindex=\"-1\""));
+    assert!(html.contains("aria-haspopup=\"menu\""));
+}
+
+#[test]
+fn custom_aria_rejects_non_aria_attribute_names() {
+    let json = r#"{
+        "root": { "node_id": "root",
+            "semantic_nodes": [ { "node_id": "s", "role": "button",
+                "custom_aria": [ { "key": "onclick", "value": "alert(1)" } ] } ],
+            "children": [
+                { "value_type": "Surface", "value": { "node_id": "btn", "semantic_node_id": "s", "children": [] } }
+            ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(
+        !html.contains("onclick"),
+        "custom_aria must not emit arbitrary attributes: {html}"
+    );
+}
+
+#[test]
+fn state_machine_reflects_current_state_on_the_element() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "Surface", "value": { "node_id": "toggle", "children": [] } },
+            { "value_type": "StateMachine", "value": { "node_id": "sm", "initial_state": "off",
+                "states": ["off", "on"],
+                "transitions": [ { "from": "off", "event": "tap", "to": "on" } ] } },
+            { "value_type": "GestureHandler", "value": { "node_id": "g", "target_node_id": "toggle",
+                "gesture_type": "Tap", "trigger_event": "tap", "trigger_state_machine": "sm" } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    // Initial state is seeded and re-reflected after each transition.
+    assert!(
+        html.contains("setAttribute('data-state',sm.current)"),
+        "got: {html}"
+    );
+}

@@ -39,13 +39,17 @@ max_output_bytes = 4750
 path = "tests/fixtures/form-contact.voce.json"
 max_compile_us = 800
 # Form fixtures emit interactive JS for client-side validation; the
-# extra ~800 B over a static fixture is expected.
-max_output_bytes = 5850
+# extra ~800 B over a static fixture is expected. Bumped for the a11y
+# wiring added in the a11y-emit-gaps work (aria-describedby to the error
+# container, aria-invalid + focus-first-invalid JS, fieldset/legend, the
+# full autocomplete map, and the shared skip-link CSS).
+max_output_bytes = 6400
 
 [fixture.gesture-tap]
 path = "tests/fixtures/gesture-tap.voce.json"
 max_compile_us = 800
-max_output_bytes = 4750
+# Bumped for role="button"/tabindex on gesture targets + skip-link CSS.
+max_output_bytes = 4850
 
 [fixture.links-and-nav]
 path = "tests/fixtures/links-and-nav.voce.json"

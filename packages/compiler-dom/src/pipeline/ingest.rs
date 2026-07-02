@@ -52,6 +52,11 @@ pub fn ingest(json: &str) -> Result<CompilerIr> {
     if let Some(sems) = root.get("semantic_nodes").and_then(|v| v.as_array()) {
         for sem in sems {
             if let Some(id) = sem.get("node_id").and_then(|v| v.as_str()) {
+                // A tri-state aria value: schema uses -1 for "not set",
+                // 0/1 (and 2 for checked's "mixed") otherwise.
+                let tri = |field: &str| -> Option<i64> {
+                    sem.get(field).and_then(|v| v.as_i64()).filter(|&v| v >= 0)
+                };
                 semantic_map.insert(
                     id.to_string(),
                     SemanticInfo {
@@ -65,10 +70,46 @@ pub fn ingest(json: &str) -> Result<CompilerIr> {
                             .get("described_by")
                             .and_then(|v| v.as_str())
                             .map(String::from),
+                        controls: sem
+                            .get("controls")
+                            .and_then(|v| v.as_str())
+                            .filter(|s| !s.is_empty())
+                            .map(String::from),
+                        // -2 = "not set" in the schema.
                         tab_index: sem
                             .get("tab_index")
                             .and_then(|v| v.as_i64())
+                            .filter(|&v| v > -2)
                             .map(|v| v as i32),
+                        hidden: sem.get("hidden").and_then(|v| v.as_bool()).unwrap_or(false),
+                        expanded: tri("aria_expanded").map(|v| v == 1),
+                        selected: tri("aria_selected").map(|v| v == 1),
+                        checked: tri("aria_checked").map(|v| v as i8),
+                        disabled: sem
+                            .get("aria_disabled")
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or(false),
+                        required: sem
+                            .get("aria_required")
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or(false),
+                        invalid: sem
+                            .get("aria_invalid")
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or(false),
+                        custom_aria: sem
+                            .get("custom_aria")
+                            .and_then(|v| v.as_array())
+                            .map(|arr| {
+                                arr.iter()
+                                    .filter_map(|kv| {
+                                        let k = kv.get("key")?.as_str()?;
+                                        let v = kv.get("value")?.as_str()?;
+                                        Some((k.to_string(), v.to_string()))
+                                    })
+                                    .collect()
+                            })
+                            .unwrap_or_default(),
                     },
                 );
             }
@@ -100,6 +141,9 @@ pub fn ingest(json: &str) -> Result<CompilerIr> {
     // Collect responsive rules from ResponsiveRule nodes
     let responsive_rules = collect_responsive_rules(&nodes);
 
+    // Collect live regions from LiveRegion nodes
+    let live_regions = collect_live_regions(&nodes);
+
     Ok(CompilerIr {
         nodes,
         root: root_id,
@@ -111,7 +155,53 @@ pub fn ingest(json: &str) -> Result<CompilerIr> {
         forms,
         semantic_map,
         responsive_rules,
+        live_regions,
     })
+}
+
+/// Resolve LiveRegion nodes into aria-live attributes for their targets.
+fn collect_live_regions(
+    nodes: &[crate::compiler_ir::CNode],
+) -> Vec<crate::compiler_ir::CompiledLiveRegion> {
+    let mut regions = Vec::new();
+    for node in nodes {
+        if let NodeKind::NonVisual { type_name, data } = &node.kind {
+            if type_name != "LiveRegion" {
+                continue;
+            }
+            let Some(target) = data.get("target_node_id").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            let politeness = match data.get("politeness").and_then(|v| v.as_str()) {
+                Some("Assertive") => "assertive",
+                Some("Off") => "off",
+                _ => "polite",
+            }
+            .to_string();
+            let relevant = match data.get("relevant").and_then(|v| v.as_str()) {
+                Some("Removals") => "removals",
+                Some("Text") => "text",
+                Some("All") => "all",
+                _ => "additions",
+            }
+            .to_string();
+            regions.push(crate::compiler_ir::CompiledLiveRegion {
+                target_node_id: target.to_string(),
+                politeness,
+                atomic: data
+                    .get("atomic")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false),
+                relevant,
+                role_description: data
+                    .get("role_description")
+                    .and_then(|v| v.as_str())
+                    .filter(|s| !s.is_empty())
+                    .map(String::from),
+            });
+        }
+    }
+    regions
 }
 
 fn build_meta(root: &Value, doc: &Value) -> DocumentMeta {

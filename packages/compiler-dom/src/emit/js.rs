@@ -110,12 +110,14 @@ fn emit_state_machine(js: &mut String, sm: &CompiledStateMachine) {
 }
 
 fn emit_gesture_handler(js: &mut String, gh: &CompiledGestureHandler) {
-    let event_type = match gh.gesture_type.as_str() {
-        "Tap" | "Click" => "click",
-        "Hover" => "mouseenter",
-        "Focus" => "focus",
-        "DoubleTap" => "dblclick",
-        _ => "click",
+    // Activate-like gestures behave as buttons: they fire on pointer activation
+    // and must also be operable from the keyboard (Enter + Space).
+    let (event_type, is_activate) = match gh.gesture_type.as_str() {
+        "Tap" | "Click" => ("click", true),
+        "DoubleTap" => ("dblclick", true),
+        "Hover" => ("mouseenter", false),
+        "Focus" => ("focus", false),
+        _ => ("click", true),
     };
     let id = js_ident(&gh.id);
     // The selector string is escaped for both the CSS attribute-value context
@@ -132,28 +134,42 @@ fn emit_gesture_handler(js: &mut String, gh: &CompiledGestureHandler) {
 
     js.push_str(&format!("  if(el_{id}){{"));
 
-    // Attach event listener
-    if let Some(ref trigger_event) = gh.trigger_event {
-        if let Some(ref sm_id) = gh.trigger_state_machine {
-            let sm_var = js_ident(sm_id);
+    // Resolve the action (a state-machine send), if any. After sending, reflect
+    // the machine's new current state onto the element as `data-state` so CSS
+    // (`[data-state="…"]`) and scripts have a live hook — the state machine
+    // otherwise never touches the DOM.
+    let action = match (&gh.trigger_event, &gh.trigger_state_machine) {
+        (Some(ev), Some(sm)) => {
+            let sm_var = js_ident(sm);
+            // Seed the initial state on the element up front.
             js.push_str(&format!(
-                "el_{id}.addEventListener('{event_type}',()=>{{{sm_var}_send({})}});",
-                js_str(trigger_event)
+                "el_{id}.setAttribute('data-state',{sm_var}.current);"
             ));
+            Some(format!(
+                "{sm_var}_send({});el_{id}.setAttribute('data-state',{sm_var}.current)",
+                js_str(ev)
+            ))
         }
-    }
+        _ => None,
+    };
 
-    // Keyboard equivalent
-    if let Some(ref key) = gh.keyboard_key {
-        if let Some(ref trigger_event) = gh.trigger_event {
-            if let Some(ref sm_id) = gh.trigger_state_machine {
-                let sm_var = js_ident(sm_id);
-                js.push_str(&format!(
-                    "el_{id}.addEventListener('keydown',(e)=>{{if(e.key==={}){{{sm_var}_send({})}}}});",
-                    js_str(key),
-                    js_str(trigger_event)
-                ));
-            }
+    if let Some(ref act) = action {
+        // Pointer/gesture activation.
+        js.push_str(&format!(
+            "el_{id}.addEventListener('{event_type}',()=>{{{act}}});"
+        ));
+        if is_activate {
+            // Button-style keyboard equivalent: Enter and Space, with Space
+            // preventDefault'd so it doesn't scroll the page.
+            js.push_str(&format!(
+                "el_{id}.addEventListener('keydown',(e)=>{{if(e.key==='Enter'||e.key===' '){{e.preventDefault();{act}}}}});"
+            ));
+        } else if let Some(ref key) = gh.keyboard_key {
+            // Non-activate gesture with an explicit keyboard equivalent.
+            js.push_str(&format!(
+                "el_{id}.addEventListener('keydown',(e)=>{{if(e.key==={}){{{act}}}}});",
+                js_str(key)
+            ));
         }
     }
 
@@ -171,7 +187,7 @@ fn emit_form_validation(js: &mut String, form: &crate::compiler_ir::CompiledForm
     js.push_str(&format!(
         "  if({var}_form){{{var}_form.addEventListener('submit',(e)=>{{\n"
     ));
-    js.push_str("    let valid=true;\n");
+    js.push_str("    let valid=true;let firstInvalid=null;\n");
 
     for field in &form.fields {
         let field_id = format!("{form_id}-{}", field.name);
@@ -184,6 +200,13 @@ fn emit_form_validation(js: &mut String, form: &crate::compiler_ir::CompiledForm
         js.push_str(&format!(
             "    const {field_var}_err=document.getElementById({});\n",
             js_str(&format!("{field_id}-error"))
+        ));
+        // Guard: radio/checkbox groups and hidden fields have no element at the
+        // base field id, so skip value-based validation rather than crash.
+        js.push_str(&format!("    if({field_var}&&{field_var}_err){{\n"));
+        // Reset this field's error state before re-validating.
+        js.push_str(&format!(
+            "    {field_var}_err.hidden=true;{field_var}.removeAttribute('aria-invalid');\n"
         ));
 
         for rule in &field.validations {
@@ -218,14 +241,19 @@ fn emit_form_validation(js: &mut String, form: &crate::compiler_ir::CompiledForm
                 _ => continue,
             };
 
+            // Only the first failing rule for a field sets the message and
+            // aria-invalid; later rules (and passing rules) don't clobber it.
             js.push_str(&format!(
-                "    if({check}){{{field_var}_err.textContent={};{field_var}_err.hidden=false;valid=false;}}else{{{field_var}_err.hidden=true;}}\n",
+                "    if({check}&&!{field_var}.hasAttribute('aria-invalid')){{{field_var}_err.textContent={};{field_var}_err.hidden=false;{field_var}.setAttribute('aria-invalid','true');valid=false;if(!firstInvalid)firstInvalid={field_var};}}\n",
                 js_str(&rule.message)
             ));
         }
+        // Close the element-exists guard opened for this field.
+        js.push_str("    }\n");
     }
 
-    js.push_str("    if(!valid){e.preventDefault();}\n");
+    // Move focus to the first invalid field so keyboard/AT users land on the error.
+    js.push_str("    if(!valid){e.preventDefault();if(firstInvalid)firstInvalid.focus();}\n");
     js.push_str("  })}\n");
 }
 
