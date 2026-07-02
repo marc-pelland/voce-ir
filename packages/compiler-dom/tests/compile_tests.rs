@@ -761,3 +761,31 @@ fn rich_text_table_is_wrapped_for_horizontal_scroll() {
     );
     assert!(html.contains("<table>"));
 }
+
+// ─── Accessibility: interactive widgets ─────────────────────────
+
+#[test]
+fn gesture_target_is_a_focusable_operable_button() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "Surface", "value": { "node_id": "toggle", "children": [
+                { "value_type": "TextNode", "value": { "node_id": "lbl", "content": "Toggle" } }
+            ] } },
+            { "value_type": "StateMachine", "value": { "node_id": "sm", "initial_state": "off",
+                "states": ["off", "on"],
+                "transitions": [ { "from": "off", "event": "tap", "to": "on" } ] } },
+            { "value_type": "GestureHandler", "value": { "node_id": "g", "target_node_id": "toggle",
+                "gesture_type": "Tap", "trigger_event": "tap", "trigger_state_machine": "sm" } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    // The div target is now a focusable button.
+    assert!(html.contains("role=\"button\""), "got: {html}");
+    assert!(html.contains("tabindex=\"0\""));
+    // And keyboard-operable: Enter and Space activate it, Space preventDefault'd.
+    assert!(
+        html.contains("e.key==='Enter'||e.key===' '"),
+        "keyboard equiv missing: {html}"
+    );
+    assert!(html.contains("e.preventDefault()"));
+}

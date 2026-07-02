@@ -516,9 +516,10 @@ fn emit_node(
 
             // Map SemanticNode role to semantic HTML element
             let semantic_tag = semantic_html_tag(node, ir);
+            let btn_attrs = gesture_button_attrs(ir, &node.id, &aria_attrs);
 
             html.push_str(&format!(
-                "{indent}<{semantic_tag} style=\"{style}\"{aria_attrs}{data_attr}>\n"
+                "{indent}<{semantic_tag} style=\"{style}\"{aria_attrs}{btn_attrs}{data_attr}>\n"
             ));
             for &child_id in &node.children {
                 emit_node_safe(html, ir, child_id, depth + 1, options, interactive_targets);
@@ -560,8 +561,15 @@ fn emit_node(
                 }
                 html.push_str(&format!("{indent}</a>\n"));
             } else {
+                // A non-link Surface that is an activate-gesture target becomes
+                // a focusable button so keyboard users can operate it.
+                let btn_attrs = if *decorative {
+                    String::new()
+                } else {
+                    gesture_button_attrs(ir, &node.id, &aria_attrs)
+                };
                 html.push_str(&format!(
-                    "{indent}<div style=\"{style}\"{aria}{aria_attrs}{data_attr}>\n"
+                    "{indent}<div style=\"{style}\"{aria}{aria_attrs}{btn_attrs}{data_attr}>\n"
                 ));
                 for &child_id in &node.children {
                     emit_node_safe(html, ir, child_id, depth + 1, options, interactive_targets);
@@ -1246,6 +1254,29 @@ fn css_fragment(s: &str) -> String {
         .replace('{', "\\7b ")
         .replace('}', "\\7d ")
         .replace(';', "\\3b ")
+}
+
+/// Extra attributes that make a non-interactive element operable as a button
+/// when it is the target of an activate-like gesture (Tap/Click/DoubleTap).
+/// Adds `role="button"` and `tabindex="0"` unless a SemanticNode already
+/// supplied a role or tabindex (checked via the already-built aria string), so
+/// the JS keyboard handler emitted for the gesture can actually receive focus.
+fn gesture_button_attrs(ir: &CompilerIr, node_id: &str, existing_aria: &str) -> String {
+    let is_activate_target = ir.gesture_handlers.iter().any(|gh| {
+        gh.target_node_id == node_id
+            && matches!(gh.gesture_type.as_str(), "Tap" | "Click" | "DoubleTap")
+    });
+    if !is_activate_target {
+        return String::new();
+    }
+    let mut extra = String::new();
+    if !existing_aria.contains("role=") {
+        extra.push_str(" role=\"button\"");
+    }
+    if !existing_aria.contains("tabindex=") {
+        extra.push_str(" tabindex=\"0\"");
+    }
+    extra
 }
 
 /// Build the `@media` prelude for a breakpoint range `[min_width, max_width)`.

@@ -110,12 +110,14 @@ fn emit_state_machine(js: &mut String, sm: &CompiledStateMachine) {
 }
 
 fn emit_gesture_handler(js: &mut String, gh: &CompiledGestureHandler) {
-    let event_type = match gh.gesture_type.as_str() {
-        "Tap" | "Click" => "click",
-        "Hover" => "mouseenter",
-        "Focus" => "focus",
-        "DoubleTap" => "dblclick",
-        _ => "click",
+    // Activate-like gestures behave as buttons: they fire on pointer activation
+    // and must also be operable from the keyboard (Enter + Space).
+    let (event_type, is_activate) = match gh.gesture_type.as_str() {
+        "Tap" | "Click" => ("click", true),
+        "DoubleTap" => ("dblclick", true),
+        "Hover" => ("mouseenter", false),
+        "Focus" => ("focus", false),
+        _ => ("click", true),
     };
     let id = js_ident(&gh.id);
     // The selector string is escaped for both the CSS attribute-value context
@@ -132,28 +134,29 @@ fn emit_gesture_handler(js: &mut String, gh: &CompiledGestureHandler) {
 
     js.push_str(&format!("  if(el_{id}){{"));
 
-    // Attach event listener
-    if let Some(ref trigger_event) = gh.trigger_event {
-        if let Some(ref sm_id) = gh.trigger_state_machine {
-            let sm_var = js_ident(sm_id);
-            js.push_str(&format!(
-                "el_{id}.addEventListener('{event_type}',()=>{{{sm_var}_send({})}});",
-                js_str(trigger_event)
-            ));
-        }
-    }
+    // Resolve the action (a state-machine send), if any.
+    let action = match (&gh.trigger_event, &gh.trigger_state_machine) {
+        (Some(ev), Some(sm)) => Some(format!("{}_send({})", js_ident(sm), js_str(ev))),
+        _ => None,
+    };
 
-    // Keyboard equivalent
-    if let Some(ref key) = gh.keyboard_key {
-        if let Some(ref trigger_event) = gh.trigger_event {
-            if let Some(ref sm_id) = gh.trigger_state_machine {
-                let sm_var = js_ident(sm_id);
-                js.push_str(&format!(
-                    "el_{id}.addEventListener('keydown',(e)=>{{if(e.key==={}){{{sm_var}_send({})}}}});",
-                    js_str(key),
-                    js_str(trigger_event)
-                ));
-            }
+    if let Some(ref act) = action {
+        // Pointer/gesture activation.
+        js.push_str(&format!(
+            "el_{id}.addEventListener('{event_type}',()=>{{{act}}});"
+        ));
+        if is_activate {
+            // Button-style keyboard equivalent: Enter and Space, with Space
+            // preventDefault'd so it doesn't scroll the page.
+            js.push_str(&format!(
+                "el_{id}.addEventListener('keydown',(e)=>{{if(e.key==='Enter'||e.key===' '){{e.preventDefault();{act}}}}});"
+            ));
+        } else if let Some(ref key) = gh.keyboard_key {
+            // Non-activate gesture with an explicit keyboard equivalent.
+            js.push_str(&format!(
+                "el_{id}.addEventListener('keydown',(e)=>{{if(e.key==={}){{{act}}}}});",
+                js_str(key)
+            ));
         }
     }
 
