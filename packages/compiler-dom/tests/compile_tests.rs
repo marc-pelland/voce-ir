@@ -342,16 +342,17 @@ fn security_headers_always_present() {
 
 #[test]
 fn landing_page_compiles_under_12kb() {
-    // Budget bumped from 10 KB → 12 KB in S64. The compiler now emits
-    // baseline typography/list/code/blockquote/hr/table CSS plus a fallback
-    // theme palette with prefers-color-scheme; ~1.7 KB of additional stylesheet
-    // applies to every compiled page. Trade-off explicitly accepted: the
-    // budget grew, but every output now looks presentable by default.
+    // Budget history: 10 KB → 12 KB (S64 baseline typography/theme) → 13 KB.
+    // The a11y-emit + responsiveness + polish work adds per-page baseline CSS
+    // (skip link, color-scheme, :disabled/busy, heading type scale, text-wrap,
+    // ::selection) plus per-node ARIA/responsive attributes and fluid clamp
+    // font sizes. Trade-off explicitly accepted: a larger baseline in exchange
+    // for output that is accessible, responsive, and presentable by default.
     let json = load_example("examples/landing-page/landing-page.voce.json");
     let result = compile(&json, &CompileOptions::default()).unwrap();
     assert!(
-        result.size_bytes < 12_000,
-        "Landing page should be under 12KB, got {} bytes",
+        result.size_bytes < 13_000,
+        "Landing page should be under 13KB, got {} bytes",
         result.size_bytes
     );
 }
@@ -953,4 +954,32 @@ fn state_machine_reflects_current_state_on_the_element() {
         html.contains("setAttribute('data-state',sm.current)"),
         "got: {html}"
     );
+}
+
+// ─── Polish defaults ────────────────────────────────────────────
+
+#[test]
+fn baseline_css_has_color_scheme_and_disabled_states() {
+    let json = r#"{ "root": { "node_id": "root", "children": [
+        { "value_type": "TextNode", "value": { "node_id": "t", "content": "Hi" } }
+    ] } }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(html.contains("color-scheme:light dark"), "got: {html}");
+    assert!(html.contains("button:disabled"));
+    assert!(html.contains("cursor:not-allowed"));
+}
+
+#[test]
+fn form_marks_busy_and_disables_submit_on_valid_submit() {
+    let json = r#"{ "root": { "node_id": "root", "children": [
+        { "value_type": "FormNode", "value": { "node_id": "f", "action_endpoint": "/x", "action_method": "post",
+            "fields": [ { "name": "email", "field_type": "Email", "label": "Email",
+                "validations": [ { "rule_type": "Required", "message": "Required" } ] } ] } }
+    ] } }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(
+        html.contains("setAttribute('aria-busy','true')"),
+        "got: {html}"
+    );
+    assert!(html.contains("b.disabled=true"));
 }

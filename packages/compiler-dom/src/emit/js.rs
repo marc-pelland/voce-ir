@@ -254,6 +254,11 @@ fn emit_form_validation(js: &mut String, form: &crate::compiler_ir::CompiledForm
 
     // Move focus to the first invalid field so keyboard/AT users land on the error.
     js.push_str("    if(!valid){e.preventDefault();if(firstInvalid)firstInvalid.focus();}\n");
+    // On a valid submit, mark the form busy and disable the submit button so the
+    // interaction reads as "submitting" and can't be double-submitted.
+    js.push_str(&format!(
+        "    else{{{var}_form.setAttribute('aria-busy','true');const b={var}_form.querySelector('button[type=\"submit\"],button:not([type])');if(b)b.disabled=true;}}\n"
+    ));
     js.push_str("  })}\n");
 }
 

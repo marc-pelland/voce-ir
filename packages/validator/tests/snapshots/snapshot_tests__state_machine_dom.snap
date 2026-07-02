@@ -15,17 +15,24 @@ expression: html
 <title>State Machine</title>
 <meta name="description" content="Toggle state machine.">
 <style>
-:root{--voce-fg:#111;--voce-bg:#fff;--voce-muted-fg:#666;--voce-border:rgba(127,127,127,.25);--voce-surface:rgba(127,127,127,.04);--voce-primary:#6366f1;--voce-primary-hover:#818cf8;--voce-error:#ef4444;--voce-warning:#f59e0b;--voce-success:#10b981}
+:root{color-scheme:light dark;--voce-fg:#111;--voce-bg:#fff;--voce-muted-fg:#666;--voce-border:rgba(127,127,127,.25);--voce-surface:rgba(127,127,127,.04);--voce-primary:#6366f1;--voce-primary-hover:#818cf8;--voce-error:#ef4444;--voce-warning:#f59e0b;--voce-success:#10b981}
 @media (prefers-color-scheme:dark){:root{--voce-fg:#e8e8ec;--voce-bg:#0a0a0c;--voce-muted-fg:#8b8b94;--voce-border:rgba(255,255,255,.12);--voce-surface:rgba(255,255,255,.04)}}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5;background:var(--voce-bg);color:var(--voce-fg)}
+button:disabled,input:disabled,textarea:disabled,select:disabled,[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+[aria-busy="true"]{cursor:progress}
 img{max-width:100%;height:auto;display:block}
 .skip-link{position:absolute;left:-9999px;top:0;z-index:1000;padding:8px 16px;background:var(--voce-bg);color:var(--voce-fg);border:2px solid var(--voce-primary)}
 .skip-link:focus{left:8px;top:8px}
 [id="main"]:focus{outline:none}
-h1,h2,h3,h4,h5,h6{line-height:1.2;margin-bottom:.5em}
-p{line-height:1.6;margin-bottom:1em}
+h1,h2,h3,h4,h5,h6{line-height:1.2;margin-bottom:.5em;text-wrap:balance}
+h1{font-size:clamp(2rem,1.45rem+2.2vw,2.75rem);letter-spacing:-.02em}
+h2{font-size:clamp(1.6rem,1.25rem+1.4vw,2.125rem);letter-spacing:-.01em}
+h3{font-size:1.5rem}h4{font-size:1.25rem}h5{font-size:1.125rem}h6{font-size:1rem}
+p{line-height:1.6;margin-bottom:1em;text-wrap:pretty;overflow-wrap:break-word}
 p:last-child,li:last-child{margin-bottom:0}
+::selection{background:var(--voce-primary);color:#fff}
+@media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
 ul,ol{margin:0 0 1em 1.5em;padding-left:.5em}
 li{line-height:1.6;margin-bottom:.25em}
 code{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-size:.92em;background:var(--voce-surface);padding:.15em .35em;border-radius:4px}
