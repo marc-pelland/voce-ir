@@ -89,6 +89,13 @@ pub fn emit(ir: &CompilerIr, options: &CompileOptions) -> HtmlOutput {
             interactive_targets.insert(nid.clone());
         }
     }
+    for sm in &ir.state_machines {
+        for (_, effects) in &sm.state_aria {
+            for (target, _, _) in effects {
+                interactive_targets.insert(target.clone());
+            }
+        }
+    }
 
     // Body
     html.push_str("<body>\n");

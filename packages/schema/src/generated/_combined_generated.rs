@@ -10122,6 +10122,146 @@ impl core::fmt::Debug for RouteMap<'_> {
       ds.finish()
   }
 }
+pub enum StateAriaEffectOffset {}
+#[derive(Copy, Clone, PartialEq)]
+
+/// An ARIA attribute the compiler sets on a target element while a state is
+/// active, so widget semantics (aria-expanded/hidden/selected/…) stay in sync
+/// with the state machine. `attribute` must be an `aria-*` or `data-*` name.
+pub struct StateAriaEffect<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for StateAriaEffect<'a> {
+  type Inner = StateAriaEffect<'a>;
+  #[inline]
+  unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    Self { _tab: flatbuffers::Table::new(buf, loc) }
+  }
+}
+
+impl<'a> StateAriaEffect<'a> {
+  pub const VT_TARGET_NODE_ID: flatbuffers::VOffsetT = 4;
+  pub const VT_ATTRIBUTE: flatbuffers::VOffsetT = 6;
+  pub const VT_VALUE: flatbuffers::VOffsetT = 8;
+
+  #[inline]
+  pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+    StateAriaEffect { _tab: table }
+  }
+  #[allow(unused_mut)]
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+    args: &'args StateAriaEffectArgs<'args>
+  ) -> flatbuffers::WIPOffset<StateAriaEffect<'bldr>> {
+    let mut builder = StateAriaEffectBuilder::new(_fbb);
+    if let Some(x) = args.value { builder.add_value(x); }
+    if let Some(x) = args.attribute { builder.add_attribute(x); }
+    if let Some(x) = args.target_node_id { builder.add_target_node_id(x); }
+    builder.finish()
+  }
+
+
+  /// The visual node the attribute is set on.
+  #[inline]
+  pub fn target_node_id(&self) -> &'a str {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(StateAriaEffect::VT_TARGET_NODE_ID, None).unwrap()}
+  }
+  /// Attribute name (must start with `aria-` or `data-`).
+  #[inline]
+  pub fn attribute(&self) -> &'a str {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(StateAriaEffect::VT_ATTRIBUTE, None).unwrap()}
+  }
+  /// Attribute value applied while this state is active.
+  #[inline]
+  pub fn value(&self) -> &'a str {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(StateAriaEffect::VT_VALUE, None).unwrap()}
+  }
+}
+
+impl flatbuffers::Verifiable for StateAriaEffect<'_> {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.visit_table(pos)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("target_node_id", Self::VT_TARGET_NODE_ID, true)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("attribute", Self::VT_ATTRIBUTE, true)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("value", Self::VT_VALUE, true)?
+     .finish();
+    Ok(())
+  }
+}
+pub struct StateAriaEffectArgs<'a> {
+    pub target_node_id: Option<flatbuffers::WIPOffset<&'a str>>,
+    pub attribute: Option<flatbuffers::WIPOffset<&'a str>>,
+    pub value: Option<flatbuffers::WIPOffset<&'a str>>,
+}
+impl<'a> Default for StateAriaEffectArgs<'a> {
+  #[inline]
+  fn default() -> Self {
+    StateAriaEffectArgs {
+      target_node_id: None, // required field
+      attribute: None, // required field
+      value: None, // required field
+    }
+  }
+}
+
+pub struct StateAriaEffectBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> StateAriaEffectBuilder<'a, 'b, A> {
+  #[inline]
+  pub fn add_target_node_id(&mut self, target_node_id: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(StateAriaEffect::VT_TARGET_NODE_ID, target_node_id);
+  }
+  #[inline]
+  pub fn add_attribute(&mut self, attribute: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(StateAriaEffect::VT_ATTRIBUTE, attribute);
+  }
+  #[inline]
+  pub fn add_value(&mut self, value: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(StateAriaEffect::VT_VALUE, value);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> StateAriaEffectBuilder<'a, 'b, A> {
+    let start = _fbb.start_table();
+    StateAriaEffectBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<StateAriaEffect<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    self.fbb_.required(o, StateAriaEffect::VT_TARGET_NODE_ID,"target_node_id");
+    self.fbb_.required(o, StateAriaEffect::VT_ATTRIBUTE,"attribute");
+    self.fbb_.required(o, StateAriaEffect::VT_VALUE,"value");
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
+impl core::fmt::Debug for StateAriaEffect<'_> {
+  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    let mut ds = f.debug_struct("StateAriaEffect");
+      ds.field("target_node_id", &self.target_node_id());
+      ds.field("attribute", &self.attribute());
+      ds.field("value", &self.value());
+      ds.finish()
+  }
+}
 pub enum StateOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
@@ -10141,6 +10281,7 @@ impl<'a> State<'a> {
   pub const VT_NAME: flatbuffers::VOffsetT = 4;
   pub const VT_INITIAL: flatbuffers::VOffsetT = 6;
   pub const VT_TERMINAL: flatbuffers::VOffsetT = 8;
+  pub const VT_ARIA: flatbuffers::VOffsetT = 10;
 
   #[inline]
   pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
@@ -10152,6 +10293,7 @@ impl<'a> State<'a> {
     args: &'args StateArgs<'args>
   ) -> flatbuffers::WIPOffset<State<'bldr>> {
     let mut builder = StateBuilder::new(_fbb);
+    if let Some(x) = args.aria { builder.add_aria(x); }
     if let Some(x) = args.name { builder.add_name(x); }
     builder.add_terminal(args.terminal);
     builder.add_initial(args.initial);
@@ -10182,6 +10324,16 @@ impl<'a> State<'a> {
     // which contains a valid value in this slot
     unsafe { self._tab.get::<bool>(State::VT_TERMINAL, Some(false)).unwrap()}
   }
+  /// ARIA effects applied to the DOM while this state is active. The compiler
+  /// emits the initial state's effects on load and re-applies on every
+  /// transition into the state.
+  #[inline]
+  pub fn aria(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<StateAriaEffect<'a>>>> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<StateAriaEffect>>>>(State::VT_ARIA, None)}
+  }
 }
 
 impl flatbuffers::Verifiable for State<'_> {
@@ -10194,6 +10346,7 @@ impl flatbuffers::Verifiable for State<'_> {
      .visit_field::<flatbuffers::ForwardsUOffset<&str>>("name", Self::VT_NAME, true)?
      .visit_field::<bool>("initial", Self::VT_INITIAL, false)?
      .visit_field::<bool>("terminal", Self::VT_TERMINAL, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<StateAriaEffect>>>>("aria", Self::VT_ARIA, false)?
      .finish();
     Ok(())
   }
@@ -10202,6 +10355,7 @@ pub struct StateArgs<'a> {
     pub name: Option<flatbuffers::WIPOffset<&'a str>>,
     pub initial: bool,
     pub terminal: bool,
+    pub aria: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<StateAriaEffect<'a>>>>>,
 }
 impl<'a> Default for StateArgs<'a> {
   #[inline]
@@ -10210,6 +10364,7 @@ impl<'a> Default for StateArgs<'a> {
       name: None, // required field
       initial: false,
       terminal: false,
+      aria: None,
     }
   }
 }
@@ -10230,6 +10385,10 @@ impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> StateBuilder<'a, 'b, A> {
   #[inline]
   pub fn add_terminal(&mut self, terminal: bool) {
     self.fbb_.push_slot::<bool>(State::VT_TERMINAL, terminal, false);
+  }
+  #[inline]
+  pub fn add_aria(&mut self, aria: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<StateAriaEffect<'b >>>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(State::VT_ARIA, aria);
   }
   #[inline]
   pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> StateBuilder<'a, 'b, A> {
@@ -10253,6 +10412,7 @@ impl core::fmt::Debug for State<'_> {
       ds.field("name", &self.name());
       ds.field("initial", &self.initial());
       ds.field("terminal", &self.terminal());
+      ds.field("aria", &self.aria());
       ds.finish()
   }
 }
@@ -18960,6 +19120,7 @@ impl<'a> PageMetadata<'a> {
   pub const VT_ALTERNATES: flatbuffers::VOffsetT = 18;
   pub const VT_STRUCTURED_DATA: flatbuffers::VOffsetT = 20;
   pub const VT_CUSTOM_META: flatbuffers::VOffsetT = 22;
+  pub const VT_CONTENT_SECURITY_POLICY: flatbuffers::VOffsetT = 24;
 
   #[inline]
   pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
@@ -18971,6 +19132,7 @@ impl<'a> PageMetadata<'a> {
     args: &'args PageMetadataArgs<'args>
   ) -> flatbuffers::WIPOffset<PageMetadata<'bldr>> {
     let mut builder = PageMetadataBuilder::new(_fbb);
+    if let Some(x) = args.content_security_policy { builder.add_content_security_policy(x); }
     if let Some(x) = args.custom_meta { builder.add_custom_meta(x); }
     if let Some(x) = args.structured_data { builder.add_structured_data(x); }
     if let Some(x) = args.alternates { builder.add_alternates(x); }
@@ -19062,6 +19224,18 @@ impl<'a> PageMetadata<'a> {
     // which contains a valid value in this slot
     unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<MetaTag>>>>(PageMetadata::VT_CUSTOM_META, None)}
   }
+  /// Override the compiler's default Content Security Policy for this page.
+  /// When set, the value replaces the entire policy verbatim (the compiler
+  /// does NOT merge directives). Use sparingly — the default is hardened
+  /// per S70: SHA-256-pinned scripts, frame-ancestors none, base-uri self,
+  /// form-action self.
+  #[inline]
+  pub fn content_security_policy(&self) -> Option<&'a str> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(PageMetadata::VT_CONTENT_SECURITY_POLICY, None)}
+  }
 }
 
 impl flatbuffers::Verifiable for PageMetadata<'_> {
@@ -19081,6 +19255,7 @@ impl flatbuffers::Verifiable for PageMetadata<'_> {
      .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<AlternateLink>>>>("alternates", Self::VT_ALTERNATES, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<StructuredData>>>>("structured_data", Self::VT_STRUCTURED_DATA, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<MetaTag>>>>("custom_meta", Self::VT_CUSTOM_META, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("content_security_policy", Self::VT_CONTENT_SECURITY_POLICY, false)?
      .finish();
     Ok(())
   }
@@ -19096,6 +19271,7 @@ pub struct PageMetadataArgs<'a> {
     pub alternates: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<AlternateLink<'a>>>>>,
     pub structured_data: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<StructuredData<'a>>>>>,
     pub custom_meta: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<MetaTag<'a>>>>>,
+    pub content_security_policy: Option<flatbuffers::WIPOffset<&'a str>>,
 }
 impl<'a> Default for PageMetadataArgs<'a> {
   #[inline]
@@ -19111,6 +19287,7 @@ impl<'a> Default for PageMetadataArgs<'a> {
       alternates: None,
       structured_data: None,
       custom_meta: None,
+      content_security_policy: None,
     }
   }
 }
@@ -19161,6 +19338,10 @@ impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> PageMetadataBuilder<'a, 'b, A> 
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(PageMetadata::VT_CUSTOM_META, custom_meta);
   }
   #[inline]
+  pub fn add_content_security_policy(&mut self, content_security_policy: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(PageMetadata::VT_CONTENT_SECURITY_POLICY, content_security_policy);
+  }
+  #[inline]
   pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> PageMetadataBuilder<'a, 'b, A> {
     let start = _fbb.start_table();
     PageMetadataBuilder {
@@ -19189,6 +19370,7 @@ impl core::fmt::Debug for PageMetadata<'_> {
       ds.field("alternates", &self.alternates());
       ds.field("structured_data", &self.structured_data());
       ds.field("custom_meta", &self.custom_meta());
+      ds.field("content_security_policy", &self.content_security_policy());
       ds.finish()
   }
 }

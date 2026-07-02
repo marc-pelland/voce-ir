@@ -14,12 +14,28 @@ namespace voce;
 // Every component's behavior is a state machine. The validator checks
 // reachability (no dead states) and deadlock freedom.
 
+/// An ARIA attribute the compiler sets on a target element while a state is
+/// active, so widget semantics (aria-expanded/hidden/selected/…) stay in sync
+/// with the state machine. `attribute` must be an `aria-*` or `data-*` name.
+table StateAriaEffect {
+  /// The visual node the attribute is set on.
+  target_node_id: string (required);
+  /// Attribute name (must start with `aria-` or `data-`).
+  attribute: string (required);
+  /// Attribute value applied while this state is active.
+  value: string (required);
+}
+
 table State {
   name: string (required);
   /// If true, this is the initial state of the machine.
   initial: bool = false;
   /// If true, this is a terminal/final state (no outgoing transitions expected).
   terminal: bool = false;
+  /// ARIA effects applied to the DOM while this state is active. The compiler
+  /// emits the initial state's effects on load and re-applies on every
+  /// transition into the state.
+  aria: [StateAriaEffect];
 }
 
 table Transition {

@@ -68,12 +68,23 @@ pub fn emit_js(ir: &CompilerIr) -> String {
         emit_state_machine(&mut js, sm);
     }
 
-    // Gesture handlers, forms, and focus traps all query the DOM, so they run
-    // after DOMContentLoaded.
-    let needs_domready =
-        !ir.gesture_handlers.is_empty() || !ir.forms.is_empty() || !ir.focus_traps.is_empty();
+    // Gesture handlers, forms, focus traps, and initial ARIA sync all query the
+    // DOM, so they run after DOMContentLoaded.
+    let sms_with_aria: Vec<&CompiledStateMachine> = ir
+        .state_machines
+        .iter()
+        .filter(|sm| !sm.state_aria.is_empty())
+        .collect();
+    let needs_domready = !ir.gesture_handlers.is_empty()
+        || !ir.forms.is_empty()
+        || !ir.focus_traps.is_empty()
+        || !sms_with_aria.is_empty();
     if needs_domready {
         js.push_str("document.addEventListener('DOMContentLoaded',()=>{\n");
+        // Apply each machine's initial-state ARIA before any interaction.
+        for sm in &sms_with_aria {
+            js.push_str(&format!("  {}_applyAria();\n", js_ident(&sm.id)));
+        }
         for gh in &ir.gesture_handlers {
             emit_gesture_handler(&mut js, gh);
         }
@@ -175,9 +186,32 @@ fn emit_state_machine(js: &mut String, sm: &CompiledStateMachine) {
     }
     js.push_str("};\n");
 
-    // Transition function
+    // Per-state ARIA effects and an applier that syncs them to the DOM.
+    let has_aria = !sm.state_aria.is_empty();
+    if has_aria {
+        js.push_str(&format!("const {var_name}_aria={{"));
+        for (state, effects) in &sm.state_aria {
+            js.push_str(&format!("{}:[", js_str(state)));
+            for (target, attr, value) in effects {
+                let sel = js_str(&format!("[data-voce-id=\"{}\"]", css_attr_value(target)));
+                js.push_str(&format!("[{},{},{}],", sel, js_str(attr), js_str(value)));
+            }
+            js.push_str("],");
+        }
+        js.push_str("};\n");
+        js.push_str(&format!(
+            "function {var_name}_applyAria(){{const es={var_name}_aria[{var_name}.current];if(!es)return;for(const x of es){{const el=document.querySelector(x[0]);if(el)el.setAttribute(x[1],x[2]);}}}}\n"
+        ));
+    }
+
+    // Transition function: update state, then re-sync ARIA.
+    let apply = if has_aria {
+        format!("{var_name}_applyAria();")
+    } else {
+        String::new()
+    };
     js.push_str(&format!(
-        "function {var_name}_send(e){{const t={var_name}_t[{var_name}.current]?.[e];if(!t)return;{var_name}.current=t.to;}}\n"
+        "function {var_name}_send(e){{const t={var_name}_t[{var_name}.current]?.[e];if(!t)return;{var_name}.current=t.to;{apply}}}\n"
     ));
 }
 

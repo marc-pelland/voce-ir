@@ -94,4 +94,4 @@ max_output_bytes = 4600
 [fixture.landing-page]
 path = "examples/landing-page/landing-page.voce.json"
 max_compile_us = 5000
-max_output_bytes = 11200
+max_output_bytes = 11600

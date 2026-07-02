@@ -191,7 +191,14 @@ pub struct CompiledStateMachine {
     pub initial_state: String,
     pub states: Vec<String>,
     pub transitions: Vec<CompiledTransition>,
+    /// Per-state ARIA effects. Applied to the DOM whenever the machine enters
+    /// that state, so widget states (aria-expanded/hidden/selected/…) stay in
+    /// sync with the machine.
+    pub state_aria: StateAriaEffects,
 }
+
+/// Per-state ARIA effects: `(state_name, [(target_node_id, attribute, value)])`.
+pub type StateAriaEffects = Vec<(String, Vec<(String, String, String)>)>;
 
 #[derive(Debug, Clone)]
 pub struct CompiledTransition {

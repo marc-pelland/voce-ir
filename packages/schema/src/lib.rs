@@ -256,6 +256,7 @@ mod tests {
                 name: Some(idle),
                 initial: true,
                 terminal: false,
+                aria: None,
             },
         );
         let state_loading = State::create(
@@ -264,6 +265,7 @@ mod tests {
                 name: Some(loading),
                 initial: false,
                 terminal: false,
+                aria: None,
             },
         );
         let state_loaded = State::create(
@@ -272,6 +274,7 @@ mod tests {
                 name: Some(loaded),
                 initial: false,
                 terminal: true,
+                aria: None,
             },
         );
         let states = builder.create_vector(&[state_idle, state_loading, state_loaded]);

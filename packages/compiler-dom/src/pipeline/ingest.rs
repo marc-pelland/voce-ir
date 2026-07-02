@@ -906,11 +906,34 @@ fn extract_state_machine(value: &Value) -> Option<CompiledStateMachine> {
     let states_arr = value.get("states")?.as_array()?;
     let mut states = Vec::new();
     let mut initial_state = String::new();
+    let mut state_aria: crate::compiler_ir::StateAriaEffects = Vec::new();
 
     for s in states_arr {
         let state_name = s.get("name")?.as_str()?.to_string();
         if s.get("initial").and_then(|v| v.as_bool()).unwrap_or(false) {
             initial_state = state_name.clone();
+        }
+        // Optional per-state ARIA effects: [{ target_node_id, attribute, value }].
+        if let Some(effects) = s.get("aria").and_then(|v| v.as_array()) {
+            let parsed: Vec<(String, String, String)> = effects
+                .iter()
+                .filter_map(|e| {
+                    let target = e.get("target_node_id")?.as_str()?;
+                    let attr = e.get("attribute")?.as_str()?;
+                    let val = e.get("value")?.as_str()?;
+                    // Only ARIA/data attributes; never arbitrary ones.
+                    let ok = (attr.starts_with("aria-") || attr.starts_with("data-"))
+                        && attr.chars().all(|c| c.is_ascii_alphanumeric() || c == '-');
+                    if ok {
+                        Some((target.to_string(), attr.to_string(), val.to_string()))
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            if !parsed.is_empty() {
+                state_aria.push((state_name.clone(), parsed));
+            }
         }
         states.push(state_name);
     }
@@ -943,6 +966,7 @@ fn extract_state_machine(value: &Value) -> Option<CompiledStateMachine> {
         initial_state,
         states,
         transitions,
+        state_aria,
     })
 }
 
