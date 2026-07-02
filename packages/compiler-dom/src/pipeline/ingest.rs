@@ -100,6 +100,9 @@ pub fn ingest(json: &str) -> Result<CompilerIr> {
     // Collect responsive rules from ResponsiveRule nodes
     let responsive_rules = collect_responsive_rules(&nodes);
 
+    // Collect live regions from LiveRegion nodes
+    let live_regions = collect_live_regions(&nodes);
+
     Ok(CompilerIr {
         nodes,
         root: root_id,
@@ -111,7 +114,53 @@ pub fn ingest(json: &str) -> Result<CompilerIr> {
         forms,
         semantic_map,
         responsive_rules,
+        live_regions,
     })
+}
+
+/// Resolve LiveRegion nodes into aria-live attributes for their targets.
+fn collect_live_regions(
+    nodes: &[crate::compiler_ir::CNode],
+) -> Vec<crate::compiler_ir::CompiledLiveRegion> {
+    let mut regions = Vec::new();
+    for node in nodes {
+        if let NodeKind::NonVisual { type_name, data } = &node.kind {
+            if type_name != "LiveRegion" {
+                continue;
+            }
+            let Some(target) = data.get("target_node_id").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            let politeness = match data.get("politeness").and_then(|v| v.as_str()) {
+                Some("Assertive") => "assertive",
+                Some("Off") => "off",
+                _ => "polite",
+            }
+            .to_string();
+            let relevant = match data.get("relevant").and_then(|v| v.as_str()) {
+                Some("Removals") => "removals",
+                Some("Text") => "text",
+                Some("All") => "all",
+                _ => "additions",
+            }
+            .to_string();
+            regions.push(crate::compiler_ir::CompiledLiveRegion {
+                target_node_id: target.to_string(),
+                politeness,
+                atomic: data
+                    .get("atomic")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false),
+                relevant,
+                role_description: data
+                    .get("role_description")
+                    .and_then(|v| v.as_str())
+                    .filter(|s| !s.is_empty())
+                    .map(String::from),
+            });
+        }
+    }
+    regions
 }
 
 fn build_meta(root: &Value, doc: &Value) -> DocumentMeta {

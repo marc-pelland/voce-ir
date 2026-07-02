@@ -462,6 +462,10 @@ fn emit_node(
         })
         .unwrap_or_default();
 
+    // Append aria-live attributes if a LiveRegion targets this node, so dynamic
+    // content is actually announced (the node itself is otherwise dropped).
+    let aria_attrs = format!("{aria_attrs}{}", live_region_attrs(ir, &node.id));
+
     match &node.kind {
         NodeKind::ViewRoot { .. } => {
             // ViewRoot children are emitted directly (already handled in body)
@@ -1254,6 +1258,23 @@ fn css_fragment(s: &str) -> String {
         .replace('{', "\\7b ")
         .replace('}', "\\7d ")
         .replace(';', "\\3b ")
+}
+
+/// aria-live attributes for a node that a LiveRegion targets. Empty when no
+/// live region attaches to this node.
+fn live_region_attrs(ir: &CompilerIr, node_id: &str) -> String {
+    let Some(lr) = ir.live_regions.iter().find(|l| l.target_node_id == node_id) else {
+        return String::new();
+    };
+    let mut s = format!(" aria-live=\"{}\"", lr.politeness);
+    if lr.atomic {
+        s.push_str(" aria-atomic=\"true\"");
+    }
+    s.push_str(&format!(" aria-relevant=\"{}\"", lr.relevant));
+    if let Some(ref rd) = lr.role_description {
+        s.push_str(&format!(" aria-roledescription=\"{}\"", escape_attr(rd)));
+    }
+    s
 }
 
 /// Extra attributes that make a non-interactive element operable as a button

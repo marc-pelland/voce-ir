@@ -789,3 +789,20 @@ fn gesture_target_is_a_focusable_operable_button() {
     );
     assert!(html.contains("e.preventDefault()"));
 }
+
+#[test]
+fn live_region_emits_aria_live_on_target() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "Container", "value": { "node_id": "status", "children": [] } },
+            { "value_type": "LiveRegion", "value": { "node_id": "lr", "target_node_id": "status",
+                "politeness": "Assertive", "atomic": true, "relevant": "All",
+                "role_description": "Cart updates" } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(html.contains("aria-live=\"assertive\""), "got: {html}");
+    assert!(html.contains("aria-atomic=\"true\""));
+    assert!(html.contains("aria-relevant=\"all\""));
+    assert!(html.contains("aria-roledescription=\"Cart updates\""));
+}

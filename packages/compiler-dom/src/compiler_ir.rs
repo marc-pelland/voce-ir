@@ -34,6 +34,23 @@ pub struct CompilerIr {
     pub semantic_map: HashMap<String, SemanticInfo>,
     /// Responsive rules — media queries with property overrides.
     pub responsive_rules: Vec<CompiledResponsiveRule>,
+    /// Live regions — aria-live attributes to attach to their target nodes.
+    pub live_regions: Vec<CompiledLiveRegion>,
+}
+
+/// A live region resolved for emission onto its target element.
+#[derive(Debug, Clone)]
+pub struct CompiledLiveRegion {
+    /// The visual node the aria-live attributes attach to.
+    pub target_node_id: String,
+    /// `aria-live` value: "polite", "assertive", or "off".
+    pub politeness: String,
+    /// `aria-atomic` value.
+    pub atomic: bool,
+    /// `aria-relevant` value (e.g. "additions", "all").
+    pub relevant: String,
+    /// Optional `aria-roledescription`.
+    pub role_description: Option<String>,
 }
 
 /// A responsive media query rule.
