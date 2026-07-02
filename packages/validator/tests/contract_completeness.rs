@@ -31,19 +31,34 @@ fn manifest() -> skills::Manifest {
 #[test]
 fn every_envelope_declares_contract_version() {
     let m = manifest();
-    assert!(!m.contract_version.is_empty(), "skills missing contract_version");
+    assert!(
+        !m.contract_version.is_empty(),
+        "skills missing contract_version"
+    );
 
     let (ir, idx) = parse_ir(r#"{ "root": { "node_id": "r" } }"#);
     let g = graph::build(&ir, &idx);
-    assert!(!g.contract_version.is_empty(), "graph missing contract_version");
+    assert!(
+        !g.contract_version.is_empty(),
+        "graph missing contract_version"
+    );
 
     let doc = doctor::run(&std::env::temp_dir(), false);
-    assert!(!doc.contract_version.is_empty(), "doctor missing contract_version");
+    assert!(
+        !doc.contract_version.is_empty(),
+        "doctor missing contract_version"
+    );
 
-    let plan = fix_loop::run(r#"{ "root": { "node_id": "r" } }"#, &fix_loop::LoopOptions::default())
-        .expect("fix loop")
-        .plan;
-    assert!(!plan.contract_version.is_empty(), "fix-plan missing contract_version");
+    let plan = fix_loop::run(
+        r#"{ "root": { "node_id": "r" } }"#,
+        &fix_loop::LoopOptions::default(),
+    )
+    .expect("fix loop")
+    .plan;
+    assert!(
+        !plan.contract_version.is_empty(),
+        "fix-plan missing contract_version"
+    );
 }
 
 /// Agent task: "Tell me what this diagnostic code means and what to do
@@ -86,7 +101,13 @@ fn task_understand_a_diagnostic_code() {
 fn task_discover_node_types_and_their_validation_codes() {
     let m = manifest();
     let names: HashSet<&str> = m.node_types.iter().map(|n| n.name).collect();
-    for required in ["FormNode", "Surface", "TextNode", "MediaNode", "StateMachine"] {
+    for required in [
+        "FormNode",
+        "Surface",
+        "TextNode",
+        "MediaNode",
+        "StateMachine",
+    ] {
         assert!(
             names.contains(required),
             "core node type {required} missing from manifest — agents authoring IR need this"
@@ -100,7 +121,10 @@ fn task_discover_node_types_and_their_validation_codes() {
     // what rules its FormNode will be measured against.
     let codes: HashSet<&str> = m.diagnostic_codes.iter().map(|c| c.code).collect();
     let frm_count = codes.iter().filter(|c| c.starts_with("FRM")).count();
-    assert!(frm_count > 0, "no FRM* codes documented — forms are unspec'd to agents");
+    assert!(
+        frm_count > 0,
+        "no FRM* codes documented — forms are unspec'd to agents"
+    );
     let a11y_count = codes.iter().filter(|c| c.starts_with("A11Y")).count();
     assert!(a11y_count > 0, "no A11Y* codes documented");
 }
@@ -110,14 +134,24 @@ fn task_discover_node_types_and_their_validation_codes() {
 #[test]
 fn task_discover_compile_targets() {
     let m = manifest();
-    assert!(!m.compile_targets.is_empty(), "no compile targets registered");
+    assert!(
+        !m.compile_targets.is_empty(),
+        "no compile targets registered"
+    );
     let ids: HashSet<&str> = m.compile_targets.iter().map(|t| t.id).collect();
     for required in ["dom", "email", "ios-swiftui"] {
-        assert!(ids.contains(required), "target {required} missing from manifest");
+        assert!(
+            ids.contains(required),
+            "target {required} missing from manifest"
+        );
     }
     for t in m.compile_targets {
         assert!(!t.outputs.is_empty(), "target {} declares no outputs", t.id);
-        assert!(!t.notes.is_empty(), "target {} has no notes — agents need context", t.id);
+        assert!(
+            !t.notes.is_empty(),
+            "target {} has no notes — agents need context",
+            t.id
+        );
     }
 }
 
@@ -152,10 +186,11 @@ fn task_reason_about_ir_structure() {
 
     // Composition reachable — agent can walk parent→child without reading IR.
     assert!(g.nodes.iter().any(|n| n.id == "btn"));
-    assert!(g
-        .composition_edges
-        .iter()
-        .any(|e| e.parent == "wrap" && e.child == "btn"));
+    assert!(
+        g.composition_edges
+            .iter()
+            .any(|e| e.parent == "wrap" && e.child == "btn")
+    );
 
     // Reference edges typed + carry resolved/dangling — agent can find
     // dangling refs without re-running the validator.

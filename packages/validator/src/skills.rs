@@ -168,8 +168,7 @@ mod tests {
         let m = build("0.1.0", cli_stub());
         // FB union has 28 entries (NONE + 27 real types).
         assert_eq!(m.node_types.len(), 27, "node type count drift vs schema");
-        let names: std::collections::HashSet<&str> =
-            m.node_types.iter().map(|n| n.name).collect();
+        let names: std::collections::HashSet<&str> = m.node_types.iter().map(|n| n.name).collect();
         for required in ["Container", "Surface", "TextNode", "MediaNode", "FormNode"] {
             assert!(names.contains(required), "missing core type {required}");
         }

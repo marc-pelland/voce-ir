@@ -80,7 +80,13 @@ pub struct RunOptions {
 /// Run the full doctor suite against `project_root`. `strict` promotes
 /// `warn` to a non-zero exit when the report drives a process exit.
 pub fn run(project_root: &Path, strict: bool) -> DoctorReport {
-    run_with(project_root, RunOptions { strict, ..RunOptions::default() })
+    run_with(
+        project_root,
+        RunOptions {
+            strict,
+            ..RunOptions::default()
+        },
+    )
 }
 
 /// Run the doctor with explicit options. Existing callers using
@@ -282,7 +288,9 @@ fn jsonl_parseable(
                 title,
                 status: CheckStatus::Fail,
                 detail: Some(format!("read {}: {e}", path.display())),
-                hint: Some("Check file permissions; the file should be readable to anyone who can run `voce`."),
+                hint: Some(
+                    "Check file permissions; the file should be readable to anyone who can run `voce`.",
+                ),
                 docs_url: docs(id),
             };
         }
@@ -343,7 +351,6 @@ fn ir_set_skip_check() -> Check {
         docs_url: docs(ID),
     }
 }
-
 
 /// Directories the IR walk skips by name — node_modules / build outputs
 /// / VCS metadata / our own snapshot dirs. Walk depth is bounded so the
@@ -416,7 +423,10 @@ fn ir_set_check(project_root: &Path) -> Check {
                     .count();
             }
             Err(e) => {
-                failures.push(format!("{}: validator error: {e}", short(path, project_root)));
+                failures.push(format!(
+                    "{}: validator error: {e}",
+                    short(path, project_root)
+                ));
             }
         }
     }
@@ -602,7 +612,13 @@ mod tests {
     }
 
     fn run_with_ir_set(root: &Path) -> DoctorReport {
-        run_with(root, RunOptions { strict: false, walk_ir_set: true })
+        run_with(
+            root,
+            RunOptions {
+                strict: false,
+                walk_ir_set: true,
+            },
+        )
     }
 
     #[test]
@@ -647,8 +663,14 @@ mod tests {
         assert_eq!(irset.status, CheckStatus::Fail);
         assert!(!r.ok, "any fail flips ok");
         let detail = irset.detail.as_deref().unwrap_or("");
-        assert!(detail.contains("bad.voce.json"), "expected file name in detail, got {detail}");
-        assert!(detail.contains("A11Y006"), "expected A11Y006 code in detail, got {detail}");
+        assert!(
+            detail.contains("bad.voce.json"),
+            "expected file name in detail, got {detail}"
+        );
+        assert!(
+            detail.contains("A11Y006"),
+            "expected A11Y006 code in detail, got {detail}"
+        );
     }
 
     #[test]

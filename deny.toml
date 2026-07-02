@@ -52,16 +52,13 @@ confidence-threshold = 0.93
 # surface. Warn rather than deny on first pass — the workspace has not been
 # audited end-to-end and a few legitimate duplicates likely exist.
 multiple-versions = "warn"
-# Deny exactly the crates that are known-bad or clearly out-of-scope.
-deny = []
-# Forbid obviously-incompatible licenses entirely. GPL/AGPL would force the
-# whole project to relicense; better to fail at the dep graph than to ship.
-[[bans.deny]]
-name = "openssl"          # vendored by default — use rustls for portability + no C deps
-wrappers = []
-
-[bans.skip]
 # Empty for now — populate if a transitive duplicate ends up justified.
+skip = []
+# Deny exactly the crates that are known-bad or clearly out-of-scope.
+# openssl is vendored by default; use rustls for portability + no C deps.
+[[bans.deny]]
+name = "openssl"
+wrappers = []
 
 # ── Sources ─────────────────────────────────────────────────────────────
 [sources]

@@ -163,7 +163,10 @@ pub fn build(ir: &VoceIr, index: &NodeIndex) -> GraphExport {
     }
 
     let dangling = reference_edges.iter().filter(|e| !e.to_resolved).count();
-    let unreachable: usize = state_machines.iter().map(|sm| sm.unreachable_states.len()).sum();
+    let unreachable: usize = state_machines
+        .iter()
+        .map(|sm| sm.unreachable_states.len())
+        .sum();
 
     GraphExport {
         summary: GraphSummary {
@@ -231,38 +234,94 @@ fn walk(
         match type_name.as_str() {
             "AnimationTransition" => {
                 if let Some(n) = child.as_type::<crate::ir::AnimationTransition>() {
-                    push_target(refs, &id, &path, ReferenceKind::AnimationTarget, &n.target_node_id, index);
+                    push_target(
+                        refs,
+                        &id,
+                        &path,
+                        ReferenceKind::AnimationTarget,
+                        &n.target_node_id,
+                        index,
+                    );
                 }
             }
             "GestureHandler" => {
                 if let Some(n) = child.as_type::<crate::ir::GestureHandler>() {
-                    push_target(refs, &id, &path, ReferenceKind::GestureTarget, &n.target_node_id, index);
+                    push_target(
+                        refs,
+                        &id,
+                        &path,
+                        ReferenceKind::GestureTarget,
+                        &n.target_node_id,
+                        index,
+                    );
                 }
             }
             "ScrollBinding" => {
                 if let Some(n) = child.as_type::<crate::ir::ScrollBinding>() {
-                    push_target(refs, &id, &path, ReferenceKind::ScrollTarget, &n.target_node_id, index);
+                    push_target(
+                        refs,
+                        &id,
+                        &path,
+                        ReferenceKind::ScrollTarget,
+                        &n.target_node_id,
+                        index,
+                    );
                 }
             }
             "PhysicsBody" => {
                 if let Some(n) = child.as_type::<crate::ir::PhysicsBody>() {
-                    push_target(refs, &id, &path, ReferenceKind::PhysicsTarget, &n.target_node_id, index);
+                    push_target(
+                        refs,
+                        &id,
+                        &path,
+                        ReferenceKind::PhysicsTarget,
+                        &n.target_node_id,
+                        index,
+                    );
                 }
             }
             "LiveRegion" => {
                 if let Some(n) = child.as_type::<crate::ir::LiveRegion>() {
-                    push_target(refs, &id, &path, ReferenceKind::LiveRegionTarget, &n.target_node_id, index);
+                    push_target(
+                        refs,
+                        &id,
+                        &path,
+                        ReferenceKind::LiveRegionTarget,
+                        &n.target_node_id,
+                        index,
+                    );
                 }
             }
             "FocusTrap" => {
                 if let Some(n) = child.as_type::<crate::ir::FocusTrap>() {
-                    push_target(refs, &id, &path, ReferenceKind::FocusTrapContainer, &n.container_node_id, index);
-                    push_target(refs, &id, &path, ReferenceKind::FocusTrapInitialFocus, &n.initial_focus_node_id, index);
+                    push_target(
+                        refs,
+                        &id,
+                        &path,
+                        ReferenceKind::FocusTrapContainer,
+                        &n.container_node_id,
+                        index,
+                    );
+                    push_target(
+                        refs,
+                        &id,
+                        &path,
+                        ReferenceKind::FocusTrapInitialFocus,
+                        &n.initial_focus_node_id,
+                        index,
+                    );
                 }
             }
             "SubscriptionNode" => {
                 if let Some(n) = child.as_type::<crate::ir::SubscriptionNode>() {
-                    push_target(refs, &id, &path, ReferenceKind::SubscriptionTarget, &n.target_data_node_id, index);
+                    push_target(
+                        refs,
+                        &id,
+                        &path,
+                        ReferenceKind::SubscriptionTarget,
+                        &n.target_data_node_id,
+                        index,
+                    );
                 }
             }
             "StateMachine" => {
@@ -360,8 +419,7 @@ fn build_state_machine(node_id: &str, sm: &crate::ir::StateMachine) -> StateMach
         .filter_map(|t| {
             let from = t.from.clone()?;
             let to = t.to.clone()?;
-            let valid =
-                declared.contains(from.as_str()) && declared.contains(to.as_str());
+            let valid = declared.contains(from.as_str()) && declared.contains(to.as_str());
             Some(StateTransition {
                 event: t.event.clone(),
                 from,
@@ -454,9 +512,27 @@ mod tests {
         let g = build(&ir, &idx);
         let sm = &g.state_machines[0];
         assert_eq!(sm.initial_state.as_deref(), Some("idle"));
-        assert!(sm.states.iter().find(|s| s.name == "idle").unwrap().reachable);
-        assert!(sm.states.iter().find(|s| s.name == "loading").unwrap().reachable);
-        assert!(!sm.states.iter().find(|s| s.name == "orphan").unwrap().reachable);
+        assert!(
+            sm.states
+                .iter()
+                .find(|s| s.name == "idle")
+                .unwrap()
+                .reachable
+        );
+        assert!(
+            sm.states
+                .iter()
+                .find(|s| s.name == "loading")
+                .unwrap()
+                .reachable
+        );
+        assert!(
+            !sm.states
+                .iter()
+                .find(|s| s.name == "orphan")
+                .unwrap()
+                .reachable
+        );
         assert_eq!(sm.unreachable_states, vec!["orphan".to_string()]);
         assert!(sm.transitions[0].valid);
     }
@@ -470,8 +546,16 @@ mod tests {
         ] } }"#;
         let (ir, idx) = parse(json);
         let g = build(&ir, &idx);
-        assert!(g.composition_edges.iter().any(|e| e.parent == "r" && e.child == "outer"));
-        assert!(g.composition_edges.iter().any(|e| e.parent == "outer" && e.child == "t"));
+        assert!(
+            g.composition_edges
+                .iter()
+                .any(|e| e.parent == "r" && e.child == "outer")
+        );
+        assert!(
+            g.composition_edges
+                .iter()
+                .any(|e| e.parent == "outer" && e.child == "t")
+        );
     }
 
     #[test]

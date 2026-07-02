@@ -132,8 +132,8 @@ pub fn run(json: &str, opts: &LoopOptions) -> Result<LoopResult, String> {
         }
         iterations += 1;
 
-        let current_text = serde_json::to_string(&value)
-            .map_err(|e| format!("re-serialize IR: {e}"))?;
+        let current_text =
+            serde_json::to_string(&value).map_err(|e| format!("re-serialize IR: {e}"))?;
         let result = validate(&current_text)?;
 
         // Pick the first applicable fix at or below threshold,
@@ -151,7 +151,14 @@ pub fn run(json: &str, opts: &LoopOptions) -> Result<LoopResult, String> {
             // Nothing left to apply at threshold — terminate. Residual
             // codes are whatever diagnostics remain.
             return Ok(LoopResult {
-                plan: finalize_plan(steps, &result, converges, iterations, hit_cap, &opts.threshold),
+                plan: finalize_plan(
+                    steps,
+                    &result,
+                    converges,
+                    iterations,
+                    hit_cap,
+                    &opts.threshold,
+                ),
                 final_ir: value,
             });
         };
@@ -181,7 +188,14 @@ pub fn run(json: &str, opts: &LoopOptions) -> Result<LoopResult, String> {
             let after = validate(&current_text)?;
             converges = false;
             return Ok(LoopResult {
-                plan: finalize_plan(steps, &after, converges, iterations, hit_cap, &opts.threshold),
+                plan: finalize_plan(
+                    steps,
+                    &after,
+                    converges,
+                    iterations,
+                    hit_cap,
+                    &opts.threshold,
+                ),
                 final_ir: value,
             });
         }
@@ -212,7 +226,14 @@ pub fn run(json: &str, opts: &LoopOptions) -> Result<LoopResult, String> {
                 // applied a patch — non-progress.
                 converges = false;
                 return Ok(LoopResult {
-                    plan: finalize_plan(steps, &after, converges, iterations, hit_cap, &opts.threshold),
+                    plan: finalize_plan(
+                        steps,
+                        &after,
+                        converges,
+                        iterations,
+                        hit_cap,
+                        &opts.threshold,
+                    ),
                     final_ir: value,
                 });
             }
@@ -226,11 +247,18 @@ pub fn run(json: &str, opts: &LoopOptions) -> Result<LoopResult, String> {
     }
 
     // Cap path: re-validate once for an accurate residual report.
-    let current_text = serde_json::to_string(&value)
-        .map_err(|e| format!("re-serialize IR at cap: {e}"))?;
+    let current_text =
+        serde_json::to_string(&value).map_err(|e| format!("re-serialize IR at cap: {e}"))?;
     let result = validate(&current_text)?;
     Ok(LoopResult {
-        plan: finalize_plan(steps, &result, converges, iterations, hit_cap, &opts.threshold),
+        plan: finalize_plan(
+            steps,
+            &result,
+            converges,
+            iterations,
+            hit_cap,
+            &opts.threshold,
+        ),
         final_ir: value,
     })
 }
@@ -335,7 +363,10 @@ mod tests {
         }"#;
         let r = run(json, &LoopOptions::default()).expect("loop runs");
         assert!(r.plan.plan.is_empty(), "no fix builder for A11Y004");
-        assert!(r.plan.converges, "no progress to make is not non-convergence");
+        assert!(
+            r.plan.converges,
+            "no progress to make is not non-convergence"
+        );
         assert!(
             r.plan.residual_codes.iter().any(|c| c == "A11Y004"),
             "A11Y004 should be residual, got {:?}",
@@ -380,7 +411,10 @@ mod tests {
         }"#;
         let r = run(
             json,
-            &LoopOptions { threshold: Confidence::Safe, max_iters: 0 },
+            &LoopOptions {
+                threshold: Confidence::Safe,
+                max_iters: 0,
+            },
         )
         .expect("loop runs");
         assert!(r.plan.hit_iteration_cap);
