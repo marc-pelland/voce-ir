@@ -739,3 +739,25 @@ fn equal_fraction_grid_becomes_auto_fit_but_unequal_is_preserved() {
     );
     assert!(!html2.contains("auto-fit"));
 }
+
+#[test]
+fn rich_text_table_is_wrapped_for_horizontal_scroll() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "RichTextNode", "value": { "node_id": "rt", "blocks": [
+                { "block_type": "Table", "rows": [
+                    { "block_type": "TableRow", "rows": [
+                        { "block_type": "TableCell", "children": [ { "text": "A" } ] },
+                        { "block_type": "TableCell", "children": [ { "text": "B" } ] }
+                    ] }
+                ] }
+            ] } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(
+        html.contains("<div style=\"overflow-x:auto\">"),
+        "table must be wrapped: {html}"
+    );
+    assert!(html.contains("<table>"));
+}

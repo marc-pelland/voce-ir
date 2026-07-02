@@ -784,6 +784,9 @@ fn emit_rich_text(html: &mut String, blocks: &[crate::compiler_ir::RichTextBlock
                 }
             }
             "Table" => {
+                // Wrap in a horizontally scrollable container so a wide table
+                // scrolls instead of overflowing the viewport on narrow screens.
+                html.push_str(&format!("{indent}<div style=\"overflow-x:auto\">\n"));
                 html.push_str(&format!("{indent}<table>\n"));
                 for row in &block.rows {
                     html.push_str(&format!("{indent}  <tr>\n"));
@@ -797,6 +800,7 @@ fn emit_rich_text(html: &mut String, blocks: &[crate::compiler_ir::RichTextBlock
                     html.push_str(&format!("{indent}  </tr>\n"));
                 }
                 html.push_str(&format!("{indent}</table>\n"));
+                html.push_str(&format!("{indent}</div>\n"));
             }
             _ => {
                 // Unknown block type — emit as paragraph
