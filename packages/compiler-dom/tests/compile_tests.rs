@@ -1064,3 +1064,43 @@ fn state_machine_syncs_aria_per_state() {
         "non-aria attribute leaked: {html2}"
     );
 }
+
+#[test]
+fn form_field_style_and_layout_are_emitted() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "FormNode", "value": { "node_id": "f", "action_endpoint": "/x", "action_method": "post",
+                "layout": { "direction": "Row", "gap": { "value": 12, "unit": "Px" }, "max_width": { "value": 600, "unit": "Px" } },
+                "fields": [
+                    { "name": "q", "field_type": "text", "label": "Q", "validations": [],
+                      "style": {
+                          "text_color": { "r": 10, "g": 20, "b": 30 },
+                          "placeholder_color": { "r": 150, "g": 150, "b": 150 },
+                          "focus_style": { "text_color": { "r": 0, "g": 0, "b": 255 } }
+                      } }
+                ] } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    // FormLayout on the <form>.
+    assert!(
+        html.contains("flex-direction:row"),
+        "layout not applied: {html}"
+    );
+    assert!(html.contains("gap:12px"));
+    assert!(html.contains("max-width:600px"));
+    // Base field style inline.
+    assert!(
+        html.contains("color:rgb(10,20,30)"),
+        "base field style not applied: {html}"
+    );
+    // Pseudo rules in a scoped style block.
+    assert!(
+        html.contains("::placeholder{color:rgb(150,150,150)"),
+        "placeholder color missing: {html}"
+    );
+    assert!(
+        html.contains(":focus{color:rgb(0,0,255)"),
+        "focus style missing: {html}"
+    );
+}

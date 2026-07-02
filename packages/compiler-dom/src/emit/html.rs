@@ -941,16 +941,139 @@ fn emit_rich_text_spans(html: &mut String, spans: &[crate::compiler_ir::RichText
     }
 }
 
+/// Inline style for a form's layout overrides (S72 FormLayout). Overrides the
+/// baseline `form{}` rule since inline styles win over the stylesheet.
+fn form_layout_style(layout: &Option<crate::compiler_ir::CompiledFormLayout>) -> String {
+    let Some(l) = layout.as_ref() else {
+        return String::new();
+    };
+    let mut o = String::new();
+    if let Some(d) = &l.direction {
+        let dir = match d.as_str() {
+            "Row" => "row",
+            "RowReverse" => "row-reverse",
+            "ColumnReverse" => "column-reverse",
+            _ => "column",
+        };
+        o.push_str(&format!("flex-direction:{dir};"));
+    }
+    if let Some(v) = &l.gap {
+        o.push_str(&format!("gap:{};", css_fragment(v)));
+    }
+    if let Some(v) = &l.max_width {
+        o.push_str(&format!("max-width:{};", css_fragment(v)));
+    }
+    if let Some(v) = &l.padding {
+        o.push_str(&format!("padding:{};", css_fragment(v)));
+    }
+    if l.wrap {
+        o.push_str("flex-wrap:wrap;");
+    }
+    o
+}
+
+/// Direct (non-pseudo) CSS declarations for a field style (S72 FormFieldStyle).
+fn field_inline_style(s: &crate::compiler_ir::CompiledFormFieldStyle) -> String {
+    let mut o = String::new();
+    if let Some(v) = &s.padding {
+        o.push_str(&format!("padding:{};", css_fragment(v)));
+    }
+    if let Some(v) = &s.border {
+        o.push_str(&format!("border:{};", css_fragment(v)));
+    }
+    if let Some(v) = &s.corner_radius {
+        o.push_str(&format!("border-radius:{};", css_fragment(v)));
+    }
+    if let Some(v) = &s.background {
+        o.push_str(&format!("background:{};", css_fragment(v)));
+    }
+    if let Some(v) = &s.text_color {
+        o.push_str(&format!("color:{};", css_fragment(v)));
+    }
+    if let Some(v) = &s.font_family {
+        o.push_str(&format!("font-family:{};", css_fragment(v)));
+    }
+    if let Some(v) = &s.font_size {
+        o.push_str(&format!("font-size:{};", css_fragment(v)));
+    }
+    if let Some(v) = &s.font_weight {
+        o.push_str(&format!("font-weight:{};", css_fragment(v)));
+    }
+    if let Some(v) = &s.line_height {
+        o.push_str(&format!("line-height:{};", css_fragment(v)));
+    }
+    o
+}
+
+/// Pseudo-class / pseudo-element rules for a field style (focus/error/disabled
+/// sub-styles and placeholder color) — these can't be inline, so they go in a
+/// per-form `<style>` block. Empty when the field declares none.
+fn field_pseudo_css(
+    field_id: &str,
+    style: &Option<crate::compiler_ir::CompiledFormFieldStyle>,
+) -> String {
+    let Some(s) = style.as_ref() else {
+        return String::new();
+    };
+    // The selector value is a compiler-built id; strip quotes defensively.
+    let sel = format!("[id=\"{}\"]", field_id.replace('"', ""));
+    let mut o = String::new();
+    if let Some(pc) = &s.placeholder_color {
+        o.push_str(&format!(
+            "{sel}::placeholder{{color:{};}}\n",
+            css_fragment(pc)
+        ));
+    }
+    if let Some(fs) = &s.focus_style {
+        let inner = field_inline_style(fs);
+        if !inner.is_empty() {
+            o.push_str(&format!("{sel}:focus{{{inner}}}\n"));
+        }
+    }
+    if let Some(ds) = &s.disabled_style {
+        let inner = field_inline_style(ds);
+        if !inner.is_empty() {
+            o.push_str(&format!("{sel}:disabled{{{inner}}}\n"));
+        }
+    }
+    if let Some(es) = &s.error_style {
+        let inner = field_inline_style(es);
+        if !inner.is_empty() {
+            o.push_str(&format!("{sel}[aria-invalid=\"true\"]{{{inner}}}\n"));
+        }
+    }
+    o
+}
+
 fn emit_form(html: &mut String, form: &crate::compiler_ir::CompiledForm, indent: &str, aria: &str) {
     let method = &form.action_method;
     let action = form.action_endpoint.as_deref().unwrap_or("#");
 
+    // S72 FormLayout overrides the baseline form CSS via inline style.
+    let layout_style = form_layout_style(&form.layout);
+    let form_style_attr = if layout_style.is_empty() {
+        String::new()
+    } else {
+        format!(" style=\"{layout_style}\"")
+    };
+
     // The FormNode's SemanticNode (role/aria-label) is emitted on the <form>;
     // A11Y001 makes that node mandatory, so dropping it left the form unnamed.
     html.push_str(&format!(
-        "{indent}<form id=\"{id}\" method=\"{method}\" action=\"{action}\"{aria} novalidate>\n",
+        "{indent}<form id=\"{id}\" method=\"{method}\" action=\"{action}\"{aria}{form_style_attr} novalidate>\n",
         id = form.id
     ));
+
+    // S72 FormFieldStyle pseudo-class rules (focus/error/disabled/placeholder)
+    // for all fields, collected into one scoped style block.
+    let pseudo: String = form
+        .fields
+        .iter()
+        .map(|f| field_pseudo_css(&format!("{}-{}", form.id, f.name), &f.style))
+        .collect();
+    if !pseudo.is_empty() {
+        html.push_str(&format!("{indent}  <style>\n{pseudo}{indent}  </style>\n"));
+    }
 
     let inner = format!("{indent}  ");
     for field in &form.fields {
@@ -1038,17 +1161,29 @@ fn emit_form(html: &mut String, form: &crate::compiler_ir::CompiledForm, indent:
             .map(|p| format!(" placeholder=\"{}\"", escape_attr(p)))
             .unwrap_or_default();
 
+        // S72 FormFieldStyle base (direct) declarations, applied inline.
+        let base_style = field
+            .style
+            .as_ref()
+            .map(field_inline_style)
+            .unwrap_or_default();
+        let field_style_attr = if base_style.is_empty() {
+            String::new()
+        } else {
+            format!(" style=\"{base_style}\"")
+        };
+
         // Input, textarea, select, checkbox, or radio
         match input_type {
             "textarea" => {
                 html.push_str(&format!(
-                    "{inner}<textarea id=\"{field_id}\" name=\"{name}\"{required_attr}{describedby}{placeholder}></textarea>\n",
+                    "{inner}<textarea id=\"{field_id}\" name=\"{name}\"{required_attr}{describedby}{placeholder}{field_style_attr}></textarea>\n",
                     name = field.name
                 ));
             }
             "select" => {
                 html.push_str(&format!(
-                    "{inner}<select id=\"{field_id}\" name=\"{name}\"{required_attr}{describedby}>\n",
+                    "{inner}<select id=\"{field_id}\" name=\"{name}\"{required_attr}{describedby}{field_style_attr}>\n",
                     name = field.name
                 ));
                 html.push_str(&format!(
@@ -1091,7 +1226,7 @@ fn emit_form(html: &mut String, form: &crate::compiler_ir::CompiledForm, indent:
             }
             _ => {
                 html.push_str(&format!(
-                    "{inner}<input id=\"{field_id}\" name=\"{name}\" type=\"{input_type}\"{required_attr}{autocomplete}{describedby}{placeholder}>\n",
+                    "{inner}<input id=\"{field_id}\" name=\"{name}\" type=\"{input_type}\"{required_attr}{autocomplete}{describedby}{placeholder}{field_style_attr}>\n",
                     name = field.name
                 ));
             }
