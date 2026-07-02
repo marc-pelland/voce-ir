@@ -483,3 +483,86 @@ fn empty_csp_override_falls_back_to_default() {
         "blank override should not suppress the hardened default"
     );
 }
+
+// ─── Output escaping / injection (security) ─────────────────────
+
+#[test]
+fn javascript_href_is_neutralized() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "TextNode", "value": { "node_id": "t", "content": "Click", "href": "javascript:alert(1)" } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(!html.contains("javascript:alert(1)"));
+    assert!(html.contains("href=\"#\""));
+}
+
+#[test]
+fn attribute_breakout_in_href_is_escaped() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "TextNode", "value": { "node_id": "t", "content": "Click", "href": "https://x\" onclick=\"alert(1)" } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(!html.contains("onclick=\"alert(1)\""));
+    assert!(html.contains("&quot;"));
+}
+
+#[test]
+fn bogus_target_is_dropped() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "TextNode", "value": { "node_id": "t", "content": "Click", "href": "https://e.com", "target": "\" onload=\"x" } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(!html.contains("onload"));
+}
+
+#[test]
+fn heading_link_closes_its_anchor() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "TextNode", "value": { "node_id": "h", "content": "Title", "heading_level": 2, "href": "https://e.com" } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(
+        html.contains("</a></h2>"),
+        "heading link must close the anchor: {html}"
+    );
+}
+
+#[test]
+fn jsonld_script_breakout_is_neutralized() {
+    let json = r#"{
+        "root": {
+            "node_id": "root",
+            "metadata": { "structured_data": [
+                { "schema_type": "Article", "properties_json": "\"headline\":\"x</script><script>alert(1)</script>\"" }
+            ] },
+            "children": []
+        }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(!html.contains("</script><script>alert(1)"));
+    assert!(html.contains("\\u003c"));
+}
+
+#[test]
+fn hostile_csp_override_falls_back_to_default() {
+    let json = r#"{
+        "root": {
+            "node_id": "root",
+            "metadata": { "content_security_policy": "default-src *; script-src 'self' 'unsafe-inline'" },
+            "children": []
+        }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(
+        html.contains("frame-ancestors 'none'"),
+        "weakening override must not be honored"
+    );
+}
