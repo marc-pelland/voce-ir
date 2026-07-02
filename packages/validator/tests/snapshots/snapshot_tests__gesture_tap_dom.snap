@@ -8,7 +8,7 @@ expression: html
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-sYiI4x28DNDErBFiUMRoeADW1F4fE3yfM3YYfzESU2M='; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-TU2QTlTOipKstpz9YUmfbIAw4N9Dy4nlEOMSOTGgOYo='; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="X-Frame-Options" content="DENY">
 <meta name="referrer" content="strict-origin-when-cross-origin">
@@ -62,7 +62,7 @@ form [role="alert"]{font-size:13px;color:var(--voce-error,#ef4444)}
   </div>
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
-  const el_tap_handler=document.querySelector('[data-voce-id="btn"]');
+  const el_tap_handler=document.querySelector("[data-voce-id=\"btn\"]");
   if(el_tap_handler){}
 });
 </script>

