@@ -457,14 +457,53 @@ fn emit_node(
                 attrs.push_str(&format!(" aria-label=\"{}\"", escape_attr(label)));
             }
             if let Some(ref lb) = sem.labelled_by {
-                attrs.push_str(&format!(" aria-labelledby=\"{lb}\""));
+                attrs.push_str(&format!(" aria-labelledby=\"{}\"", escape_attr(lb)));
             }
             if let Some(ref db) = sem.described_by {
-                attrs.push_str(&format!(" aria-describedby=\"{db}\""));
+                attrs.push_str(&format!(" aria-describedby=\"{}\"", escape_attr(db)));
             }
+            if let Some(ref c) = sem.controls {
+                attrs.push_str(&format!(" aria-controls=\"{}\"", escape_attr(c)));
+            }
+            // -1 (programmatic focus) is valid and must be emitted; only the
+            // schema's "not set" sentinel is skipped (already mapped to None).
             if let Some(ti) = sem.tab_index {
-                if ti >= 0 {
+                if ti >= -1 {
                     attrs.push_str(&format!(" tabindex=\"{ti}\""));
+                }
+            }
+            if sem.hidden {
+                attrs.push_str(" aria-hidden=\"true\"");
+            }
+            if let Some(v) = sem.expanded {
+                attrs.push_str(&format!(" aria-expanded=\"{v}\""));
+            }
+            if let Some(v) = sem.selected {
+                attrs.push_str(&format!(" aria-selected=\"{v}\""));
+            }
+            if let Some(c) = sem.checked {
+                let v = match c {
+                    1 => "true",
+                    2 => "mixed",
+                    _ => "false",
+                };
+                attrs.push_str(&format!(" aria-checked=\"{v}\""));
+            }
+            if sem.disabled {
+                attrs.push_str(" aria-disabled=\"true\"");
+            }
+            if sem.required {
+                attrs.push_str(" aria-required=\"true\"");
+            }
+            if sem.invalid {
+                attrs.push_str(" aria-invalid=\"true\"");
+            }
+            for (k, v) in &sem.custom_aria {
+                // Only allow well-formed aria-*/data-* attribute names.
+                let safe_name = k.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
+                    && (k.starts_with("aria-") || k.starts_with("data-"));
+                if safe_name {
+                    attrs.push_str(&format!(" {k}=\"{}\"", escape_attr(v)));
                 }
             }
             attrs

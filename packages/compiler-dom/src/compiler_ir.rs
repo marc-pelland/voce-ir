@@ -74,7 +74,26 @@ pub struct SemanticInfo {
     pub label: Option<String>,
     pub labelled_by: Option<String>,
     pub described_by: Option<String>,
+    /// aria-controls target.
+    pub controls: Option<String>,
+    /// tab_index; `-2` in the schema means "not set" and maps to `None`.
     pub tab_index: Option<i32>,
+    /// aria-hidden.
+    pub hidden: bool,
+    /// aria-expanded (`None` = not set).
+    pub expanded: Option<bool>,
+    /// aria-selected (`None` = not set).
+    pub selected: Option<bool>,
+    /// aria-checked: `None` = not set, `Some(0/1/2)` = false/true/mixed.
+    pub checked: Option<i8>,
+    /// aria-disabled.
+    pub disabled: bool,
+    /// aria-required.
+    pub required: bool,
+    /// aria-invalid.
+    pub invalid: bool,
+    /// Custom ARIA attributes (escape hatch): (attribute, value) pairs.
+    pub custom_aria: Vec<(String, String)>,
 }
 
 /// A form ready for HTML + JS compilation.

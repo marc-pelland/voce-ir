@@ -52,6 +52,11 @@ pub fn ingest(json: &str) -> Result<CompilerIr> {
     if let Some(sems) = root.get("semantic_nodes").and_then(|v| v.as_array()) {
         for sem in sems {
             if let Some(id) = sem.get("node_id").and_then(|v| v.as_str()) {
+                // A tri-state aria value: schema uses -1 for "not set",
+                // 0/1 (and 2 for checked's "mixed") otherwise.
+                let tri = |field: &str| -> Option<i64> {
+                    sem.get(field).and_then(|v| v.as_i64()).filter(|&v| v >= 0)
+                };
                 semantic_map.insert(
                     id.to_string(),
                     SemanticInfo {
@@ -65,10 +70,46 @@ pub fn ingest(json: &str) -> Result<CompilerIr> {
                             .get("described_by")
                             .and_then(|v| v.as_str())
                             .map(String::from),
+                        controls: sem
+                            .get("controls")
+                            .and_then(|v| v.as_str())
+                            .filter(|s| !s.is_empty())
+                            .map(String::from),
+                        // -2 = "not set" in the schema.
                         tab_index: sem
                             .get("tab_index")
                             .and_then(|v| v.as_i64())
+                            .filter(|&v| v > -2)
                             .map(|v| v as i32),
+                        hidden: sem.get("hidden").and_then(|v| v.as_bool()).unwrap_or(false),
+                        expanded: tri("aria_expanded").map(|v| v == 1),
+                        selected: tri("aria_selected").map(|v| v == 1),
+                        checked: tri("aria_checked").map(|v| v as i8),
+                        disabled: sem
+                            .get("aria_disabled")
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or(false),
+                        required: sem
+                            .get("aria_required")
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or(false),
+                        invalid: sem
+                            .get("aria_invalid")
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or(false),
+                        custom_aria: sem
+                            .get("custom_aria")
+                            .and_then(|v| v.as_array())
+                            .map(|arr| {
+                                arr.iter()
+                                    .filter_map(|kv| {
+                                        let k = kv.get("key")?.as_str()?;
+                                        let v = kv.get("value")?.as_str()?;
+                                        Some((k.to_string(), v.to_string()))
+                                    })
+                                    .collect()
+                            })
+                            .unwrap_or_default(),
                     },
                 );
             }

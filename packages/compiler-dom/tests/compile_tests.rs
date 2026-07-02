@@ -898,3 +898,39 @@ fn no_skip_link_without_a_main_landmark() {
         "no skip link without a main landmark"
     );
 }
+
+#[test]
+fn semantic_node_aria_states_are_emitted() {
+    let json = r#"{
+        "root": { "node_id": "root",
+            "semantic_nodes": [ { "node_id": "s", "role": "button", "controls": "panel",
+                "aria_expanded": 0, "aria_disabled": true, "tab_index": -1,
+                "custom_aria": [ { "key": "aria-haspopup", "value": "menu" } ] } ],
+            "children": [
+                { "value_type": "Surface", "value": { "node_id": "btn", "semantic_node_id": "s", "children": [] } }
+            ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(html.contains("aria-controls=\"panel\""), "got: {html}");
+    assert!(html.contains("aria-expanded=\"false\""));
+    assert!(html.contains("aria-disabled=\"true\""));
+    assert!(html.contains("tabindex=\"-1\""));
+    assert!(html.contains("aria-haspopup=\"menu\""));
+}
+
+#[test]
+fn custom_aria_rejects_non_aria_attribute_names() {
+    let json = r#"{
+        "root": { "node_id": "root",
+            "semantic_nodes": [ { "node_id": "s", "role": "button",
+                "custom_aria": [ { "key": "onclick", "value": "alert(1)" } ] } ],
+            "children": [
+                { "value_type": "Surface", "value": { "node_id": "btn", "semantic_node_id": "s", "children": [] } }
+            ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(
+        !html.contains("onclick"),
+        "custom_aria must not emit arbitrary attributes: {html}"
+    );
+}
