@@ -1104,3 +1104,33 @@ fn form_field_style_and_layout_are_emitted() {
         "focus style missing: {html}"
     );
 }
+
+#[test]
+fn rounded_surface_gets_default_elevation() {
+    // A rounded, non-decorative Surface with no explicit shadow reads as a card.
+    let json = r#"{ "root": { "node_id": "root", "children": [
+        { "value_type": "Surface", "value": { "node_id": "card",
+            "corner_radius": { "top_left": { "value": 8, "unit": "Px" }, "top_right": { "value": 8, "unit": "Px" },
+                "bottom_left": { "value": 8, "unit": "Px" }, "bottom_right": { "value": 8, "unit": "Px" } },
+            "children": [] } }
+    ] } }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(
+        html.contains("--voce-shadow-sm:"),
+        "shadow token missing: {html}"
+    );
+    assert!(
+        html.contains("box-shadow:var(--voce-shadow-sm)"),
+        "rounded card should get default elevation: {html}"
+    );
+
+    // A non-rounded Surface stays flat.
+    let flat = r#"{ "root": { "node_id": "root", "children": [
+        { "value_type": "Surface", "value": { "node_id": "plain", "children": [] } }
+    ] } }"#;
+    let html2 = compile(flat, &CompileOptions::default()).unwrap().html;
+    assert!(
+        !html2.contains("box-shadow:var(--voce-shadow-sm)"),
+        "flat surface must stay flat: {html2}"
+    );
+}

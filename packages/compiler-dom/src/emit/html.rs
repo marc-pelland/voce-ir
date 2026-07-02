@@ -215,8 +215,8 @@ fn emit_head(
     // theme_vars (emitted below) override these.
     // color-scheme lets native UI (scrollbars, form controls, date pickers,
     // autofill) follow the user's preference instead of always rendering light.
-    html.push_str(":root{color-scheme:light dark;--voce-fg:#111;--voce-bg:#fff;--voce-muted-fg:#666;--voce-border:rgba(127,127,127,.25);--voce-surface:rgba(127,127,127,.04);--voce-primary:#6366f1;--voce-primary-hover:#818cf8;--voce-error:#ef4444;--voce-warning:#f59e0b;--voce-success:#10b981}\n");
-    html.push_str("@media (prefers-color-scheme:dark){:root{--voce-fg:#e8e8ec;--voce-bg:#0a0a0c;--voce-muted-fg:#8b8b94;--voce-border:rgba(255,255,255,.12);--voce-surface:rgba(255,255,255,.04)}}\n");
+    html.push_str(":root{color-scheme:light dark;--voce-fg:#111;--voce-bg:#fff;--voce-muted-fg:#666;--voce-border:rgba(127,127,127,.25);--voce-surface:rgba(127,127,127,.04);--voce-primary:#6366f1;--voce-primary-hover:#818cf8;--voce-error:#ef4444;--voce-warning:#f59e0b;--voce-success:#10b981;--voce-shadow-sm:0 1px 2px rgba(0,0,0,.06),0 1px 3px rgba(0,0,0,.1);--voce-shadow-md:0 4px 6px rgba(0,0,0,.05),0 10px 15px rgba(0,0,0,.1)}\n");
+    html.push_str("@media (prefers-color-scheme:dark){:root{--voce-fg:#e8e8ec;--voce-bg:#0a0a0c;--voce-muted-fg:#8b8b94;--voce-border:rgba(255,255,255,.12);--voce-surface:rgba(255,255,255,.04);--voce-shadow-sm:0 1px 2px rgba(0,0,0,.4),0 1px 3px rgba(0,0,0,.5);--voce-shadow-md:0 4px 6px rgba(0,0,0,.4),0 10px 15px rgba(0,0,0,.5)}}\n");
 
     // Theme CSS custom properties (IR-defined; overrides the fallback above)
     if !ir.meta.theme_vars.is_empty() {
@@ -620,7 +620,12 @@ fn emit_node(
             href,
             target,
         } => {
-            let style = build_style_string(&node.styles);
+            let mut style = build_style_string(&node.styles);
+            // A rounded, non-decorative Surface reads as a card; give it a
+            // subtle default elevation unless the IR already set a shadow.
+            if !*decorative && style.contains("border-radius") && !style.contains("box-shadow") {
+                style.push_str("box-shadow:var(--voce-shadow-sm);");
+            }
             let aria = if *decorative {
                 " role=\"presentation\" aria-hidden=\"true\""
             } else {
