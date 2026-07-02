@@ -228,9 +228,21 @@ fn emit_head(
     // S64: typography rhythm. Headings get tight line-height + bottom margin;
     // paragraphs and list items get a comfortable rhythm. Last-child resets
     // prevent extra trailing space when nested inside a Container.
-    html.push_str("h1,h2,h3,h4,h5,h6{line-height:1.2;margin-bottom:.5em}\n");
-    html.push_str("p{line-height:1.6;margin-bottom:1em}\n");
+    html.push_str("h1,h2,h3,h4,h5,h6{line-height:1.2;margin-bottom:.5em;text-wrap:balance}\n");
+    // Modular type scale for headings that don't carry an explicit IR size
+    // (an inline font-size still wins). h1/h2 stay fluid so they fit narrow
+    // screens; display sizes get tightened letter-spacing.
+    html.push_str("h1{font-size:clamp(2rem,1.45rem+2.2vw,2.75rem);letter-spacing:-.02em}\n");
+    html.push_str("h2{font-size:clamp(1.6rem,1.25rem+1.4vw,2.125rem);letter-spacing:-.01em}\n");
+    html.push_str(
+        "h3{font-size:1.5rem}h4{font-size:1.25rem}h5{font-size:1.125rem}h6{font-size:1rem}\n",
+    );
+    html.push_str(
+        "p{line-height:1.6;margin-bottom:1em;text-wrap:pretty;overflow-wrap:break-word}\n",
+    );
     html.push_str("p:last-child,li:last-child{margin-bottom:0}\n");
+    html.push_str("::selection{background:var(--voce-primary);color:#fff}\n");
+    html.push_str("@media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}\n");
 
     // S64: lists
     html.push_str("ul,ol{margin:0 0 1em 1.5em;padding-left:.5em}\n");
