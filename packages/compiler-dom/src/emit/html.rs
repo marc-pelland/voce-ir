@@ -83,6 +83,19 @@ pub fn emit(ir: &CompilerIr, options: &CompileOptions) -> HtmlOutput {
             interactive_targets.insert(target_id.clone());
         }
     }
+    for trap in &ir.focus_traps {
+        interactive_targets.insert(trap.container_node_id.clone());
+        if let Some(ref nid) = trap.initial_focus_node_id {
+            interactive_targets.insert(nid.clone());
+        }
+    }
+    for sm in &ir.state_machines {
+        for (_, effects) in &sm.state_aria {
+            for (target, _, _) in effects {
+                interactive_targets.insert(target.clone());
+            }
+        }
+    }
 
     // Body
     html.push_str("<body>\n");

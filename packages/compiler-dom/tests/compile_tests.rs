@@ -983,3 +983,84 @@ fn form_marks_busy_and_disables_submit_on_valid_submit() {
     );
     assert!(html.contains("b.disabled=true"));
 }
+
+#[test]
+fn focus_trap_emits_tab_wrap_and_escape() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "Surface", "value": { "node_id": "dialog", "children": [
+                { "value_type": "Surface", "value": { "node_id": "close", "href": "/close", "children": [] } }
+            ] } },
+            { "value_type": "FocusTrap", "value": { "node_id": "ft", "container_node_id": "dialog",
+                "initial_focus_node_id": "close", "escape_behavior": "CloseOnEscape", "restore_focus": true } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    // Container is hooked and the trap logic is present.
+    assert!(
+        html.contains("data-voce-id=\"dialog\""),
+        "container needs a hook: {html}"
+    );
+    assert!(
+        html.contains("addEventListener('keydown'"),
+        "trap keydown missing: {html}"
+    );
+    assert!(html.contains("e.key==='Tab'"));
+    assert!(html.contains("e.key==='Escape'"));
+    // CloseOnEscape hides + restores focus.
+    assert!(html.contains(".hidden=true"));
+}
+
+#[test]
+fn state_machine_syncs_aria_per_state() {
+    // A disclosure: toggling the machine flips aria-expanded on the button and
+    // aria-hidden on the panel.
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "Surface", "value": { "node_id": "btn", "children": [] } },
+            { "value_type": "Surface", "value": { "node_id": "panel", "children": [] } },
+            { "value_type": "StateMachine", "value": { "node_id": "d", "initial_state": "off",
+                "states": [
+                    { "name": "off", "initial": true, "aria": [
+                        { "target_node_id": "btn", "attribute": "aria-expanded", "value": "false" },
+                        { "target_node_id": "panel", "attribute": "aria-hidden", "value": "true" }
+                    ] },
+                    { "name": "on", "aria": [
+                        { "target_node_id": "btn", "attribute": "aria-expanded", "value": "true" },
+                        { "target_node_id": "panel", "attribute": "aria-hidden", "value": "false" }
+                    ] }
+                ],
+                "transitions": [ { "from": "off", "event": "toggle", "to": "on" } ] } },
+            { "value_type": "GestureHandler", "value": { "node_id": "g", "target_node_id": "btn",
+                "gesture_type": "Tap", "trigger_event": "toggle", "trigger_state_machine": "d" } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    // Targets are hooked, the applier exists, is called on transition, and the
+    // initial state is applied on load.
+    assert!(
+        html.contains("data-voce-id=\"panel\""),
+        "panel needs a hook: {html}"
+    );
+    assert!(html.contains("d_applyAria"), "aria applier missing: {html}");
+    assert!(
+        html.contains("d.current=t.to;d_applyAria();"),
+        "not applied on transition: {html}"
+    );
+    assert!(html.contains("aria-expanded"));
+    assert!(html.contains("aria-hidden"));
+
+    // A non-aria/data attribute must not be accepted through this path.
+    let bad = r#"{ "root": { "node_id": "root", "children": [
+        { "value_type": "Surface", "value": { "node_id": "x", "children": [] } },
+        { "value_type": "StateMachine", "value": { "node_id": "m", "initial_state": "s",
+            "states": [ { "name": "s", "initial": true, "aria": [
+                { "target_node_id": "x", "attribute": "onclick", "value": "alert(1)" } ] } ],
+            "transitions": [] } }
+    ] } }"#;
+    let html2 = compile(bad, &CompileOptions::default()).unwrap().html;
+    assert!(
+        !html2.contains("onclick"),
+        "non-aria attribute leaked: {html2}"
+    );
+}

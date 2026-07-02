@@ -144,6 +144,9 @@ pub fn ingest(json: &str) -> Result<CompilerIr> {
     // Collect live regions from LiveRegion nodes
     let live_regions = collect_live_regions(&nodes);
 
+    // Collect focus traps from FocusTrap nodes
+    let focus_traps = collect_focus_traps(&nodes);
+
     Ok(CompilerIr {
         nodes,
         root: root_id,
@@ -156,7 +159,55 @@ pub fn ingest(json: &str) -> Result<CompilerIr> {
         semantic_map,
         responsive_rules,
         live_regions,
+        focus_traps,
     })
+}
+
+/// Resolve FocusTrap nodes into focus-management descriptors.
+fn collect_focus_traps(
+    nodes: &[crate::compiler_ir::CNode],
+) -> Vec<crate::compiler_ir::CompiledFocusTrap> {
+    let mut traps = Vec::new();
+    for node in nodes {
+        if let NodeKind::NonVisual { type_name, data } = &node.kind {
+            if type_name != "FocusTrap" {
+                continue;
+            }
+            let Some(container) = data.get("container_node_id").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            let escape_behavior = data
+                .get("escape_behavior")
+                .and_then(|v| v.as_str())
+                .unwrap_or("CloseOnEscape")
+                .to_string();
+            traps.push(crate::compiler_ir::CompiledFocusTrap {
+                id: node.id.clone(),
+                container_node_id: container.to_string(),
+                initial_focus_node_id: data
+                    .get("initial_focus_node_id")
+                    .and_then(|v| v.as_str())
+                    .filter(|s| !s.is_empty())
+                    .map(String::from),
+                escape_behavior,
+                escape_state_machine: data
+                    .get("escape_state_machine")
+                    .and_then(|v| v.as_str())
+                    .filter(|s| !s.is_empty())
+                    .map(String::from),
+                escape_event: data
+                    .get("escape_event")
+                    .and_then(|v| v.as_str())
+                    .filter(|s| !s.is_empty())
+                    .map(String::from),
+                restore_focus: data
+                    .get("restore_focus")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(true),
+            });
+        }
+    }
+    traps
 }
 
 /// Resolve LiveRegion nodes into aria-live attributes for their targets.
@@ -855,11 +906,34 @@ fn extract_state_machine(value: &Value) -> Option<CompiledStateMachine> {
     let states_arr = value.get("states")?.as_array()?;
     let mut states = Vec::new();
     let mut initial_state = String::new();
+    let mut state_aria: crate::compiler_ir::StateAriaEffects = Vec::new();
 
     for s in states_arr {
         let state_name = s.get("name")?.as_str()?.to_string();
         if s.get("initial").and_then(|v| v.as_bool()).unwrap_or(false) {
             initial_state = state_name.clone();
+        }
+        // Optional per-state ARIA effects: [{ target_node_id, attribute, value }].
+        if let Some(effects) = s.get("aria").and_then(|v| v.as_array()) {
+            let parsed: Vec<(String, String, String)> = effects
+                .iter()
+                .filter_map(|e| {
+                    let target = e.get("target_node_id")?.as_str()?;
+                    let attr = e.get("attribute")?.as_str()?;
+                    let val = e.get("value")?.as_str()?;
+                    // Only ARIA/data attributes; never arbitrary ones.
+                    let ok = (attr.starts_with("aria-") || attr.starts_with("data-"))
+                        && attr.chars().all(|c| c.is_ascii_alphanumeric() || c == '-');
+                    if ok {
+                        Some((target.to_string(), attr.to_string(), val.to_string()))
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            if !parsed.is_empty() {
+                state_aria.push((state_name.clone(), parsed));
+            }
         }
         states.push(state_name);
     }
@@ -892,6 +966,7 @@ fn extract_state_machine(value: &Value) -> Option<CompiledStateMachine> {
         initial_state,
         states,
         transitions,
+        state_aria,
     })
 }
 

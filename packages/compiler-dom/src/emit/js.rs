@@ -3,7 +3,9 @@
 //! Only emits JS when the IR has interactive elements (StateMachine, GestureHandler).
 //! Pages without interactivity get zero JS.
 
-use crate::compiler_ir::{CompiledGestureHandler, CompiledStateMachine, CompilerIr};
+use crate::compiler_ir::{
+    CompiledFocusTrap, CompiledGestureHandler, CompiledStateMachine, CompilerIr,
+};
 
 /// Encode a string as a safe JS string literal (double-quoted).
 ///
@@ -51,7 +53,11 @@ fn css_attr_value(s: &str) -> String {
 /// Generate the JavaScript for all interactive elements.
 /// Returns empty string if no interactivity is needed.
 pub fn emit_js(ir: &CompilerIr) -> String {
-    if ir.state_machines.is_empty() && ir.gesture_handlers.is_empty() && ir.forms.is_empty() {
+    if ir.state_machines.is_empty()
+        && ir.gesture_handlers.is_empty()
+        && ir.forms.is_empty()
+        && ir.focus_traps.is_empty()
+    {
         return String::new();
     }
 
@@ -62,20 +68,97 @@ pub fn emit_js(ir: &CompilerIr) -> String {
         emit_state_machine(&mut js, sm);
     }
 
-    // Gesture handlers (event listeners)
-    let needs_domready = !ir.gesture_handlers.is_empty() || !ir.forms.is_empty();
+    // Gesture handlers, forms, focus traps, and initial ARIA sync all query the
+    // DOM, so they run after DOMContentLoaded.
+    let sms_with_aria: Vec<&CompiledStateMachine> = ir
+        .state_machines
+        .iter()
+        .filter(|sm| !sm.state_aria.is_empty())
+        .collect();
+    let needs_domready = !ir.gesture_handlers.is_empty()
+        || !ir.forms.is_empty()
+        || !ir.focus_traps.is_empty()
+        || !sms_with_aria.is_empty();
     if needs_domready {
         js.push_str("document.addEventListener('DOMContentLoaded',()=>{\n");
+        // Apply each machine's initial-state ARIA before any interaction.
+        for sm in &sms_with_aria {
+            js.push_str(&format!("  {}_applyAria();\n", js_ident(&sm.id)));
+        }
         for gh in &ir.gesture_handlers {
             emit_gesture_handler(&mut js, gh);
         }
         for form in &ir.forms {
             emit_form_validation(&mut js, form);
         }
+        for trap in &ir.focus_traps {
+            emit_focus_trap(&mut js, trap);
+        }
         js.push_str("});\n");
     }
 
     js
+}
+
+fn emit_focus_trap(js: &mut String, trap: &CompiledFocusTrap) {
+    let id = js_ident(&trap.id);
+    let container_sel = js_str(&format!(
+        "[data-voce-id=\"{}\"]",
+        css_attr_value(&trap.container_node_id)
+    ));
+    js.push_str(&format!(
+        "  const ft_{id}=document.querySelector({container_sel});\n"
+    ));
+    js.push_str(&format!("  if(ft_{id}){{"));
+    // Block-scoped, so multiple traps don't collide.
+    js.push_str("const FOCUSABLE='a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex=\"-1\"])';");
+    js.push_str(&format!("let ft_{id}_prev=null;"));
+    js.push_str(&format!(
+        "const ft_{id}_f=()=>Array.from(ft_{id}.querySelectorAll(FOCUSABLE)).filter(el=>el.offsetParent!==null);"
+    ));
+
+    // Tab wraps within the container; Escape follows the trap's behavior.
+    js.push_str(&format!("ft_{id}.addEventListener('keydown',(e)=>{{"));
+    js.push_str(&format!(
+        "if(e.key==='Tab'){{const f=ft_{id}_f();if(!f.length)return;const a=f[0],b=f[f.length-1];if(e.shiftKey&&document.activeElement===a){{e.preventDefault();b.focus();}}else if(!e.shiftKey&&document.activeElement===b){{e.preventDefault();a.focus();}}}}"
+    ));
+    match trap.escape_behavior.as_str() {
+        "CloseOnEscape" => {
+            let restore = if trap.restore_focus {
+                format!("if(ft_{id}_prev&&ft_{id}_prev.focus)ft_{id}_prev.focus();")
+            } else {
+                String::new()
+            };
+            js.push_str(&format!(
+                "else if(e.key==='Escape'){{ft_{id}.hidden=true;{restore}}}"
+            ));
+        }
+        "FireEvent" => {
+            if let (Some(sm), Some(ev)) = (&trap.escape_state_machine, &trap.escape_event) {
+                js.push_str(&format!(
+                    "else if(e.key==='Escape'){{{}_send({});}}",
+                    js_ident(sm),
+                    js_str(ev)
+                ));
+            }
+        }
+        _ => {} // NoEscape: Escape does nothing.
+    }
+    js.push_str("});");
+
+    // Activate: if the container is visible at load, remember focus and move it
+    // into the trap (initial focus node, else the first focusable descendant).
+    let init_focus = match &trap.initial_focus_node_id {
+        Some(nid) => format!(
+            "ft_{id}.querySelector({})||ft_{id}_f()[0]",
+            js_str(&format!("[data-voce-id=\"{}\"]", css_attr_value(nid)))
+        ),
+        None => format!("ft_{id}_f()[0]"),
+    };
+    js.push_str(&format!(
+        "if(ft_{id}.offsetParent!==null){{ft_{id}_prev=document.activeElement;const init={init_focus};if(init)init.focus();}}"
+    ));
+    js.push_str("}\n");
 }
 
 fn emit_state_machine(js: &mut String, sm: &CompiledStateMachine) {
@@ -103,9 +186,32 @@ fn emit_state_machine(js: &mut String, sm: &CompiledStateMachine) {
     }
     js.push_str("};\n");
 
-    // Transition function
+    // Per-state ARIA effects and an applier that syncs them to the DOM.
+    let has_aria = !sm.state_aria.is_empty();
+    if has_aria {
+        js.push_str(&format!("const {var_name}_aria={{"));
+        for (state, effects) in &sm.state_aria {
+            js.push_str(&format!("{}:[", js_str(state)));
+            for (target, attr, value) in effects {
+                let sel = js_str(&format!("[data-voce-id=\"{}\"]", css_attr_value(target)));
+                js.push_str(&format!("[{},{},{}],", sel, js_str(attr), js_str(value)));
+            }
+            js.push_str("],");
+        }
+        js.push_str("};\n");
+        js.push_str(&format!(
+            "function {var_name}_applyAria(){{const es={var_name}_aria[{var_name}.current];if(!es)return;for(const x of es){{const el=document.querySelector(x[0]);if(el)el.setAttribute(x[1],x[2]);}}}}\n"
+        ));
+    }
+
+    // Transition function: update state, then re-sync ARIA.
+    let apply = if has_aria {
+        format!("{var_name}_applyAria();")
+    } else {
+        String::new()
+    };
     js.push_str(&format!(
-        "function {var_name}_send(e){{const t={var_name}_t[{var_name}.current]?.[e];if(!t)return;{var_name}.current=t.to;}}\n"
+        "function {var_name}_send(e){{const t={var_name}_t[{var_name}.current]?.[e];if(!t)return;{var_name}.current=t.to;{apply}}}\n"
     ));
 }
 
