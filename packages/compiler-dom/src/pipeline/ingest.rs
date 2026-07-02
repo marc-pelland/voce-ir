@@ -190,6 +190,20 @@ fn build_meta(root: &Value, doc: &Value) -> DocumentMeta {
     meta
 }
 
+/// Map an IR theme color key to the CSS custom-property token the default
+/// stylesheet actually reads. Most keys map by `_`→`-`, but three long-form
+/// names are abbreviated in the baseline tokens (see `emit_head`), so an IR
+/// theme that sets `background`/`foreground`/`muted_foreground` would otherwise
+/// emit orphan `--voce-background` vars that nothing consumes.
+fn theme_token_name(key: &str) -> String {
+    match key {
+        "background" => "bg".to_string(),
+        "foreground" => "fg".to_string(),
+        "muted_foreground" => "muted-fg".to_string(),
+        other => other.replace('_', "-"),
+    }
+}
+
 /// Convert theme color fields to CSS custom properties.
 fn extract_theme_colors(colors: &Value, vars: &mut Vec<(String, String)>) {
     if let Some(obj) = colors.as_object() {
@@ -199,7 +213,7 @@ fn extract_theme_colors(colors: &Value, vars: &mut Vec<(String, String)>) {
                 color.get("g").and_then(|v| v.as_u64()),
                 color.get("b").and_then(|v| v.as_u64()),
             ) {
-                let css_name = name.replace('_', "-");
+                let css_name = theme_token_name(name);
                 vars.push((format!("--voce-{css_name}"), format!("rgb({r},{g},{b})")));
             }
         }
