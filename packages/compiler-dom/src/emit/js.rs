@@ -134,9 +134,22 @@ fn emit_gesture_handler(js: &mut String, gh: &CompiledGestureHandler) {
 
     js.push_str(&format!("  if(el_{id}){{"));
 
-    // Resolve the action (a state-machine send), if any.
+    // Resolve the action (a state-machine send), if any. After sending, reflect
+    // the machine's new current state onto the element as `data-state` so CSS
+    // (`[data-state="…"]`) and scripts have a live hook — the state machine
+    // otherwise never touches the DOM.
     let action = match (&gh.trigger_event, &gh.trigger_state_machine) {
-        (Some(ev), Some(sm)) => Some(format!("{}_send({})", js_ident(sm), js_str(ev))),
+        (Some(ev), Some(sm)) => {
+            let sm_var = js_ident(sm);
+            // Seed the initial state on the element up front.
+            js.push_str(&format!(
+                "el_{id}.setAttribute('data-state',{sm_var}.current);"
+            ));
+            Some(format!(
+                "{sm_var}_send({});el_{id}.setAttribute('data-state',{sm_var}.current)",
+                js_str(ev)
+            ))
+        }
         _ => None,
     };
 

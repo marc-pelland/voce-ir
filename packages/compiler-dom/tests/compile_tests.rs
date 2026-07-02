@@ -934,3 +934,23 @@ fn custom_aria_rejects_non_aria_attribute_names() {
         "custom_aria must not emit arbitrary attributes: {html}"
     );
 }
+
+#[test]
+fn state_machine_reflects_current_state_on_the_element() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "Surface", "value": { "node_id": "toggle", "children": [] } },
+            { "value_type": "StateMachine", "value": { "node_id": "sm", "initial_state": "off",
+                "states": ["off", "on"],
+                "transitions": [ { "from": "off", "event": "tap", "to": "on" } ] } },
+            { "value_type": "GestureHandler", "value": { "node_id": "g", "target_node_id": "toggle",
+                "gesture_type": "Tap", "trigger_event": "tap", "trigger_state_machine": "sm" } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    // Initial state is seeded and re-reflected after each transition.
+    assert!(
+        html.contains("setAttribute('data-state',sm.current)"),
+        "got: {html}"
+    );
+}
