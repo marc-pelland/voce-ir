@@ -66,12 +66,23 @@ pub fn emit(ir: &CompilerIr, options: &CompileOptions) -> HtmlOutput {
     // Head
     emit_head(&mut html, ir, &preload_images, options, &script_hashes);
 
-    // Collect IDs that gesture handlers target — these need data-voce-id attributes
-    let interactive_targets: std::collections::HashSet<String> = ir
+    // Nodes that need a stable data-voce-id hook so a CSS/JS selector can find
+    // them: gesture targets (event listeners), animation targets (transition
+    // rules), and responsive-override targets (media-query rules). Without this
+    // the responsive and animation selectors match nothing.
+    let mut interactive_targets: std::collections::HashSet<String> = ir
         .gesture_handlers
         .iter()
         .map(|gh| gh.target_node_id.clone())
         .collect();
+    for anim in &ir.animations {
+        interactive_targets.insert(anim.target_node_id.clone());
+    }
+    for rule in &ir.responsive_rules {
+        for (target_id, _, _) in &rule.overrides {
+            interactive_targets.insert(target_id.clone());
+        }
+    }
 
     // Body
     html.push_str("<body>\n");
@@ -286,21 +297,27 @@ fn emit_head(
         html.push_str("}\n");
     }
 
-    // Responsive media queries from ResponsiveRule nodes
+    // Responsive media queries from ResponsiveRule nodes. Each breakpoint
+    // applies over the range [min_width_px, max_width_px); the top breakpoint
+    // is unbounded. Overrides carry `!important` because base node styles are
+    // emitted inline, which would otherwise always win over a stylesheet rule.
     for rule in &ir.responsive_rules {
-        html.push_str(&format!(
-            "@media(max-width:{}px){{\n",
-            rule.min_width_px as u32
-        ));
+        let query = media_query(rule.min_width_px, rule.max_width_px);
+        let wrap = !query.is_empty();
+        if wrap {
+            html.push_str(&format!("{query}{{\n"));
+        }
         for (target_id, property, value) in &rule.overrides {
             html.push_str(&format!(
-                "[data-voce-id=\"{}\"]{{ {}:{}; }}\n",
+                "[data-voce-id=\"{}\"]{{ {}:{} !important; }}\n",
                 css_selector_value(target_id),
-                css_fragment(property),
+                css_fragment(&map_responsive_property(property)),
                 css_fragment(value)
             ));
         }
-        html.push_str("}\n");
+        if wrap {
+            html.push_str("}\n");
+        }
     }
 
     html.push_str("</style>\n");
@@ -1210,6 +1227,44 @@ fn css_fragment(s: &str) -> String {
         .replace(';', "\\3b ")
 }
 
+/// Build the `@media` prelude for a breakpoint range `[min_width, max_width)`.
+/// A min-width of 0 drops the lower bound; a `None` upper bound drops the upper
+/// bound. The upper bound is emitted as `max-width` at the next breakpoint
+/// minus a fractional offset so adjacent ranges never both match at the exact
+/// boundary. Returns an empty string when the range is unbounded on both ends
+/// (the override then applies at every width).
+fn media_query(min_width: f64, max_width: Option<f64>) -> String {
+    let has_min = min_width > 0.0;
+    match (has_min, max_width) {
+        (false, None) => String::new(),
+        (true, None) => format!("@media(min-width:{}px)", min_width as u32),
+        (false, Some(max)) => format!("@media(max-width:{:.2}px)", max - 0.02),
+        (true, Some(max)) => format!(
+            "@media(min-width:{}px) and (max-width:{:.2}px)",
+            min_width as u32,
+            max - 0.02
+        ),
+    }
+}
+
+/// Map a raw IR responsive-override property name to its CSS property. Names
+/// that already look like CSS (or aren't specially cased) fall back to a
+/// `snake_case` → `kebab-case` conversion.
+fn map_responsive_property(p: &str) -> String {
+    match p {
+        "grid_columns" => "grid-template-columns".to_string(),
+        "grid_rows" => "grid-template-rows".to_string(),
+        "font_size" => "font-size".to_string(),
+        "font_weight" => "font-weight".to_string(),
+        "line_height" => "line-height".to_string(),
+        "background" | "background_color" => "background-color".to_string(),
+        "color" | "text_color" => "color".to_string(),
+        "flex_direction" => "flex-direction".to_string(),
+        "text_align" => "text-align".to_string(),
+        other => other.replace('_', "-"),
+    }
+}
+
 /// Valid `target` attribute values. A `target` outside this set is dropped, so
 /// an IR string can neither break out of the attribute nor defeat the
 /// `rel="noopener"` auto-emission for `_blank`.
@@ -1225,5 +1280,38 @@ fn target_and_rel(target: Option<&str>) -> (String, &'static str) {
             },
         ),
         None => (String::new(), ""),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn media_query_ranges() {
+        // Mobile breakpoint (0..768): lower bound dropped, bounded above.
+        assert_eq!(media_query(0.0, Some(768.0)), "@media(max-width:767.98px)");
+        // Middle breakpoint (768..1024): both bounds.
+        assert_eq!(
+            media_query(768.0, Some(1024.0)),
+            "@media(min-width:768px) and (max-width:1023.98px)"
+        );
+        // Top breakpoint (1024..): unbounded above.
+        assert_eq!(media_query(1024.0, None), "@media(min-width:1024px)");
+        // Degenerate single breakpoint at 0: no query, applies everywhere.
+        assert_eq!(media_query(0.0, None), "");
+    }
+
+    #[test]
+    fn responsive_property_mapping() {
+        assert_eq!(
+            map_responsive_property("grid_columns"),
+            "grid-template-columns"
+        );
+        assert_eq!(map_responsive_property("font_size"), "font-size");
+        // Unknown snake_case falls back to kebab-case.
+        assert_eq!(map_responsive_property("max_width"), "max-width");
+        // Already-CSS names pass through.
+        assert_eq!(map_responsive_property("display"), "display");
     }
 }

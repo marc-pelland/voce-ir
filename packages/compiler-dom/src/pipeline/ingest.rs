@@ -1180,6 +1180,13 @@ fn collect_responsive_rules(
                     })
                     .unwrap_or_default();
 
+                // Sorted ladder of all breakpoint min-widths, so each override
+                // set can be bounded by the next breakpoint above it. Without
+                // this, a breakpoint whose only override is at min-width 0 has
+                // no way to know it should stop applying at the next breakpoint.
+                let mut ladder: Vec<f64> = breakpoints.values().copied().collect();
+                ladder.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+
                 // Parse overrides per breakpoint
                 if let Some(overrides) = data.get("responsive_overrides").and_then(|v| v.as_array())
                 {
@@ -1189,6 +1196,9 @@ fn collect_responsive_rules(
                             .and_then(|v| v.as_str())
                             .unwrap_or("");
                         let min_width = breakpoints.get(bp_name).copied().unwrap_or(0.0);
+                        // The next distinct breakpoint above this one bounds the
+                        // range; the top breakpoint is unbounded.
+                        let max_width = ladder.iter().copied().find(|&w| w > min_width);
 
                         let props: Vec<(String, String, String)> = override_set
                             .get("overrides")
@@ -1212,6 +1222,7 @@ fn collect_responsive_rules(
                         if !props.is_empty() {
                             rules.push(crate::compiler_ir::CompiledResponsiveRule {
                                 min_width_px: min_width,
+                                max_width_px: max_width,
                                 overrides: props,
                             });
                         }

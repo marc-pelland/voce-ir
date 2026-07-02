@@ -566,3 +566,66 @@ fn hostile_csp_override_falls_back_to_default() {
         "weakening override must not be honored"
     );
 }
+
+// ─── Responsiveness ─────────────────────────────────────────────
+
+#[test]
+fn responsive_rule_emits_bounded_media_query_and_hook() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "Container", "value": { "node_id": "grid", "layout": "Grid",
+                "grid_columns": [ { "value": 1, "unit": "Fr" }, { "value": 1, "unit": "Fr" }, { "value": 1, "unit": "Fr" } ],
+                "children": [] } },
+            { "value_type": "ResponsiveRule", "value": {
+                "node_id": "rr",
+                "breakpoints": [
+                    { "name": "mobile", "min_width": { "value": 0.0, "unit": "Px" } },
+                    { "name": "desktop", "min_width": { "value": 1024.0, "unit": "Px" } }
+                ],
+                "responsive_overrides": [
+                    { "breakpoint_name": "mobile", "overrides": [
+                        { "target_node_id": "grid", "property": "grid_columns", "value": "1fr" }
+                    ] }
+                ]
+            } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    // Mobile range is bounded by the next breakpoint, not the broken max-width:0.
+    assert!(
+        !html.contains("max-width:0px"),
+        "regression: max-width:0 bug"
+    );
+    assert!(html.contains("@media(max-width:1023.98px)"), "got: {html}");
+    // IR property name mapped to CSS, and !important so it beats inline styles.
+    assert!(html.contains("grid-template-columns:1fr !important"));
+    // The target node got a stable hook so the selector matches something.
+    assert!(html.contains("data-voce-id=\"grid\""));
+}
+
+#[test]
+fn top_responsive_breakpoint_is_unbounded() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "Container", "value": { "node_id": "c", "children": [] } },
+            { "value_type": "ResponsiveRule", "value": {
+                "node_id": "rr",
+                "breakpoints": [
+                    { "name": "mobile", "min_width": { "value": 0.0, "unit": "Px" } },
+                    { "name": "desktop", "min_width": { "value": 1024.0, "unit": "Px" } }
+                ],
+                "responsive_overrides": [
+                    { "breakpoint_name": "desktop", "overrides": [
+                        { "target_node_id": "c", "property": "padding", "value": "64px" }
+                    ] }
+                ]
+            } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(html.contains("@media(min-width:1024px)"), "got: {html}");
+    assert!(
+        !html.contains("and (max-width"),
+        "top breakpoint must be unbounded"
+    );
+}
