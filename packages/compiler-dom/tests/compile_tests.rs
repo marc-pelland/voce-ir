@@ -954,3 +954,30 @@ fn state_machine_reflects_current_state_on_the_element() {
         "got: {html}"
     );
 }
+
+#[test]
+fn focus_trap_emits_tab_wrap_and_escape() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "Surface", "value": { "node_id": "dialog", "children": [
+                { "value_type": "Surface", "value": { "node_id": "close", "href": "/close", "children": [] } }
+            ] } },
+            { "value_type": "FocusTrap", "value": { "node_id": "ft", "container_node_id": "dialog",
+                "initial_focus_node_id": "close", "escape_behavior": "CloseOnEscape", "restore_focus": true } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    // Container is hooked and the trap logic is present.
+    assert!(
+        html.contains("data-voce-id=\"dialog\""),
+        "container needs a hook: {html}"
+    );
+    assert!(
+        html.contains("addEventListener('keydown'"),
+        "trap keydown missing: {html}"
+    );
+    assert!(html.contains("e.key==='Tab'"));
+    assert!(html.contains("e.key==='Escape'"));
+    // CloseOnEscape hides + restores focus.
+    assert!(html.contains(".hidden=true"));
+}

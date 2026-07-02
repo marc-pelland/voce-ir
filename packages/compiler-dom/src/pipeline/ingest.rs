@@ -144,6 +144,9 @@ pub fn ingest(json: &str) -> Result<CompilerIr> {
     // Collect live regions from LiveRegion nodes
     let live_regions = collect_live_regions(&nodes);
 
+    // Collect focus traps from FocusTrap nodes
+    let focus_traps = collect_focus_traps(&nodes);
+
     Ok(CompilerIr {
         nodes,
         root: root_id,
@@ -156,7 +159,55 @@ pub fn ingest(json: &str) -> Result<CompilerIr> {
         semantic_map,
         responsive_rules,
         live_regions,
+        focus_traps,
     })
+}
+
+/// Resolve FocusTrap nodes into focus-management descriptors.
+fn collect_focus_traps(
+    nodes: &[crate::compiler_ir::CNode],
+) -> Vec<crate::compiler_ir::CompiledFocusTrap> {
+    let mut traps = Vec::new();
+    for node in nodes {
+        if let NodeKind::NonVisual { type_name, data } = &node.kind {
+            if type_name != "FocusTrap" {
+                continue;
+            }
+            let Some(container) = data.get("container_node_id").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            let escape_behavior = data
+                .get("escape_behavior")
+                .and_then(|v| v.as_str())
+                .unwrap_or("CloseOnEscape")
+                .to_string();
+            traps.push(crate::compiler_ir::CompiledFocusTrap {
+                id: node.id.clone(),
+                container_node_id: container.to_string(),
+                initial_focus_node_id: data
+                    .get("initial_focus_node_id")
+                    .and_then(|v| v.as_str())
+                    .filter(|s| !s.is_empty())
+                    .map(String::from),
+                escape_behavior,
+                escape_state_machine: data
+                    .get("escape_state_machine")
+                    .and_then(|v| v.as_str())
+                    .filter(|s| !s.is_empty())
+                    .map(String::from),
+                escape_event: data
+                    .get("escape_event")
+                    .and_then(|v| v.as_str())
+                    .filter(|s| !s.is_empty())
+                    .map(String::from),
+                restore_focus: data
+                    .get("restore_focus")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(true),
+            });
+        }
+    }
+    traps
 }
 
 /// Resolve LiveRegion nodes into aria-live attributes for their targets.

@@ -36,6 +36,25 @@ pub struct CompilerIr {
     pub responsive_rules: Vec<CompiledResponsiveRule>,
     /// Live regions — aria-live attributes to attach to their target nodes.
     pub live_regions: Vec<CompiledLiveRegion>,
+    /// Focus traps — keyboard focus management for modals/dialogs.
+    pub focus_traps: Vec<CompiledFocusTrap>,
+}
+
+/// A focus trap resolved for emission.
+#[derive(Debug, Clone)]
+pub struct CompiledFocusTrap {
+    pub id: String,
+    /// Container whose subtree receives trapped focus.
+    pub container_node_id: String,
+    /// Node to focus on activation (else the first focusable descendant).
+    pub initial_focus_node_id: Option<String>,
+    /// "CloseOnEscape" | "NoEscape" | "FireEvent".
+    pub escape_behavior: String,
+    /// For FireEvent escape: the state machine + event to fire.
+    pub escape_state_machine: Option<String>,
+    pub escape_event: Option<String>,
+    /// Restore focus to the previously focused element on deactivate.
+    pub restore_focus: bool,
 }
 
 /// A live region resolved for emission onto its target element.

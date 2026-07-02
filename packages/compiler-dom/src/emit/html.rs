@@ -83,6 +83,12 @@ pub fn emit(ir: &CompilerIr, options: &CompileOptions) -> HtmlOutput {
             interactive_targets.insert(target_id.clone());
         }
     }
+    for trap in &ir.focus_traps {
+        interactive_targets.insert(trap.container_node_id.clone());
+        if let Some(ref nid) = trap.initial_focus_node_id {
+            interactive_targets.insert(nid.clone());
+        }
+    }
 
     // Body
     html.push_str("<body>\n");
