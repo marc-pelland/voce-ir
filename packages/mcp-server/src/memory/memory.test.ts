@@ -190,6 +190,16 @@ describe("session", () => {
     expect(log.map((e) => e.role)).toEqual(["user", "assistant"]);
   });
 
+  it("rejects path-traversal session ids on read and write", () => {
+    const hostile = "../../../tmp/pwned";
+    expect(() => appendSession(hostile, { role: "user", content: "x" })).toThrow(
+      /invalid session id/i,
+    );
+    expect(() => readSession(hostile)).toThrow(/invalid session id/i);
+    // An absolute path is equally rejected.
+    expect(() => readSession("/etc/passwd")).toThrow(/invalid session id/i);
+  });
+
   it("listSessions reports counts and sorts most-recent-first", async () => {
     const a = newSessionId();
     appendSession(a, { role: "user", content: "first" });
