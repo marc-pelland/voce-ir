@@ -174,7 +174,7 @@ fn emit_form_validation(js: &mut String, form: &crate::compiler_ir::CompiledForm
     js.push_str(&format!(
         "  if({var}_form){{{var}_form.addEventListener('submit',(e)=>{{\n"
     ));
-    js.push_str("    let valid=true;\n");
+    js.push_str("    let valid=true;let firstInvalid=null;\n");
 
     for field in &form.fields {
         let field_id = format!("{form_id}-{}", field.name);
@@ -187,6 +187,10 @@ fn emit_form_validation(js: &mut String, form: &crate::compiler_ir::CompiledForm
         js.push_str(&format!(
             "    const {field_var}_err=document.getElementById({});\n",
             js_str(&format!("{field_id}-error"))
+        ));
+        // Reset this field's error state before re-validating.
+        js.push_str(&format!(
+            "    {field_var}_err.hidden=true;{field_var}.removeAttribute('aria-invalid');\n"
         ));
 
         for rule in &field.validations {
@@ -221,14 +225,17 @@ fn emit_form_validation(js: &mut String, form: &crate::compiler_ir::CompiledForm
                 _ => continue,
             };
 
+            // Only the first failing rule for a field sets the message and
+            // aria-invalid; later rules (and passing rules) don't clobber it.
             js.push_str(&format!(
-                "    if({check}){{{field_var}_err.textContent={};{field_var}_err.hidden=false;valid=false;}}else{{{field_var}_err.hidden=true;}}\n",
+                "    if({check}&&!{field_var}.hasAttribute('aria-invalid')){{{field_var}_err.textContent={};{field_var}_err.hidden=false;{field_var}.setAttribute('aria-invalid','true');valid=false;if(!firstInvalid)firstInvalid={field_var};}}\n",
                 js_str(&rule.message)
             ));
         }
     }
 
-    js.push_str("    if(!valid){e.preventDefault();}\n");
+    // Move focus to the first invalid field so keyboard/AT users land on the error.
+    js.push_str("    if(!valid){e.preventDefault();if(firstInvalid)firstInvalid.focus();}\n");
     js.push_str("  })}\n");
 }
 

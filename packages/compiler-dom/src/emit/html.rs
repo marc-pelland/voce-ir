@@ -893,11 +893,13 @@ fn emit_form(html: &mut String, form: &crate::compiler_ir::CompiledForm, indent:
             label = escape_html(&field.label)
         ));
 
-        // Description (aria-describedby)
+        // aria-describedby: always reference the (present-but-empty) error
+        // container so a validation message is programmatically associated with
+        // the field, plus the description container when there is one.
         let describedby = if field.description.is_some() {
-            format!(" aria-describedby=\"{field_id}-desc\"")
+            format!(" aria-describedby=\"{field_id}-desc {field_id}-error\"")
         } else {
-            String::new()
+            format!(" aria-describedby=\"{field_id}-error\"")
         };
 
         // Required attribute
@@ -914,13 +916,23 @@ fn emit_form(html: &mut String, form: &crate::compiler_ir::CompiledForm, indent:
             .as_ref()
             .map(|a| {
                 let val = match a.as_str() {
-                    "Email" => "email",
+                    "On" => "on",
                     "Name" => "name",
                     "GivenName" => "given-name",
                     "FamilyName" => "family-name",
+                    "Email" => "email",
+                    "Username" => "username",
                     "NewPassword" => "new-password",
                     "CurrentPassword" => "current-password",
                     "Tel" => "tel",
+                    "StreetAddress" => "street-address",
+                    "City" => "address-level2",
+                    "State" => "address-level1",
+                    "PostalCode" => "postal-code",
+                    "Country" => "country",
+                    "CreditCardNumber" => "cc-number",
+                    "CreditCardExp" => "cc-exp",
+                    "CreditCardCsc" => "cc-csc",
                     _ => "off",
                 };
                 format!(" autocomplete=\"{val}\"")

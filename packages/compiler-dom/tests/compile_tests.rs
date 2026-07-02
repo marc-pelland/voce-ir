@@ -806,3 +806,28 @@ fn live_region_emits_aria_live_on_target() {
     assert!(html.contains("aria-relevant=\"all\""));
     assert!(html.contains("aria-roledescription=\"Cart updates\""));
 }
+
+#[test]
+fn form_field_errors_are_wired_and_autocomplete_is_complete() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "FormNode", "value": { "node_id": "f", "action_endpoint": "/x", "action_method": "post",
+                "fields": [
+                    { "name": "addr", "field_type": "text", "label": "Address",
+                      "autocomplete": "StreetAddress",
+                      "validations": [ { "rule_type": "Required", "message": "Required" } ] }
+                ] } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    // F10: the full autocomplete vocabulary maps (no longer collapses to off).
+    assert!(
+        html.contains("autocomplete=\"street-address\""),
+        "got: {html}"
+    );
+    // F9: error container is programmatically associated with the field...
+    assert!(html.contains("aria-describedby=\"f-addr-error\""));
+    // ...and the JS marks invalidity + focuses the first invalid field.
+    assert!(html.contains("setAttribute('aria-invalid','true')"));
+    assert!(html.contains("firstInvalid.focus()"));
+}

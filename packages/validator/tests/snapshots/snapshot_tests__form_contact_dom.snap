@@ -8,7 +8,7 @@ expression: html
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-1MfuE+M8OptB1aaRaGrj5ulbwSB3yI2WC9r+Xsg52Fw='; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-px4sZ6UJe+iRSVmCDiIB+zk0i9Nv65OkMR526hsoZ0I='; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="X-Frame-Options" content="DENY">
 <meta name="referrer" content="strict-origin-when-cross-origin">
@@ -59,10 +59,10 @@ form [role="alert"]{font-size:13px;color:var(--voce-error,#ef4444)}
 <body>
   <form id="contact-form" method="POST" action="contact-action" novalidate>
     <label for="contact-form-email">Email</label>
-    <input id="contact-form-email" name="email" type="email" autocomplete="email">
+    <input id="contact-form-email" name="email" type="email" autocomplete="email" aria-describedby="contact-form-email-error">
     <span id="contact-form-email-error" role="alert" aria-live="polite" hidden></span>
     <label for="contact-form-message">Message</label>
-    <textarea id="contact-form-message" name="message"></textarea>
+    <textarea id="contact-form-message" name="message" aria-describedby="contact-form-message-error"></textarea>
     <span id="contact-form-message-error" role="alert" aria-live="polite" hidden></span>
     <button type="submit">Submit</button>
   </form>
@@ -70,13 +70,15 @@ form [role="alert"]{font-size:13px;color:var(--voce-error,#ef4444)}
 document.addEventListener('DOMContentLoaded',()=>{
   const contact_form_form=document.getElementById("contact-form");
   if(contact_form_form){contact_form_form.addEventListener('submit',(e)=>{
-    let valid=true;
+    let valid=true;let firstInvalid=null;
     const email=document.getElementById("contact-form-email");
     const email_err=document.getElementById("contact-form-email-error");
-    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)){email_err.textContent="Please enter a valid email address.";email_err.hidden=false;valid=false;}else{email_err.hidden=true;}
+    email_err.hidden=true;email.removeAttribute('aria-invalid');
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)&&!email.hasAttribute('aria-invalid')){email_err.textContent="Please enter a valid email address.";email_err.hidden=false;email.setAttribute('aria-invalid','true');valid=false;if(!firstInvalid)firstInvalid=email;}
     const message=document.getElementById("contact-form-message");
     const message_err=document.getElementById("contact-form-message-error");
-    if(!valid){e.preventDefault();}
+    message_err.hidden=true;message.removeAttribute('aria-invalid');
+    if(!valid){e.preventDefault();if(firstInvalid)firstInvalid.focus();}
   })}
 });
 </script>
