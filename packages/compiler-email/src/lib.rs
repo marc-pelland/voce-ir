@@ -32,7 +32,7 @@ pub fn compile_email(json: &str) -> Result<EmailResult> {
     if let Some(root) = doc.get("root") {
         if let Some(meta) = root.get("metadata") {
             if let Some(title) = meta.get("title").and_then(|v| v.as_str()) {
-                html.push_str(&format!("<title>{title}</title>\n"));
+                html.push_str(&format!("<title>{}</title>\n", esc_html(title)));
             }
         }
     }
@@ -103,7 +103,7 @@ fn emit_email_node(html: &mut String, child: &Value) {
             html.push_str("</td>\n</tr>\n");
         }
         "TextNode" => {
-            let content = value.get("content").and_then(|v| v.as_str()).unwrap_or("");
+            let content = esc_html(value.get("content").and_then(|v| v.as_str()).unwrap_or(""));
             let heading = value
                 .get("heading_level")
                 .and_then(|v| v.as_i64())
@@ -143,9 +143,12 @@ fn emit_email_node(html: &mut String, child: &Value) {
             // email-safe anchor (a heading link stays <hN><a>…</a></hN>).
             let href = value.get("href").and_then(|v| v.as_str()).unwrap_or("");
             let inner = if href.is_empty() {
-                content.to_string()
+                content.clone()
             } else {
-                let target = value.get("target").and_then(|v| v.as_str());
+                let target = value
+                    .get("target")
+                    .and_then(|v| v.as_str())
+                    .filter(|t| VALID_TARGETS.contains(t));
                 let target_attr = target
                     .map(|t| format!(" target=\"{t}\""))
                     .unwrap_or_default();
@@ -155,7 +158,8 @@ fn emit_email_node(html: &mut String, child: &Value) {
                     ""
                 };
                 format!(
-                    "<a href=\"{href}\"{target_attr}{rel} style=\"color:inherit\">{content}</a>"
+                    "<a href=\"{}\"{target_attr}{rel} style=\"color:inherit\">{content}</a>",
+                    safe_href(href)
                 )
             };
 
@@ -186,7 +190,10 @@ fn emit_email_node(html: &mut String, child: &Value) {
             let href = value.get("href").and_then(|v| v.as_str()).unwrap_or("");
             let has_href = !href.is_empty();
             if has_href {
-                let target = value.get("target").and_then(|v| v.as_str());
+                let target = value
+                    .get("target")
+                    .and_then(|v| v.as_str())
+                    .filter(|t| VALID_TARGETS.contains(t));
                 let target_attr = target
                     .map(|t| format!(" target=\"{t}\""))
                     .unwrap_or_default();
@@ -196,7 +203,8 @@ fn emit_email_node(html: &mut String, child: &Value) {
                     ""
                 };
                 html.push_str(&format!(
-                    "<a href=\"{href}\"{target_attr}{rel} style=\"display:block;text-decoration:none;color:inherit\">\n"
+                    "<a href=\"{}\"{target_attr}{rel} style=\"display:block;text-decoration:none;color:inherit\">\n",
+                    safe_href(href)
                 ));
             }
             if let Some(children) = value.get("children").and_then(|v| v.as_array()) {
@@ -215,10 +223,60 @@ fn emit_email_node(html: &mut String, child: &Value) {
             let src = value.get("src").and_then(|v| v.as_str()).unwrap_or("");
             let alt = value.get("alt").and_then(|v| v.as_str()).unwrap_or("");
             html.push_str(&format!(
-                "<tr><td><img src=\"{src}\" alt=\"{alt}\" style=\"display:block;max-width:100%;height:auto\" /></td></tr>\n"
+                "<tr><td><img src=\"{}\" alt=\"{}\" style=\"display:block;max-width:100%;height:auto\" /></td></tr>\n",
+                safe_src(src),
+                esc_attr(alt)
             ));
         }
         _ => {}
+    }
+}
+
+/// Valid `target` attribute values. A `target` outside this set is dropped so
+/// an IR string can neither break out of the attribute nor defeat the
+/// `rel="noopener"` auto-emission for `_blank`.
+const VALID_TARGETS: &[&str] = &["_self", "_blank", "_parent", "_top"];
+
+/// Escape a string for HTML text content. IR content is AI- or user-authored
+/// and must never be trusted as markup.
+fn esc_html(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+}
+
+/// Escape a string for a double-quoted HTML attribute value.
+fn esc_attr(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('"', "&quot;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+}
+
+/// True for URL schemes that can execute code (mirrors the validator's SEC
+/// pass). Any non-image `data:` URL is treated as suspect.
+fn is_dangerous_scheme(url: &str) -> bool {
+    let t = url.trim_start().to_ascii_lowercase();
+    t.starts_with("javascript:")
+        || t.starts_with("vbscript:")
+        || (t.starts_with("data:") && !t.starts_with("data:image/"))
+}
+
+/// Return an attribute-safe `href`, collapsing dangerous-scheme URLs to `#`.
+fn safe_href(url: &str) -> String {
+    if is_dangerous_scheme(url) {
+        "#".to_string()
+    } else {
+        esc_attr(url)
+    }
+}
+
+/// Return an attribute-safe image `src`, dropping dangerous-scheme URLs.
+fn safe_src(url: &str) -> String {
+    if is_dangerous_scheme(url) {
+        String::new()
+    } else {
+        esc_attr(url)
     }
 }
 
@@ -270,4 +328,58 @@ fn padding_style(value: &Value) -> String {
             format!("padding:{top:.0}px {right:.0}px {bottom:.0}px {left:.0}px;")
         })
         .unwrap_or_default()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn text_content_is_html_escaped() {
+        let ir = r#"{"root":{"children":[
+            {"value_type":"TextNode","value":{"content":"<script>alert(1)</script>"}}
+        ]}}"#;
+        let out = compile_email(ir).unwrap().html;
+        assert!(!out.contains("<script>alert(1)"));
+        assert!(out.contains("&lt;script&gt;alert(1)"));
+    }
+
+    #[test]
+    fn javascript_href_is_neutralized() {
+        let ir = r#"{"root":{"children":[
+            {"value_type":"TextNode","value":{"content":"x","href":"javascript:alert(1)"}}
+        ]}}"#;
+        let out = compile_email(ir).unwrap().html;
+        assert!(!out.contains("javascript:alert(1)"));
+        assert!(out.contains("href=\"#\""));
+    }
+
+    #[test]
+    fn attribute_breakout_in_href_is_escaped() {
+        let ir = r#"{"root":{"children":[
+            {"value_type":"TextNode","value":{"content":"x","href":"https://x\" onmouseover=\"alert(1)"}}
+        ]}}"#;
+        let out = compile_email(ir).unwrap().html;
+        assert!(!out.contains("onmouseover=\"alert(1)\""));
+        assert!(out.contains("&quot;"));
+    }
+
+    #[test]
+    fn bogus_target_is_dropped() {
+        let ir = r#"{"root":{"children":[
+            {"value_type":"TextNode","value":{"content":"x","href":"https://e.com","target":"\" onload=\"x"}}
+        ]}}"#;
+        let out = compile_email(ir).unwrap().html;
+        assert!(!out.contains("onload"));
+    }
+
+    #[test]
+    fn image_src_javascript_is_dropped() {
+        let ir = r#"{"root":{"children":[
+            {"value_type":"MediaNode","value":{"src":"javascript:alert(1)","alt":"a"}}
+        ]}}"#;
+        let out = compile_email(ir).unwrap().html;
+        assert!(!out.contains("javascript:alert(1)"));
+        assert!(out.contains("src=\"\""));
+    }
 }
