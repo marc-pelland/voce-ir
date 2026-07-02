@@ -188,6 +188,9 @@ fn emit_form_validation(js: &mut String, form: &crate::compiler_ir::CompiledForm
             "    const {field_var}_err=document.getElementById({});\n",
             js_str(&format!("{field_id}-error"))
         ));
+        // Guard: radio/checkbox groups and hidden fields have no element at the
+        // base field id, so skip value-based validation rather than crash.
+        js.push_str(&format!("    if({field_var}&&{field_var}_err){{\n"));
         // Reset this field's error state before re-validating.
         js.push_str(&format!(
             "    {field_var}_err.hidden=true;{field_var}.removeAttribute('aria-invalid');\n"
@@ -232,6 +235,8 @@ fn emit_form_validation(js: &mut String, form: &crate::compiler_ir::CompiledForm
                 js_str(&rule.message)
             ));
         }
+        // Close the element-exists guard opened for this field.
+        js.push_str("    }\n");
     }
 
     // Move focus to the first invalid field so keyboard/AT users land on the error.

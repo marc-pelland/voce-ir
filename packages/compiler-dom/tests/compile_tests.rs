@@ -831,3 +831,38 @@ fn form_field_errors_are_wired_and_autocomplete_is_complete() {
     assert!(html.contains("setAttribute('aria-invalid','true')"));
     assert!(html.contains("firstInvalid.focus()"));
 }
+
+#[test]
+fn form_radio_and_hidden_fields_are_labelled_correctly() {
+    let json = r#"{
+        "root": { "node_id": "root",
+            "semantic_nodes": [ { "node_id": "form-sem", "role": "form", "label": "Signup" } ],
+            "children": [
+            { "value_type": "FormNode", "value": { "node_id": "f", "semantic_node_id": "form-sem",
+                "action_endpoint": "/x", "action_method": "post",
+                "fields": [
+                    { "name": "plan", "field_type": "Radio", "label": "Plan",
+                      "options": ["Free", "Pro"], "validations": [] },
+                    { "name": "token", "field_type": "Hidden", "label": "Token", "validations": [] }
+                ] } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    // F6: the FormNode's SemanticNode reaches the <form>.
+    assert!(
+        html.contains("aria-label=\"Signup\""),
+        "form aria-label missing: {html}"
+    );
+    // F8: radio group uses fieldset+legend, not a dead `for=` label.
+    assert!(html.contains("<fieldset"), "radio needs a fieldset: {html}");
+    assert!(html.contains("<legend>Plan</legend>"));
+    assert!(
+        !html.contains("<label for=\"f-plan\">"),
+        "no dead group label"
+    );
+    // Hidden field gets no visible label.
+    assert!(
+        !html.contains("<label for=\"f-token\">"),
+        "hidden field must not be labelled"
+    );
+}

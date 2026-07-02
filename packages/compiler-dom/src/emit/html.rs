@@ -704,7 +704,7 @@ fn emit_node(
             // FormNode is the exception — it emits <form> HTML.
             if type_name == "FormNode" {
                 if let Some(form) = ir.forms.iter().find(|f| f.id == node.id) {
-                    emit_form(html, form, &indent);
+                    emit_form(html, form, &indent, &aria_attrs);
                 }
             }
         }
@@ -856,12 +856,14 @@ fn emit_rich_text_spans(html: &mut String, spans: &[crate::compiler_ir::RichText
     }
 }
 
-fn emit_form(html: &mut String, form: &crate::compiler_ir::CompiledForm, indent: &str) {
+fn emit_form(html: &mut String, form: &crate::compiler_ir::CompiledForm, indent: &str, aria: &str) {
     let method = &form.action_method;
     let action = form.action_endpoint.as_deref().unwrap_or("#");
 
+    // The FormNode's SemanticNode (role/aria-label) is emitted on the <form>;
+    // A11Y001 makes that node mandatory, so dropping it left the form unnamed.
     html.push_str(&format!(
-        "{indent}<form id=\"{id}\" method=\"{method}\" action=\"{action}\" novalidate>\n",
+        "{indent}<form id=\"{id}\" method=\"{method}\" action=\"{action}\"{aria} novalidate>\n",
         id = form.id
     ));
 
@@ -887,11 +889,16 @@ fn emit_form(html: &mut String, form: &crate::compiler_ir::CompiledForm, indent:
             _ => "text",
         };
 
-        // Label
-        html.push_str(&format!(
-            "{inner}<label for=\"{field_id}\">{label}</label>\n",
-            label = escape_html(&field.label)
-        ));
+        // Standalone label. Checkboxes and radios label themselves (a wrapping
+        // <label> / a <fieldset><legend>), and hidden fields have no visible
+        // control, so a `for=` label there would be dead or duplicated.
+        let self_labeled = matches!(input_type, "checkbox" | "radio" | "hidden");
+        if !self_labeled {
+            html.push_str(&format!(
+                "{inner}<label for=\"{field_id}\">{label}</label>\n",
+                label = escape_html(&field.label)
+            ));
+        }
 
         // aria-describedby: always reference the (present-but-empty) error
         // container so a validation message is programmatically associated with
@@ -980,16 +987,22 @@ fn emit_form(html: &mut String, form: &crate::compiler_ir::CompiledForm, indent:
                 ));
             }
             "radio" => {
-                // Radio: one input per option
+                // Radio group: a fieldset + legend names the group (WCAG 1.3.1),
+                // and the error container is associated at the group level.
+                html.push_str(&format!(
+                    "{inner}<fieldset{describedby}><legend>{legend}</legend>\n",
+                    legend = escape_html(&field.label)
+                ));
                 for (i, opt) in field.options.iter().enumerate() {
                     let opt_id = format!("{field_id}-{i}");
                     html.push_str(&format!(
-                        "{inner}<label><input id=\"{opt_id}\" name=\"{name}\" type=\"radio\" value=\"{val}\"{required_attr}> {label}</label>\n",
+                        "{inner}  <label><input id=\"{opt_id}\" name=\"{name}\" type=\"radio\" value=\"{val}\"{required_attr}> {label}</label>\n",
                         name = field.name,
                         val = escape_attr(opt),
                         label = escape_html(opt)
                     ));
                 }
+                html.push_str(&format!("{inner}</fieldset>\n"));
             }
             _ => {
                 html.push_str(&format!(
