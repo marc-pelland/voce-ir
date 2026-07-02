@@ -954,3 +954,31 @@ fn state_machine_reflects_current_state_on_the_element() {
         "got: {html}"
     );
 }
+
+// ─── Polish defaults ────────────────────────────────────────────
+
+#[test]
+fn baseline_css_has_color_scheme_and_disabled_states() {
+    let json = r#"{ "root": { "node_id": "root", "children": [
+        { "value_type": "TextNode", "value": { "node_id": "t", "content": "Hi" } }
+    ] } }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(html.contains("color-scheme:light dark"), "got: {html}");
+    assert!(html.contains("button:disabled"));
+    assert!(html.contains("cursor:not-allowed"));
+}
+
+#[test]
+fn form_marks_busy_and_disables_submit_on_valid_submit() {
+    let json = r#"{ "root": { "node_id": "root", "children": [
+        { "value_type": "FormNode", "value": { "node_id": "f", "action_endpoint": "/x", "action_method": "post",
+            "fields": [ { "name": "email", "field_type": "Email", "label": "Email",
+                "validations": [ { "rule_type": "Required", "message": "Required" } ] } ] } }
+    ] } }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(
+        html.contains("setAttribute('aria-busy','true')"),
+        "got: {html}"
+    );
+    assert!(html.contains("b.disabled=true"));
+}

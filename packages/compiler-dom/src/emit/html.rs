@@ -200,7 +200,9 @@ fn emit_head(
     // S64: fallback theme palette. IRs that don't declare theme.colors still
     // get sensible light/dark colors via prefers-color-scheme. IR-defined
     // theme_vars (emitted below) override these.
-    html.push_str(":root{--voce-fg:#111;--voce-bg:#fff;--voce-muted-fg:#666;--voce-border:rgba(127,127,127,.25);--voce-surface:rgba(127,127,127,.04);--voce-primary:#6366f1;--voce-primary-hover:#818cf8;--voce-error:#ef4444;--voce-warning:#f59e0b;--voce-success:#10b981}\n");
+    // color-scheme lets native UI (scrollbars, form controls, date pickers,
+    // autofill) follow the user's preference instead of always rendering light.
+    html.push_str(":root{color-scheme:light dark;--voce-fg:#111;--voce-bg:#fff;--voce-muted-fg:#666;--voce-border:rgba(127,127,127,.25);--voce-surface:rgba(127,127,127,.04);--voce-primary:#6366f1;--voce-primary-hover:#818cf8;--voce-error:#ef4444;--voce-warning:#f59e0b;--voce-success:#10b981}\n");
     html.push_str("@media (prefers-color-scheme:dark){:root{--voce-fg:#e8e8ec;--voce-bg:#0a0a0c;--voce-muted-fg:#8b8b94;--voce-border:rgba(255,255,255,.12);--voce-surface:rgba(255,255,255,.04)}}\n");
 
     // Theme CSS custom properties (IR-defined; overrides the fallback above)
@@ -214,6 +216,9 @@ fn emit_head(
 
     html.push_str("*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}\n");
     html.push_str("body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5;background:var(--voce-bg);color:var(--voce-fg)}\n");
+    // Disabled + busy states so controls read as inert instead of active.
+    html.push_str("button:disabled,input:disabled,textarea:disabled,select:disabled,[aria-disabled=\"true\"]{opacity:.55;cursor:not-allowed}\n");
+    html.push_str("[aria-busy=\"true\"]{cursor:progress}\n");
     html.push_str("img{max-width:100%;height:auto;display:block}\n");
     // Skip link: off-screen until focused, then visible at the top-left.
     html.push_str(".skip-link{position:absolute;left:-9999px;top:0;z-index:1000;padding:8px 16px;background:var(--voce-bg);color:var(--voce-fg);border:2px solid var(--voce-primary)}\n");
