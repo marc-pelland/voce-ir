@@ -4,7 +4,7 @@
 // bottom is the public entry — both the MCP server and the cli-chat
 // tool-use loop call into it.
 
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -153,7 +153,7 @@ function getExamples(name?: string): ToolResult {
 
 function generateIr(prompt: string): ToolResult {
   try {
-    const output = execSync(`"${VOCE_BIN}" generate "${prompt.replace(/"/g, '\\"')}"`, {
+    const output = execFileSync(VOCE_BIN, ["generate", prompt], {
       encoding: "utf-8",
       timeout: 60000,
       stdio: ["pipe", "pipe", "pipe"],
@@ -389,13 +389,13 @@ function doctorReport(
   const parts: string[] = ["doctor", "--json"];
   if (strict) parts.push("--strict");
   if (irSet) parts.push("--ir-set");
-  if (cwdArg) parts.push("--cwd", `"${cwdArg}"`);
+  if (cwdArg) parts.push("--cwd", cwdArg);
   // voce doctor exits 1 when problems exist — that is NOT an error;
   // the JSON envelope describes the problems. Surface stdout in that
   // case so the agent sees the structured report rather than a thrown
   // exception with no detail.
   try {
-    const out = execSync(`"${VOCE_BIN}" ${parts.join(" ")}`, {
+    const out = execFileSync(VOCE_BIN, parts, {
       encoding: "utf-8",
       stdio: ["pipe", "pipe", "pipe"],
     });

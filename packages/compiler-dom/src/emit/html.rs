@@ -52,7 +52,10 @@ pub fn emit(ir: &CompilerIr, options: &CompileOptions) -> HtmlOutput {
     for jsonld in &ir.meta.structured_data {
         // The JSON-LD body is wrapped with leading + trailing newlines; the
         // hash covers the same bytes that land between <script> and </script>.
-        script_hashes.push(crate::emit::csp::hash_script(&format!("\n{jsonld}\n")));
+        script_hashes.push(crate::emit::csp::hash_script(&format!(
+            "\n{}\n",
+            sanitize_jsonld(jsonld)
+        )));
     }
     if !interactive_js.is_empty() {
         script_hashes.push(crate::emit::csp::hash_script(&format!(
@@ -63,12 +66,23 @@ pub fn emit(ir: &CompilerIr, options: &CompileOptions) -> HtmlOutput {
     // Head
     emit_head(&mut html, ir, &preload_images, options, &script_hashes);
 
-    // Collect IDs that gesture handlers target — these need data-voce-id attributes
-    let interactive_targets: std::collections::HashSet<String> = ir
+    // Nodes that need a stable data-voce-id hook so a CSS/JS selector can find
+    // them: gesture targets (event listeners), animation targets (transition
+    // rules), and responsive-override targets (media-query rules). Without this
+    // the responsive and animation selectors match nothing.
+    let mut interactive_targets: std::collections::HashSet<String> = ir
         .gesture_handlers
         .iter()
         .map(|gh| gh.target_node_id.clone())
         .collect();
+    for anim in &ir.animations {
+        interactive_targets.insert(anim.target_node_id.clone());
+    }
+    for rule in &ir.responsive_rules {
+        for (target_id, _, _) in &rule.overrides {
+            interactive_targets.insert(target_id.clone());
+        }
+    }
 
     // Body
     html.push_str("<body>\n");
@@ -129,7 +143,10 @@ fn emit_head(
 
     // Canonical URL
     if let Some(ref url) = ir.meta.canonical_url {
-        html.push_str(&format!("<link rel=\"canonical\" href=\"{url}\">\n"));
+        html.push_str(&format!(
+            "<link rel=\"canonical\" href=\"{}\">\n",
+            safe_url(url)
+        ));
     }
 
     // Open Graph
@@ -147,14 +164,16 @@ fn emit_head(
     }
     if let Some(ref og_img) = ir.meta.og_image {
         html.push_str(&format!(
-            "<meta property=\"og:image\" content=\"{og_img}\">\n"
+            "<meta property=\"og:image\" content=\"{}\">\n",
+            safe_url(og_img)
         ));
     }
 
     // Preload hints for above-fold images
     for src in preload_images {
         html.push_str(&format!(
-            "<link rel=\"preload\" as=\"image\" href=\"{src}\" fetchpriority=\"high\">\n"
+            "<link rel=\"preload\" as=\"image\" href=\"{}\" fetchpriority=\"high\">\n",
+            safe_url(src)
         ));
     }
 
@@ -166,7 +185,7 @@ fn emit_head(
     // Structured data (JSON-LD)
     for jsonld in &ir.meta.structured_data {
         html.push_str("<script type=\"application/ld+json\">\n");
-        html.push_str(jsonld);
+        html.push_str(&sanitize_jsonld(jsonld));
         html.push_str("\n</script>\n");
     }
 
@@ -183,7 +202,7 @@ fn emit_head(
     if !ir.meta.theme_vars.is_empty() {
         html.push_str(":root{");
         for (name, value) in &ir.meta.theme_vars {
-            html.push_str(&format!("{name}:{value};"));
+            html.push_str(&format!("{}:{};", css_fragment(name), css_fragment(value)));
         }
         html.push_str("}\n");
     }
@@ -254,41 +273,68 @@ fn emit_head(
         let target = &anim.target_node_id;
         let dur = anim.duration_ms;
         for (prop, _from, _to) in &anim.properties {
-            let css_prop = prop.replace("transform.", "");
+            let css_prop = css_fragment(&prop.replace("transform.", ""));
             html.push_str(&format!(
-                "[data-voce-id=\"{target}\"]{{transition:{css_prop} {dur}ms {easing};}}\n",
+                "[data-voce-id=\"{}\"]{{transition:{css_prop} {dur}ms {easing};}}\n",
+                css_selector_value(target),
                 easing = anim.easing_css
             ));
         }
     }
 
-    // Reduced motion overrides
+    // Reduced motion overrides. Every animation that declares a ReducedMotion
+    // must actually reduce motion for prefers-reduced-motion users (WCAG 2.3.3);
+    // previously only the "Remove" strategy did anything and the other three
+    // silently played the full animation. ReduceDuration shortens the
+    // transition; every other strategy (Simplify/Functional/unknown) falls back
+    // to removing the transition, which is a safe floor and never "does
+    // nothing".
     let has_animations = !ir.animations.is_empty();
     if has_animations {
         html.push_str("@media(prefers-reduced-motion:reduce){\n");
         for anim in &ir.animations {
-            if anim.has_reduced_motion && anim.reduced_motion_strategy == "Remove" {
-                let target = &anim.target_node_id;
-                html.push_str(&format!(
-                    "[data-voce-id=\"{target}\"]{{transition:none!important;}}\n"
-                ));
+            if !anim.has_reduced_motion {
+                continue;
+            }
+            let sel = css_selector_value(&anim.target_node_id);
+            match anim.reduced_motion_strategy.as_str() {
+                "ReduceDuration" => {
+                    let ms = anim.reduced_duration_ms.unwrap_or(1.0);
+                    html.push_str(&format!(
+                        "[data-voce-id=\"{sel}\"]{{transition-duration:{ms}ms!important;}}\n"
+                    ));
+                }
+                _ => {
+                    html.push_str(&format!(
+                        "[data-voce-id=\"{sel}\"]{{transition:none!important;}}\n"
+                    ));
+                }
             }
         }
         html.push_str("}\n");
     }
 
-    // Responsive media queries from ResponsiveRule nodes
+    // Responsive media queries from ResponsiveRule nodes. Each breakpoint
+    // applies over the range [min_width_px, max_width_px); the top breakpoint
+    // is unbounded. Overrides carry `!important` because base node styles are
+    // emitted inline, which would otherwise always win over a stylesheet rule.
     for rule in &ir.responsive_rules {
-        html.push_str(&format!(
-            "@media(max-width:{}px){{\n",
-            rule.min_width_px as u32
-        ));
+        let query = media_query(rule.min_width_px, rule.max_width_px);
+        let wrap = !query.is_empty();
+        if wrap {
+            html.push_str(&format!("{query}{{\n"));
+        }
         for (target_id, property, value) in &rule.overrides {
             html.push_str(&format!(
-                "[data-voce-id=\"{target_id}\"]{{ {property}:{value}; }}\n"
+                "[data-voce-id=\"{}\"]{{ {}:{} !important; }}\n",
+                css_selector_value(target_id),
+                css_fragment(&map_responsive_property(property)),
+                css_fragment(value)
             ));
         }
-        html.push_str("}\n");
+        if wrap {
+            html.push_str("}\n");
+        }
     }
 
     html.push_str("</style>\n");
@@ -493,15 +539,7 @@ fn emit_node(
 
             if let Some(url) = href {
                 // Surface with href wraps content in <a>
-                let target_attr = target
-                    .as_ref()
-                    .map(|t| format!(" target=\"{t}\""))
-                    .unwrap_or_default();
-                let rel = if target.as_deref() == Some("_blank") {
-                    " rel=\"noopener noreferrer\""
-                } else {
-                    ""
-                };
+                let (target_attr, rel) = target_and_rel(target.as_deref());
                 // D3: an icon-only link with no semantic label and no link
                 // text gets an aria-label synthesized from its MediaNode alt.
                 let auto_label = if !aria_attrs.contains("aria-label")
@@ -514,7 +552,8 @@ fn emit_node(
                     String::new()
                 };
                 html.push_str(&format!(
-                    "{indent}<a href=\"{url}\"{target_attr}{rel} class=\"voce-btn\" style=\"{style};display:block;text-decoration:none;color:inherit\"{aria_attrs}{auto_label}{data_attr}>\n"
+                    "{indent}<a href=\"{}\"{target_attr}{rel} class=\"voce-btn\" style=\"{style};display:block;text-decoration:none;color:inherit\"{aria_attrs}{auto_label}{data_attr}>\n",
+                    safe_url(url)
                 ));
                 for &child_id in &node.children {
                     emit_node_safe(html, ir, child_id, depth + 1, options, interactive_targets);
@@ -546,24 +585,18 @@ fn emit_node(
 
             if let Some(url) = href {
                 // TextNode with href emits <a>
-                let target_attr = target
-                    .as_ref()
-                    .map(|t| format!(" target=\"{t}\""))
-                    .unwrap_or_default();
-                let rel = if target.as_deref() == Some("_blank") {
-                    " rel=\"noopener noreferrer\""
-                } else {
-                    ""
-                };
+                let (target_attr, rel) = target_and_rel(target.as_deref());
                 // If it's a heading with a link, wrap: <h2><a href>...</a></h2>
                 if tag.starts_with('h') {
                     html.push_str(&format!(
-                        "{indent}<{tag}{style_attr}><a href=\"{url}\"{target_attr}{rel} style=\"color:inherit;text-decoration:none\">{}</{tag}>\n",
+                        "{indent}<{tag}{style_attr}><a href=\"{}\"{target_attr}{rel} style=\"color:inherit;text-decoration:none\">{}</a></{tag}>\n",
+                        safe_url(url),
                         escape_html(content)
                     ));
                 } else {
                     html.push_str(&format!(
-                        "{indent}<a href=\"{url}\"{target_attr}{rel}{style_attr}>{}</a>\n",
+                        "{indent}<a href=\"{}\"{target_attr}{rel}{style_attr}>{}</a>\n",
+                        safe_url(url),
                         escape_html(content)
                     ));
                 }
@@ -586,20 +619,22 @@ fn emit_node(
                     let alt_attr = if alt.is_empty() {
                         String::new()
                     } else {
-                        format!(" aria-label=\"{alt}\"")
+                        format!(" aria-label=\"{}\"", escape_attr(alt))
                     };
                     html.push_str(&format!(
-                        "{indent}<video src=\"{src}\" controls preload=\"metadata\"{alt_attr} style=\"max-width:100%\"></video>\n"
+                        "{indent}<video src=\"{}\" controls preload=\"metadata\"{alt_attr} style=\"max-width:100%\"></video>\n",
+                        safe_url(src)
                     ));
                 }
                 "Audio" => {
                     let alt_attr = if alt.is_empty() {
                         String::new()
                     } else {
-                        format!(" aria-label=\"{alt}\"")
+                        format!(" aria-label=\"{}\"", escape_attr(alt))
                     };
                     html.push_str(&format!(
-                        "{indent}<audio src=\"{src}\" controls preload=\"metadata\"{alt_attr}></audio>\n"
+                        "{indent}<audio src=\"{}\" controls preload=\"metadata\"{alt_attr}></audio>\n",
+                        safe_url(src)
                     ));
                 }
                 _ => {
@@ -633,12 +668,16 @@ fn emit_node(
                             let sizes = crate::assets::default_sizes();
                             html.push_str(&format!("{indent}<picture>\n"));
                             html.push_str(&format!(
-                                "{indent}  <img src=\"{src}\" srcset=\"{srcset}\" sizes=\"{sizes}\" alt=\"{alt_attr}\" loading=\"{loading}\"{fetchpriority} decoding=\"async\">\n"
+                                "{indent}  <img src=\"{}\" srcset=\"{srcset}\" sizes=\"{sizes}\" alt=\"{}\" loading=\"{loading}\"{fetchpriority} decoding=\"async\">\n",
+                                safe_url(src),
+                                escape_attr(alt_attr)
                             ));
                             html.push_str(&format!("{indent}</picture>\n"));
                         } else {
                             html.push_str(&format!(
-                                "{indent}<img src=\"{src}\" alt=\"{alt_attr}\" loading=\"{loading}\"{fetchpriority} decoding=\"async\">\n"
+                                "{indent}<img src=\"{}\" alt=\"{}\" loading=\"{loading}\"{fetchpriority} decoding=\"async\">\n",
+                                safe_url(src),
+                                escape_attr(alt_attr)
                             ));
                         }
                     }
@@ -738,11 +777,16 @@ fn emit_rich_text(html: &mut String, blocks: &[crate::compiler_ir::RichTextBlock
                 if let Some(src) = &block.media_src {
                     let alt = block.media_alt.as_deref().unwrap_or("");
                     html.push_str(&format!(
-                        "{indent}<img src=\"{src}\" alt=\"{alt}\" loading=\"lazy\" decoding=\"async\">\n"
+                        "{indent}<img src=\"{}\" alt=\"{}\" loading=\"lazy\" decoding=\"async\">\n",
+                        safe_url(src),
+                        escape_attr(alt)
                     ));
                 }
             }
             "Table" => {
+                // Wrap in a horizontally scrollable container so a wide table
+                // scrolls instead of overflowing the viewport on narrow screens.
+                html.push_str(&format!("{indent}<div style=\"overflow-x:auto\">\n"));
                 html.push_str(&format!("{indent}<table>\n"));
                 for row in &block.rows {
                     html.push_str(&format!("{indent}  <tr>\n"));
@@ -756,6 +800,7 @@ fn emit_rich_text(html: &mut String, blocks: &[crate::compiler_ir::RichTextBlock
                     html.push_str(&format!("{indent}  </tr>\n"));
                 }
                 html.push_str(&format!("{indent}</table>\n"));
+                html.push_str(&format!("{indent}</div>\n"));
             }
             _ => {
                 // Unknown block type — emit as paragraph
@@ -792,7 +837,7 @@ fn emit_rich_text_spans(html: &mut String, spans: &[crate::compiler_ir::RichText
 
         // Wrap in link if present
         if let Some(url) = &span.link_url {
-            text = format!("<a href=\"{url}\">{text}</a>");
+            text = format!("<a href=\"{}\">{text}</a>", safe_url(url));
         }
 
         html.push_str(&text);
@@ -1153,4 +1198,141 @@ fn escape_attr(s: &str) -> String {
         .replace('"', "&quot;")
         .replace('<', "&lt;")
         .replace('>', "&gt;")
+}
+
+/// URL schemes that can execute code (mirrors the validator's SEC pass). Any
+/// non-image `data:` URL is treated as suspect.
+fn is_dangerous_url(url: &str) -> bool {
+    let t = url.trim_start().to_ascii_lowercase();
+    t.starts_with("javascript:")
+        || t.starts_with("vbscript:")
+        || (t.starts_with("data:") && !t.starts_with("data:image/"))
+}
+
+/// Escape a URL for a double-quoted attribute, collapsing dangerous-scheme
+/// URLs to `#`. IR URLs are AI- or user-authored; without this a value like
+/// `https://x" onclick="…` breaks out of the attribute (XSS) and `javascript:`
+/// URLs execute in the page origin.
+fn safe_url(url: &str) -> String {
+    if is_dangerous_url(url) {
+        "#".to_string()
+    } else {
+        escape_attr(url)
+    }
+}
+
+/// Neutralize `<` in a JSON-LD body (as the JSON escape `<`) so a value
+/// containing `</script>` cannot terminate the script element at HTML parse
+/// time. Applied identically where the CSP hash is computed and where the body
+/// is emitted, so the two stay in sync.
+fn sanitize_jsonld(s: &str) -> String {
+    s.replace('<', "\\u003c")
+}
+
+/// Escape a value placed inside a double-quoted CSS attribute selector
+/// (`[data-voce-id="…"]`): escape the backslash and quote so it cannot close
+/// the string, and `<` so it cannot close the surrounding `<style>` element.
+fn css_selector_value(s: &str) -> String {
+    s.replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('<', "\\3c ")
+}
+
+/// Escape a raw CSS fragment (custom-property name or value, responsive
+/// override property or value) so it cannot break out of the declaration, the
+/// rule, or the `<style>` element.
+fn css_fragment(s: &str) -> String {
+    s.replace('<', "\\3c ")
+        .replace('{', "\\7b ")
+        .replace('}', "\\7d ")
+        .replace(';', "\\3b ")
+}
+
+/// Build the `@media` prelude for a breakpoint range `[min_width, max_width)`.
+/// A min-width of 0 drops the lower bound; a `None` upper bound drops the upper
+/// bound. The upper bound is emitted as `max-width` at the next breakpoint
+/// minus a fractional offset so adjacent ranges never both match at the exact
+/// boundary. Returns an empty string when the range is unbounded on both ends
+/// (the override then applies at every width).
+fn media_query(min_width: f64, max_width: Option<f64>) -> String {
+    let has_min = min_width > 0.0;
+    match (has_min, max_width) {
+        (false, None) => String::new(),
+        (true, None) => format!("@media(min-width:{}px)", min_width as u32),
+        (false, Some(max)) => format!("@media(max-width:{:.2}px)", max - 0.02),
+        (true, Some(max)) => format!(
+            "@media(min-width:{}px) and (max-width:{:.2}px)",
+            min_width as u32,
+            max - 0.02
+        ),
+    }
+}
+
+/// Map a raw IR responsive-override property name to its CSS property. Names
+/// that already look like CSS (or aren't specially cased) fall back to a
+/// `snake_case` → `kebab-case` conversion.
+fn map_responsive_property(p: &str) -> String {
+    match p {
+        "grid_columns" => "grid-template-columns".to_string(),
+        "grid_rows" => "grid-template-rows".to_string(),
+        "font_size" => "font-size".to_string(),
+        "font_weight" => "font-weight".to_string(),
+        "line_height" => "line-height".to_string(),
+        "background" | "background_color" => "background-color".to_string(),
+        "color" | "text_color" => "color".to_string(),
+        "flex_direction" => "flex-direction".to_string(),
+        "text_align" => "text-align".to_string(),
+        other => other.replace('_', "-"),
+    }
+}
+
+/// Valid `target` attribute values. A `target` outside this set is dropped, so
+/// an IR string can neither break out of the attribute nor defeat the
+/// `rel="noopener"` auto-emission for `_blank`.
+fn target_and_rel(target: Option<&str>) -> (String, &'static str) {
+    const VALID: &[&str] = &["_self", "_blank", "_parent", "_top"];
+    match target.filter(|t| VALID.contains(t)) {
+        Some(t) => (
+            format!(" target=\"{t}\""),
+            if t == "_blank" {
+                " rel=\"noopener noreferrer\""
+            } else {
+                ""
+            },
+        ),
+        None => (String::new(), ""),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn media_query_ranges() {
+        // Mobile breakpoint (0..768): lower bound dropped, bounded above.
+        assert_eq!(media_query(0.0, Some(768.0)), "@media(max-width:767.98px)");
+        // Middle breakpoint (768..1024): both bounds.
+        assert_eq!(
+            media_query(768.0, Some(1024.0)),
+            "@media(min-width:768px) and (max-width:1023.98px)"
+        );
+        // Top breakpoint (1024..): unbounded above.
+        assert_eq!(media_query(1024.0, None), "@media(min-width:1024px)");
+        // Degenerate single breakpoint at 0: no query, applies everywhere.
+        assert_eq!(media_query(0.0, None), "");
+    }
+
+    #[test]
+    fn responsive_property_mapping() {
+        assert_eq!(
+            map_responsive_property("grid_columns"),
+            "grid-template-columns"
+        );
+        assert_eq!(map_responsive_property("font_size"), "font-size");
+        // Unknown snake_case falls back to kebab-case.
+        assert_eq!(map_responsive_property("max_width"), "max-width");
+        // Already-CSS names pass through.
+        assert_eq!(map_responsive_property("display"), "display");
+    }
 }

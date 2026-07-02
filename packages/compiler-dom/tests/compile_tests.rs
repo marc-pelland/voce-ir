@@ -86,7 +86,14 @@ fn container_grid_emits_template_columns() {
 
     let result = compile(json, &CompileOptions::default()).unwrap();
     assert!(result.html.contains("display:grid"));
-    assert!(result.html.contains("grid-template-columns:1fr 1fr 1fr"));
+    // Equal-fraction grids become auto-fit so they collapse on narrow screens.
+    assert!(
+        result
+            .html
+            .contains("grid-template-columns:repeat(auto-fit, minmax(min(100%, 367px), 1fr))"),
+        "got: {}",
+        result.html
+    );
 }
 
 // ─── Text ───────────────────────────────────────────────────────
@@ -133,7 +140,12 @@ fn text_styles_emit_correctly() {
     }"#;
 
     let result = compile(json, &CompileOptions::default()).unwrap();
-    assert!(result.html.contains("font-size:24px"));
+    // px font sizes become rem (respects the user's font-size preference).
+    assert!(
+        result.html.contains("font-size:1.5rem"),
+        "got: {}",
+        result.html
+    );
     assert!(result.html.contains("font-weight:700"));
     assert!(result.html.contains("text-align:center"));
     assert!(result.html.contains("color:rgb(255,0,0)"));
@@ -482,4 +494,270 @@ fn empty_csp_override_falls_back_to_default() {
         result.html.contains("frame-ancestors 'none'"),
         "blank override should not suppress the hardened default"
     );
+}
+
+// ─── Output escaping / injection (security) ─────────────────────
+
+#[test]
+fn javascript_href_is_neutralized() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "TextNode", "value": { "node_id": "t", "content": "Click", "href": "javascript:alert(1)" } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(!html.contains("javascript:alert(1)"));
+    assert!(html.contains("href=\"#\""));
+}
+
+#[test]
+fn attribute_breakout_in_href_is_escaped() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "TextNode", "value": { "node_id": "t", "content": "Click", "href": "https://x\" onclick=\"alert(1)" } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(!html.contains("onclick=\"alert(1)\""));
+    assert!(html.contains("&quot;"));
+}
+
+#[test]
+fn bogus_target_is_dropped() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "TextNode", "value": { "node_id": "t", "content": "Click", "href": "https://e.com", "target": "\" onload=\"x" } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(!html.contains("onload"));
+}
+
+#[test]
+fn heading_link_closes_its_anchor() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "TextNode", "value": { "node_id": "h", "content": "Title", "heading_level": 2, "href": "https://e.com" } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(
+        html.contains("</a></h2>"),
+        "heading link must close the anchor: {html}"
+    );
+}
+
+#[test]
+fn jsonld_script_breakout_is_neutralized() {
+    let json = r#"{
+        "root": {
+            "node_id": "root",
+            "metadata": { "structured_data": [
+                { "schema_type": "Article", "properties_json": "\"headline\":\"x</script><script>alert(1)</script>\"" }
+            ] },
+            "children": []
+        }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(!html.contains("</script><script>alert(1)"));
+    assert!(html.contains("\\u003c"));
+}
+
+#[test]
+fn hostile_csp_override_falls_back_to_default() {
+    let json = r#"{
+        "root": {
+            "node_id": "root",
+            "metadata": { "content_security_policy": "default-src *; script-src 'self' 'unsafe-inline'" },
+            "children": []
+        }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(
+        html.contains("frame-ancestors 'none'"),
+        "weakening override must not be honored"
+    );
+}
+
+// ─── Responsiveness ─────────────────────────────────────────────
+
+#[test]
+fn responsive_rule_emits_bounded_media_query_and_hook() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "Container", "value": { "node_id": "grid", "layout": "Grid",
+                "grid_columns": [ { "value": 1, "unit": "Fr" }, { "value": 1, "unit": "Fr" }, { "value": 1, "unit": "Fr" } ],
+                "children": [] } },
+            { "value_type": "ResponsiveRule", "value": {
+                "node_id": "rr",
+                "breakpoints": [
+                    { "name": "mobile", "min_width": { "value": 0.0, "unit": "Px" } },
+                    { "name": "desktop", "min_width": { "value": 1024.0, "unit": "Px" } }
+                ],
+                "responsive_overrides": [
+                    { "breakpoint_name": "mobile", "overrides": [
+                        { "target_node_id": "grid", "property": "grid_columns", "value": "1fr" }
+                    ] }
+                ]
+            } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    // Mobile range is bounded by the next breakpoint, not the broken max-width:0.
+    assert!(
+        !html.contains("max-width:0px"),
+        "regression: max-width:0 bug"
+    );
+    assert!(html.contains("@media(max-width:1023.98px)"), "got: {html}");
+    // IR property name mapped to CSS, and !important so it beats inline styles.
+    assert!(html.contains("grid-template-columns:1fr !important"));
+    // The target node got a stable hook so the selector matches something.
+    assert!(html.contains("data-voce-id=\"grid\""));
+}
+
+#[test]
+fn top_responsive_breakpoint_is_unbounded() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "Container", "value": { "node_id": "c", "children": [] } },
+            { "value_type": "ResponsiveRule", "value": {
+                "node_id": "rr",
+                "breakpoints": [
+                    { "name": "mobile", "min_width": { "value": 0.0, "unit": "Px" } },
+                    { "name": "desktop", "min_width": { "value": 1024.0, "unit": "Px" } }
+                ],
+                "responsive_overrides": [
+                    { "breakpoint_name": "desktop", "overrides": [
+                        { "target_node_id": "c", "property": "padding", "value": "64px" }
+                    ] }
+                ]
+            } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(html.contains("@media(min-width:1024px)"), "got: {html}");
+    assert!(
+        !html.contains("and (max-width"),
+        "top breakpoint must be unbounded"
+    );
+}
+
+#[test]
+fn intrinsic_length_units_and_gap_unit_are_respected() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "Container", "value": { "node_id": "c", "layout": "Stack",
+                "width": { "value": 0, "unit": "Auto" },
+                "gap": { "value": 1.5, "unit": "Rem" },
+                "children": [] } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(
+        html.contains("width:auto"),
+        "Auto must emit `auto`, not 0px: {html}"
+    );
+    assert!(!html.contains("width:0px"));
+    assert!(
+        html.contains("gap:1.5rem"),
+        "gap must keep its unit: {html}"
+    );
+    assert!(!html.contains("gap:1.5px"));
+}
+
+#[test]
+fn reduced_motion_strategies_all_reduce() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "Surface", "value": { "node_id": "a", "children": [] } },
+            { "value_type": "Surface", "value": { "node_id": "b", "children": [] } },
+            { "value_type": "AnimationTransition", "value": {
+                "node_id": "anim-a", "target_node_id": "a",
+                "properties": [ { "property": "opacity", "from": "0", "to": "1" } ],
+                "duration": { "ms": 400 },
+                "reduced_motion": { "strategy": "ReduceDuration", "reduced_duration": { "ms": 20 } }
+            } },
+            { "value_type": "AnimationTransition", "value": {
+                "node_id": "anim-b", "target_node_id": "b",
+                "properties": [ { "property": "opacity", "from": "0", "to": "1" } ],
+                "duration": { "ms": 400 },
+                "reduced_motion": { "strategy": "Simplify" }
+            } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    // ReduceDuration shortens rather than removing.
+    assert!(
+        html.contains("[data-voce-id=\"a\"]{transition-duration:20ms!important;}"),
+        "ReduceDuration must emit a shortened duration: {html}"
+    );
+    // Simplify (no simplified data available) falls back to removing motion,
+    // never to doing nothing.
+    assert!(
+        html.contains("[data-voce-id=\"b\"]{transition:none!important;}"),
+        "Simplify must fall back to a safe floor: {html}"
+    );
+}
+
+#[test]
+fn large_heading_gets_fluid_clamp() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "TextNode", "value": { "node_id": "h", "content": "Big", "heading_level": 1,
+                "font_size": { "value": 56.0, "unit": "Px" } } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    // Scales from a reduced floor up to the authored size, so it never
+    // overflows a narrow screen.
+    assert!(html.contains("font-size:clamp("), "got: {html}");
+    assert!(
+        html.contains("3.5rem)"),
+        "max should be the authored 56px: {html}"
+    );
+    assert!(!html.contains("font-size:56px"));
+}
+
+#[test]
+fn equal_fraction_grid_becomes_auto_fit_but_unequal_is_preserved() {
+    let equal = r#"{ "root": { "node_id": "root", "children": [
+        { "value_type": "Container", "value": { "node_id": "g", "layout": "Grid",
+            "grid_columns": [ {"value":1,"unit":"Fr"}, {"value":1,"unit":"Fr"} ], "children": [] } } ] } }"#;
+    let html = compile(equal, &CompileOptions::default()).unwrap().html;
+    assert!(
+        html.contains("repeat(auto-fit, minmax(min(100%, 550px), 1fr))"),
+        "got: {html}"
+    );
+
+    let unequal = r#"{ "root": { "node_id": "root", "children": [
+        { "value_type": "Container", "value": { "node_id": "g", "layout": "Grid",
+            "grid_columns": [ {"value":1,"unit":"Fr"}, {"value":2,"unit":"Fr"} ], "children": [] } } ] } }"#;
+    let html2 = compile(unequal, &CompileOptions::default()).unwrap().html;
+    assert!(
+        html2.contains("grid-template-columns:1fr 2fr"),
+        "unequal preserved: {html2}"
+    );
+    assert!(!html2.contains("auto-fit"));
+}
+
+#[test]
+fn rich_text_table_is_wrapped_for_horizontal_scroll() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "RichTextNode", "value": { "node_id": "rt", "blocks": [
+                { "block_type": "Table", "rows": [
+                    { "block_type": "TableRow", "rows": [
+                        { "block_type": "TableCell", "children": [ { "text": "A" } ] },
+                        { "block_type": "TableCell", "children": [ { "text": "B" } ] }
+                    ] }
+                ] }
+            ] } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(
+        html.contains("<div style=\"overflow-x:auto\">"),
+        "table must be wrapped: {html}"
+    );
+    assert!(html.contains("<table>"));
 }

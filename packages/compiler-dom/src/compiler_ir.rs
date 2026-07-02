@@ -39,9 +39,14 @@ pub struct CompilerIr {
 /// A responsive media query rule.
 #[derive(Debug, Clone)]
 pub struct CompiledResponsiveRule {
-    /// Minimum viewport width (in px) for this rule.
+    /// Minimum viewport width (in px) for this breakpoint.
     pub min_width_px: f64,
-    /// Property overrides: (target_node_id, css_property, css_value).
+    /// Exclusive upper bound (in px): the next breakpoint's min-width, or
+    /// `None` for the top breakpoint (applies upward unbounded). This gives
+    /// each breakpoint a range `[min_width_px, max_width_px)`.
+    pub max_width_px: Option<f64>,
+    /// Property overrides: (target_node_id, ir_property, css_value). The
+    /// property is the raw IR name; the emitter maps it to a CSS property.
     pub overrides: Vec<(String, String, String)>,
 }
 
@@ -152,6 +157,8 @@ pub struct CompiledAnimation {
     pub easing_css: String,
     pub has_reduced_motion: bool,
     pub reduced_motion_strategy: String,
+    /// For the ReduceDuration strategy: the reduced transition duration in ms.
+    pub reduced_duration_ms: Option<f64>,
 }
 
 /// A gesture handler ready for JS compilation.

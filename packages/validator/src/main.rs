@@ -372,13 +372,19 @@ fn run(cli: Cli) -> Result<i32> {
         Commands::Skills { json } => cmd_skills(json),
         Commands::Graph { file, json } => cmd_graph(&file, json),
         Commands::Conformance { sub } => match sub {
-            ConformanceCmd::Run { target, level, corpus, json } => {
-                cmd_conformance_run(&target, &level, corpus.as_deref(), json)
-            }
+            ConformanceCmd::Run {
+                target,
+                level,
+                corpus,
+                json,
+            } => cmd_conformance_run(&target, &level, corpus.as_deref(), json),
         },
-        Commands::Doctor { cwd, json, strict, ir_set } => {
-            cmd_doctor(cwd.as_deref(), json, strict, ir_set)
-        }
+        Commands::Doctor {
+            cwd,
+            json,
+            strict,
+            ir_set,
+        } => cmd_doctor(cwd.as_deref(), json, strict, ir_set),
         Commands::Deploy {
             file,
             adapter,
@@ -1034,10 +1040,7 @@ fn cmd_skills(json: bool) -> Result<i32> {
         .get_subcommands()
         .map(|c| voce_validator::skills::CliCommand {
             name: c.get_name().to_string(),
-            about: c
-                .get_about()
-                .map(|s| s.to_string())
-                .unwrap_or_default(),
+            about: c.get_about().map(|s| s.to_string()).unwrap_or_default(),
         })
         .collect();
 
@@ -1067,7 +1070,11 @@ fn cmd_skills(json: bool) -> Result<i32> {
     println!(
         "Diagnostic codes: {} total ({} fixable)",
         manifest.diagnostic_codes.len(),
-        manifest.diagnostic_codes.iter().filter(|c| c.fixable).count()
+        manifest
+            .diagnostic_codes
+            .iter()
+            .filter(|c| c.fixable)
+            .count()
     );
     println!("Node types: {}", manifest.node_types.len());
     println!("Compile targets ({}):", manifest.compile_targets.len());
@@ -1106,9 +1113,11 @@ fn cmd_conformance_run(
         .parse()
         .map_err(|e: String| anyhow::anyhow!("{e}"))?;
 
-    let corpus_root = corpus_arg
-        .map(std::path::PathBuf::from)
-        .unwrap_or_else(|| std::env::current_dir().unwrap_or_default().join("tests/fixtures"));
+    let corpus_root = corpus_arg.map(std::path::PathBuf::from).unwrap_or_else(|| {
+        std::env::current_dir()
+            .unwrap_or_default()
+            .join("tests/fixtures")
+    });
     if !corpus_root.is_dir() {
         anyhow::bail!(
             "corpus directory not found: {} (pass --corpus to override)",
@@ -1123,9 +1132,11 @@ fn cmd_conformance_run(
     // runner short-circuits those to NotApplicable per fixture).
     let compile = |ir_json: &str| -> Result<String, String> {
         match target_id {
-            "dom" => voce_compiler_dom::compile(ir_json, &voce_compiler_dom::CompileOptions::default())
-                .map(|r| r.html)
-                .map_err(|e| format!("{e:?}")),
+            "dom" => {
+                voce_compiler_dom::compile(ir_json, &voce_compiler_dom::CompileOptions::default())
+                    .map(|r| r.html)
+                    .map_err(|e| format!("{e:?}"))
+            }
             "hybrid" => voce_compiler_hybrid::compile_hybrid(
                 ir_json,
                 &voce_compiler_hybrid::HybridCompileOptions::default(),
@@ -1241,26 +1252,43 @@ fn cmd_fix_loop(
     }
 
     // Human summary.
-    println!("voce fix --until-clean (contract v{})", plan.contract_version);
+    println!(
+        "voce fix --until-clean (contract v{})",
+        plan.contract_version
+    );
     println!(
         "  Source: {}   threshold: {}   {}",
         file.display(),
         plan.confidence_threshold,
-        if plan.applied { "APPLIED" } else { "PREVIEW (use --apply to write)" },
+        if plan.applied {
+            "APPLIED"
+        } else {
+            "PREVIEW (use --apply to write)"
+        },
     );
     println!(
         "  Iterations: {}   converged: {}{}",
         plan.iterations,
         plan.converges,
-        if plan.hit_iteration_cap { "   (hit iteration cap)" } else { "" },
+        if plan.hit_iteration_cap {
+            "   (hit iteration cap)"
+        } else {
+            ""
+        },
     );
     if plan.plan.is_empty() {
-        println!("  No fixes to apply at threshold {}.", plan.confidence_threshold);
+        println!(
+            "  No fixes to apply at threshold {}.",
+            plan.confidence_threshold
+        );
     } else {
         println!();
         println!("Plan ({} step(s)):", plan.plan.len());
         for s in &plan.plan {
-            println!("  {}. [{}] {}  at {}", s.step, s.confidence, s.code, s.node_path);
+            println!(
+                "  {}. [{}] {}  at {}",
+                s.step, s.confidence, s.code, s.node_path
+            );
             println!("       → {}", s.rationale);
         }
     }
@@ -1273,7 +1301,10 @@ fn cmd_fix_loop(
         );
     }
     println!();
-    println!("For the machine contract, run: voce fix {} --plan", file.display());
+    println!(
+        "For the machine contract, run: voce fix {} --plan",
+        file.display()
+    );
     Ok(if plan.converges { 0 } else { 1 })
 }
 
@@ -1290,7 +1321,10 @@ fn cmd_doctor(
     };
     let report = voce_validator::doctor::run_with(
         &root,
-        voce_validator::doctor::RunOptions { strict, walk_ir_set: ir_set },
+        voce_validator::doctor::RunOptions {
+            strict,
+            walk_ir_set: ir_set,
+        },
     );
 
     if json {
@@ -1355,9 +1389,7 @@ fn cmd_graph(file: &PathBuf, json: bool) -> Result<i32> {
     println!("  Source: {}", file.display());
     println!(
         "  Nodes: {}   composition edges: {}   reference edges: {}",
-        g.summary.node_count,
-        g.summary.composition_edge_count,
-        g.summary.reference_edge_count,
+        g.summary.node_count, g.summary.composition_edge_count, g.summary.reference_edge_count,
     );
     println!(
         "  Dangling references: {}   state machines: {}   unreachable states: {}",
@@ -1369,7 +1401,10 @@ fn cmd_graph(file: &PathBuf, json: bool) -> Result<i32> {
         println!();
         println!("Dangling references:");
         for e in g.reference_edges.iter().filter(|e| !e.to_resolved) {
-            println!("  - {:?}: {} → {} (at {})", e.kind, e.from, e.to, e.from_path);
+            println!(
+                "  - {:?}: {} → {} (at {})",
+                e.kind, e.from, e.to, e.from_path
+            );
         }
     }
     if g.summary.unreachable_state_count > 0 {
@@ -1381,13 +1416,19 @@ fn cmd_graph(file: &PathBuf, json: bool) -> Result<i32> {
                     "  - {} (in StateMachine {}{})",
                     s,
                     sm.node_id.as_deref().unwrap_or("?"),
-                    sm.name.as_deref().map(|n| format!(" \"{n}\"")).unwrap_or_default(),
+                    sm.name
+                        .as_deref()
+                        .map(|n| format!(" \"{n}\""))
+                        .unwrap_or_default(),
                 );
             }
         }
     }
     println!();
-    println!("For the machine contract, run: voce graph {} --json", file.display());
+    println!(
+        "For the machine contract, run: voce graph {} --json",
+        file.display()
+    );
     Ok(0)
 }
 

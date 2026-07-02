@@ -190,6 +190,20 @@ fn build_meta(root: &Value, doc: &Value) -> DocumentMeta {
     meta
 }
 
+/// Map an IR theme color key to the CSS custom-property token the default
+/// stylesheet actually reads. Most keys map by `_`→`-`, but three long-form
+/// names are abbreviated in the baseline tokens (see `emit_head`), so an IR
+/// theme that sets `background`/`foreground`/`muted_foreground` would otherwise
+/// emit orphan `--voce-background` vars that nothing consumes.
+fn theme_token_name(key: &str) -> String {
+    match key {
+        "background" => "bg".to_string(),
+        "foreground" => "fg".to_string(),
+        "muted_foreground" => "muted-fg".to_string(),
+        other => other.replace('_', "-"),
+    }
+}
+
 /// Convert theme color fields to CSS custom properties.
 fn extract_theme_colors(colors: &Value, vars: &mut Vec<(String, String)>) {
     if let Some(obj) = colors.as_object() {
@@ -199,7 +213,7 @@ fn extract_theme_colors(colors: &Value, vars: &mut Vec<(String, String)>) {
                 color.get("g").and_then(|v| v.as_u64()),
                 color.get("b").and_then(|v| v.as_u64()),
             ) {
-                let css_name = name.replace('_', "-");
+                let css_name = theme_token_name(name);
                 vars.push((format!("--voce-{css_name}"), format!("rgb({r},{g},{b})")));
             }
         }
@@ -255,11 +269,11 @@ fn ingest_children(
                     .and_then(|v| v.as_str())
                     .unwrap_or("Start")
                     .to_string(),
-                gap: value
-                    .get("gap")
-                    .and_then(|g| g.get("value"))
-                    .and_then(|v| v.as_f64())
-                    .map(|v| format!("{v}px")),
+                gap: {
+                    // Respect the gap's unit (rem/%/px/…) instead of assuming px.
+                    let g = length_to_css(value.get("gap"));
+                    if g.is_empty() { None } else { Some(g) }
+                },
                 wrap: value.get("wrap").and_then(|v| v.as_bool()).unwrap_or(false),
             },
             "Surface" => NodeKind::Surface {
@@ -722,6 +736,10 @@ fn extract_animation(value: &Value) -> Option<CompiledAnimation> {
         .and_then(|v| v.as_str())
         .unwrap_or("Remove")
         .to_string();
+    let reduced_duration_ms = rm
+        .and_then(|r| r.get("reduced_duration"))
+        .and_then(|d| d.get("ms"))
+        .and_then(|v| v.as_f64());
 
     Some(CompiledAnimation {
         id,
@@ -731,6 +749,7 @@ fn extract_animation(value: &Value) -> Option<CompiledAnimation> {
         easing_css,
         has_reduced_motion,
         reduced_motion_strategy,
+        reduced_duration_ms,
     })
 }
 
@@ -833,13 +852,15 @@ fn extract_styles(value: &Value, type_name: &str) -> HashMap<String, String> {
     if let Some(fs) = value.get("font_size") {
         if let Some(val) = fs.get("value").and_then(|v| v.as_f64()) {
             let unit = fs.get("unit").and_then(|v| v.as_str()).unwrap_or("Px");
-            let css_unit = match unit {
-                "Rem" => "rem",
-                "Em" => "em",
-                "Percent" => "%",
-                _ => "px",
+            let css = match unit {
+                "Rem" => format!("{val}rem"),
+                "Em" => format!("{val}em"),
+                "Percent" => format!("{val}%"),
+                // Authored px sizes become fluid rem (respects user font-size,
+                // and large headings scale down on narrow screens).
+                _ => fluid_font_size_px(val),
             };
-            styles.insert("font-size".to_string(), format!("{val}{css_unit}"));
+            styles.insert("font-size".to_string(), css);
         }
     }
 
@@ -1076,21 +1097,8 @@ fn extract_styles(value: &Value, type_name: &str) -> HashMap<String, String> {
 
     // Grid template columns
     if let Some(cols) = value.get("grid_columns").and_then(|v| v.as_array()) {
-        let col_vals: Vec<String> = cols
-            .iter()
-            .filter_map(|c| {
-                let num = c.get("value")?.as_f64()?;
-                let unit = c.get("unit").and_then(|u| u.as_str()).unwrap_or("Px");
-                match unit {
-                    "Fr" => Some(format!("{num}fr")),
-                    "Percent" => Some(format!("{num}%")),
-                    "Px" => Some(format!("{num}px")),
-                    _ => Some(format!("{num}px")),
-                }
-            })
-            .collect();
-        if !col_vals.is_empty() {
-            styles.insert("grid-template-columns".to_string(), col_vals.join(" "));
+        if let Some(tracks) = grid_columns_to_css(cols) {
+            styles.insert("grid-template-columns".to_string(), tracks);
         }
     }
 
@@ -1122,8 +1130,17 @@ fn extract_styles(value: &Value, type_name: &str) -> HashMap<String, String> {
 
 fn length_to_css(val: Option<&Value>) -> String {
     val.and_then(|v| {
-        let num = v.get("value")?.as_f64()?;
         let unit = v.get("unit").and_then(|u| u.as_str()).unwrap_or("Px");
+        // Intrinsic-size keywords carry no numeric value; emitting `0px` for
+        // them (the old `_ => "px"` fallback) silently corrupted the size.
+        match unit {
+            "Auto" => return Some("auto".to_string()),
+            "FitContent" => return Some("fit-content".to_string()),
+            "MinContent" => return Some("min-content".to_string()),
+            "MaxContent" => return Some("max-content".to_string()),
+            _ => {}
+        }
+        let num = v.get("value")?.as_f64()?;
         let css_unit = match unit {
             "Rem" => "rem",
             "Em" => "em",
@@ -1138,6 +1155,81 @@ fn length_to_css(val: Option<&Value>) -> String {
         Some(format!("{num}{css_unit}"))
     })
     .unwrap_or_default()
+}
+
+/// Round to 3 decimals so emitted CSS numbers stay compact.
+fn round3(x: f64) -> f64 {
+    (x * 1000.0).round() / 1000.0
+}
+
+/// Convert an authored px font size into a fluid, rem-based value. All sizes
+/// become rem so they respect the user's browser font-size preference; sizes
+/// above a heading threshold additionally get a `clamp()` that scales with the
+/// viewport, so a large heading shrinks on a narrow screen instead of
+/// overflowing it. The curve anchors the reduced size at 320px and the authored
+/// size at 1280px viewport width.
+fn fluid_font_size_px(px: f64) -> String {
+    if px <= 28.0 {
+        return format!("{}rem", round3(px / 16.0));
+    }
+    let min_px = px * 0.6;
+    let (min_vw, max_vw) = (320.0, 1280.0);
+    let slope = (px - min_px) / (max_vw - min_vw);
+    let min_rem = round3(min_px / 16.0);
+    let max_rem = round3(px / 16.0);
+    let c_rem = round3((min_px - slope * min_vw) / 16.0);
+    let d_vw = round3(slope * 100.0);
+    format!("clamp({min_rem}rem, calc({c_rem}rem + {d_vw}vw), {max_rem}rem)")
+}
+
+/// Build a `grid-template-columns` value. When the author asked for N equal
+/// fractional columns, emit an `auto-fit` track so the grid collapses to fewer
+/// columns on narrow screens (down to a single column via `min(100%, …)`)
+/// instead of staying N-wide and overflowing. Other track lists (fixed px,
+/// unequal fractions) are emitted verbatim to preserve explicit intent.
+fn grid_columns_to_css(cols: &[Value]) -> Option<String> {
+    let fr_values: Vec<f64> = cols
+        .iter()
+        .filter_map(|c| {
+            let unit = c.get("unit").and_then(|u| u.as_str()).unwrap_or("Px");
+            if unit == "Fr" {
+                c.get("value").and_then(|v| v.as_f64())
+            } else {
+                None
+            }
+        })
+        .collect();
+    let all_equal_fr = fr_values.len() == cols.len()
+        && fr_values.len() >= 2
+        && fr_values
+            .windows(2)
+            .all(|w| (w[0] - w[1]).abs() < f64::EPSILON);
+    if all_equal_fr {
+        // Basis roughly reproduces the requested column count at a ~1100px
+        // container while still collapsing below it.
+        let n = fr_values.len() as f64;
+        let basis = (1100.0 / n).round().clamp(200.0, 560.0);
+        return Some(format!(
+            "repeat(auto-fit, minmax(min(100%, {basis}px), 1fr))"
+        ));
+    }
+    let col_vals: Vec<String> = cols
+        .iter()
+        .filter_map(|c| {
+            let num = c.get("value")?.as_f64()?;
+            let unit = c.get("unit").and_then(|u| u.as_str()).unwrap_or("Px");
+            match unit {
+                "Fr" => Some(format!("{num}fr")),
+                "Percent" => Some(format!("{num}%")),
+                _ => Some(format!("{num}px")),
+            }
+        })
+        .collect();
+    if col_vals.is_empty() {
+        None
+    } else {
+        Some(col_vals.join(" "))
+    }
 }
 
 fn collect_responsive_rules(
@@ -1166,6 +1258,13 @@ fn collect_responsive_rules(
                     })
                     .unwrap_or_default();
 
+                // Sorted ladder of all breakpoint min-widths, so each override
+                // set can be bounded by the next breakpoint above it. Without
+                // this, a breakpoint whose only override is at min-width 0 has
+                // no way to know it should stop applying at the next breakpoint.
+                let mut ladder: Vec<f64> = breakpoints.values().copied().collect();
+                ladder.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+
                 // Parse overrides per breakpoint
                 if let Some(overrides) = data.get("responsive_overrides").and_then(|v| v.as_array())
                 {
@@ -1175,6 +1274,9 @@ fn collect_responsive_rules(
                             .and_then(|v| v.as_str())
                             .unwrap_or("");
                         let min_width = breakpoints.get(bp_name).copied().unwrap_or(0.0);
+                        // The next distinct breakpoint above this one bounds the
+                        // range; the top breakpoint is unbounded.
+                        let max_width = ladder.iter().copied().find(|&w| w > min_width);
 
                         let props: Vec<(String, String, String)> = override_set
                             .get("overrides")
@@ -1198,6 +1300,7 @@ fn collect_responsive_rules(
                         if !props.is_empty() {
                             rules.push(crate::compiler_ir::CompiledResponsiveRule {
                                 min_width_px: min_width,
+                                max_width_px: max_width,
                                 overrides: props,
                             });
                         }

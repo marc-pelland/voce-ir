@@ -118,8 +118,7 @@ impl SemanticSummary {
                 }
                 "FormNode" => {
                     if let Some(f) = child.as_type::<crate::ir::FormNode>() {
-                        self.form_field_count +=
-                            f.fields.as_ref().map(|v| v.len()).unwrap_or(0);
+                        self.form_field_count += f.fields.as_ref().map(|v| v.len()).unwrap_or(0);
                         self.landmark_roles.insert("form".to_string());
                     }
                 }
@@ -147,8 +146,7 @@ impl SemanticSummary {
                 let level = bytes[i + 2] - b'0';
                 // Require a tag boundary so we don't match <html> or <hr>.
                 let after = bytes.get(i + 3).copied().unwrap_or(b' ');
-                if (1..=6).contains(&level) && (after == b'>' || after == b' ' || after == b'\t')
-                {
+                if (1..=6).contains(&level) && (after == b'>' || after == b' ' || after == b'\t') {
                     s.heading_levels.push(level);
                 }
             }

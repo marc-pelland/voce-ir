@@ -58,8 +58,8 @@ form [role="alert"]{font-size:13px;color:var(--voce-error,#ef4444)}
 </head>
 <body>
   <div style="padding:16px 16px 16px 16px;display:flex;flex-direction:row;gap:16px;">
-    <p style="font-size:16px;">Left</p>
-    <p style="font-size:16px;">Right</p>
+    <p style="font-size:1rem;">Left</p>
+    <p style="font-size:1rem;">Right</p>
   </div>
 </body>
 </html>

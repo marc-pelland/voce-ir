@@ -123,7 +123,8 @@ fn fix_plan_schema_in_sync() {
 
 #[test]
 fn conformance_schema_in_sync() {
-    let schema = serde_json::to_value(schemars::schema_for!(conformance::ConformanceReport)).unwrap();
+    let schema =
+        serde_json::to_value(schemars::schema_for!(conformance::ConformanceReport)).unwrap();
     assert_schema_in_sync("conformance", schema);
 }
 
@@ -243,14 +244,17 @@ fn live_perf_report_output_matches_schema() {
     };
     // Compile a fixture with perf collection enabled and validate the
     // real PerfReport, not a hand-built struct.
-    let json = std::fs::read_to_string(workspace_root().join("tests/fixtures/text-heading.voce.json"))
-        .expect("read fixture");
+    let json =
+        std::fs::read_to_string(workspace_root().join("tests/fixtures/text-heading.voce.json"))
+            .expect("read fixture");
     let opts = voce_compiler_dom::CompileOptions {
         collect_perf_report: true,
         ..Default::default()
     };
     let result = voce_compiler_dom::compile(&json, &opts).expect("compile");
-    let report = result.perf_report.expect("perf_report present when collect=true");
+    let report = result
+        .perf_report
+        .expect("perf_report present when collect=true");
     let instance = serde_json::to_value(&report).unwrap();
     validate_against(&schema, &instance, "perf-report");
 }

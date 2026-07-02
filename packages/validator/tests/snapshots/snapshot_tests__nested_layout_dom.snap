@@ -59,11 +59,11 @@ form [role="alert"]{font-size:13px;color:var(--voce-error,#ef4444)}
 <body>
   <div style="display:flex;flex-direction:column;">
     <div style="padding:16px 24px 16px 24px;display:flex;flex-direction:row;">
-      <p style="font-size:20px;font-weight:700;">Brand</p>
+      <p style="font-size:1.25rem;font-weight:700;">Brand</p>
     </div>
     <div style="padding:40px 24px 40px 24px;display:flex;flex-direction:column;">
-      <h1 style="font-size:36px;font-weight:700;">Welcome</h1>
-      <p style="font-size:16px;">This is the main content area.</p>
+      <h1 style="font-size:clamp(1.35rem, calc(1.05rem + 1.5vw), 2.25rem);font-weight:700;">Welcome</h1>
+      <p style="font-size:1rem;">This is the main content area.</p>
     </div>
   </div>
 </body>

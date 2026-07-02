@@ -16,11 +16,29 @@ export function ensureVoceDir(): string {
   return dir;
 }
 
+// Session ids are UUIDs produced by newSessionId() (randomUUID). Session ids
+// arrive from tool arguments and `--resume`, so they are untrusted: without
+// this check a value like "../../../tmp/x" escapes the sessions directory and
+// reads or writes arbitrary *.jsonl files. Validate at the single path
+// chokepoint and fail closed.
+const SESSION_ID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Throw if `id` is not a well-formed session id (UUID). */
+export function assertSafeSessionId(id: string): void {
+  if (typeof id !== "string" || !SESSION_ID_RE.test(id)) {
+    throw new Error(`Invalid session id: ${JSON.stringify(id)}`);
+  }
+}
+
 export const PATHS = {
   brief: () => join(voceDir(), "brief.md"),
   decisions: () => join(voceDir(), "decisions.jsonl"),
   driftWarnings: () => join(voceDir(), "drift-warnings.jsonl"),
   userProfile: () => join(voceDir(), "user-profile.md"),
   sessionsDir: () => join(voceDir(), "sessions"),
-  session: (id: string) => join(voceDir(), "sessions", `${id}.jsonl`),
+  session: (id: string) => {
+    assertSafeSessionId(id);
+    return join(voceDir(), "sessions", `${id}.jsonl`);
+  },
 };

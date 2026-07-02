@@ -52,11 +52,46 @@ pub fn build_default(script_hashes: &[String]) -> String {
 }
 
 /// Choose the policy that lands in the `<meta http-equiv="Content-Security-Policy">`
-/// tag. An explicit override always wins; otherwise `build_default` is used.
+/// tag. An explicit override wins only if it is at least as strict about script
+/// execution as the default (see `override_is_safe`); otherwise `build_default`
+/// is used. `PageMetadata.content_security_policy` is AI- or user-authored, so a
+/// hostile IR must not be able to weaken the policy that backstops the whole
+/// output.
 pub fn resolve(override_csp: Option<&str>, script_hashes: &[String]) -> String {
     match override_csp {
-        Some(s) if !s.trim().is_empty() => s.trim().to_string(),
+        Some(s) if !s.trim().is_empty() && override_is_safe(s) => s.trim().to_string(),
         _ => build_default(script_hashes),
+    }
+}
+
+/// True if an IR-supplied CSP override is safe to honor. The directive that
+/// governs script execution (`script-src`, or `default-src` when `script-src`
+/// is absent) must not re-enable inline or eval script, nor allow a bare
+/// wildcard / any-scheme source. This still permits *stricter* policies and
+/// specific external hosts, but blocks the weakenings that would let an
+/// injected inline handler or script run.
+fn override_is_safe(csp: &str) -> bool {
+    let lower = csp.to_ascii_lowercase();
+    let directive = lower
+        .split(';')
+        .map(str::trim)
+        .find(|d| d.starts_with("script-src"))
+        .or_else(|| {
+            lower
+                .split(';')
+                .map(str::trim)
+                .find(|d| d.starts_with("default-src"))
+        });
+    match directive {
+        // No directive constrains scripts at all: reject.
+        None => false,
+        Some(d) => {
+            !d.contains("'unsafe-inline'")
+                && !d.contains("'unsafe-eval'")
+                && !d
+                    .split_whitespace()
+                    .any(|t| t == "*" || t == "http:" || t == "https:")
+        }
     }
 }
 
@@ -132,5 +167,46 @@ mod tests {
     fn override_falls_through_when_empty_or_whitespace() {
         let csp = resolve(Some("   "), &[]);
         assert!(csp.contains("frame-ancestors 'none'"));
+    }
+
+    #[test]
+    fn override_with_unsafe_inline_script_is_rejected() {
+        let hostile = "default-src *; script-src 'self' 'unsafe-inline'";
+        let resolved = resolve(Some(hostile), &[]);
+        // Falls back to the hardened default rather than honoring the weakening.
+        assert_ne!(resolved, hostile);
+        assert!(resolved.contains("frame-ancestors 'none'"));
+        // The default's script-src must not carry unsafe-inline.
+        let script_src = resolved
+            .split("; ")
+            .find(|s| s.starts_with("script-src"))
+            .expect("script-src present");
+        assert!(!script_src.contains("'unsafe-inline'"));
+    }
+
+    #[test]
+    fn override_with_wildcard_script_source_is_rejected() {
+        let hostile = "script-src *";
+        assert_ne!(resolve(Some(hostile), &[]), hostile);
+        assert!(resolve(Some(hostile), &[]).contains("base-uri 'self'"));
+    }
+
+    #[test]
+    fn override_with_unsafe_eval_is_rejected() {
+        let hostile = "script-src 'self' 'unsafe-eval'";
+        assert_ne!(resolve(Some(hostile), &[]), hostile);
+    }
+
+    #[test]
+    fn stricter_override_is_still_honored() {
+        let strict = "default-src 'none'; script-src 'self'; img-src 'self'";
+        assert_eq!(resolve(Some(strict), &[]), strict);
+    }
+
+    #[test]
+    fn override_allowing_specific_https_host_is_honored() {
+        // A specific CDN host is a legitimate customization, not a weakening.
+        let ok = "default-src 'self'; script-src 'self' https://cdn.example.com";
+        assert_eq!(resolve(Some(ok), &[]), ok);
     }
 }

@@ -25,7 +25,7 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 
 use crate::semantic_summary::SemanticSummary;
-use crate::targets::{ConformanceClass, TargetInfo, ALL as TARGETS};
+use crate::targets::{ALL as TARGETS, ConformanceClass, TargetInfo};
 
 /// Capability tier a target may certify at. Higher tiers include
 /// everything in the lower ones.
@@ -388,20 +388,32 @@ mod tests {
 
     #[test]
     fn diff_detects_dropped_link_under_links_required() {
-        let expected = SemanticSummary { link_count: 4, ..SemanticSummary::default() };
+        let expected = SemanticSummary {
+            link_count: 4,
+            ..SemanticSummary::default()
+        };
         let observed = SemanticSummary::default(); // link_count = 0
-        let p = Profile { links: true, ..Profile::default() };
+        let p = Profile {
+            links: true,
+            ..Profile::default()
+        };
         let d = diff(&expected, &observed, &p);
         assert!(d.iter().any(|s| s.contains("link_count IR=4 got=0")));
     }
 
     #[test]
     fn diff_ignores_dimensions_the_profile_does_not_require() {
-        let expected = SemanticSummary { gesture_count: 3, ..SemanticSummary::default() };
+        let expected = SemanticSummary {
+            gesture_count: 3,
+            ..SemanticSummary::default()
+        };
         let observed = SemanticSummary::default();
         let p = Profile::default(); // gestures: false
         let d = diff(&expected, &observed, &p);
-        assert!(d.is_empty(), "non-required gesture drop is not a divergence");
+        assert!(
+            d.is_empty(),
+            "non-required gesture drop is not a divergence"
+        );
     }
 
     #[test]
