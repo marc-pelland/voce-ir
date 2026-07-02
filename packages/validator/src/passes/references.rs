@@ -232,6 +232,26 @@ impl ReferencesPass {
                         }
                     }
                 }
+                "ResponsiveRule" => {
+                    if let Some(rr) = child.as_type::<crate::ir::ResponsiveRule>() {
+                        if let Some(ref sets) = rr.responsive_overrides {
+                            for set in sets {
+                                if let Some(ref overrides) = set.overrides {
+                                    for ov in overrides {
+                                        self.check_ref(
+                                            &ov.target_node_id,
+                                            "target_node_id",
+                                            "REF005",
+                                            &path,
+                                            index,
+                                            result,
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 _ => {}
             }
 

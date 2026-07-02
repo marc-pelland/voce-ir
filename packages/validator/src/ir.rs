@@ -281,6 +281,20 @@ pub struct PersonalizationSlot {
 pub struct ResponsiveRule {
     pub node_id: Option<String>,
     pub breakpoints: Option<Vec<serde_json::Value>>,
+    pub responsive_overrides: Option<Vec<ResponsiveOverrideSet>>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ResponsiveOverrideSet {
+    pub breakpoint_name: Option<String>,
+    pub overrides: Option<Vec<PropertyOverride>>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct PropertyOverride {
+    pub target_node_id: Option<String>,
+    pub property: Option<String>,
+    pub value: Option<String>,
 }
 
 // ─── Data Nodes ─────────────────────────────────────────────────
