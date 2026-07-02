@@ -4,6 +4,29 @@
 
 use wasm_bindgen::prelude::*;
 
+/// Fail-closed validation guard for the compile entrypoints (C7): IR with
+/// error-severity diagnostics is structurally invalid, so rendering it is
+/// undefined. Direct WASM callers otherwise bypassed validation entirely (the
+/// CLI already validates first). Warnings still compile. Returns a JSON error
+/// string to short-circuit, or `None` to proceed.
+fn compile_error_guard(ir_json: &str) -> Option<String> {
+    match voce_validator::validate(ir_json) {
+        Ok(val) if val.has_errors() => Some(
+            serde_json::json!({
+                "ok": false,
+                "html": "",
+                "sizeBytes": 0,
+                "error": format!(
+                    "IR has {} validation error(s); fix them before compiling",
+                    val.error_count()
+                ),
+            })
+            .to_string(),
+        ),
+        _ => None,
+    }
+}
+
 /// Validate IR JSON. Returns a JSON string with validation results.
 ///
 /// Result shape: `{ "valid": bool, "errors": [...], "warnings": [...] }`
@@ -106,6 +129,9 @@ pub fn validate_verbose(ir_json: &str) -> String {
 /// Result shape: `{ "ok": bool, "html": string, "sizeBytes": number, "error"?: string }`
 #[wasm_bindgen]
 pub fn compile_dom(ir_json: &str) -> String {
+    if let Some(err) = compile_error_guard(ir_json) {
+        return err;
+    }
     match voce_compiler_dom::compile(ir_json, &voce_compiler_dom::CompileOptions::default()) {
         Ok(result) => serde_json::json!({
             "ok": true,
@@ -126,6 +152,9 @@ pub fn compile_dom(ir_json: &str) -> String {
 /// Compile IR JSON to email HTML. Returns a JSON string with the result.
 #[wasm_bindgen]
 pub fn compile_email(ir_json: &str) -> String {
+    if let Some(err) = compile_error_guard(ir_json) {
+        return err;
+    }
     match voce_compiler_email::compile_email(ir_json) {
         Ok(result) => serde_json::json!({
             "ok": true,
@@ -178,4 +207,42 @@ fn diagnostic_to_json(d: &voce_validator::errors::Diagnostic) -> serde_json::Val
         "hint": d.hint,
         "pass": d.pass,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // IR with a dangling animation target -> REF005 error.
+    const INVALID_IR: &str = r#"{ "root": { "node_id": "root", "children": [
+        { "value_type": "AnimationTransition", "value": { "node_id": "a",
+            "target_node_id": "missing", "properties": [], "duration": { "ms": 300 },
+            "reduced_motion": { "strategy": "Remove" } } }
+    ] } }"#;
+
+    const VALID_IR: &str = r#"{ "root": { "node_id": "root", "children": [
+        { "value_type": "TextNode", "value": { "node_id": "t", "content": "Hi" } }
+    ] } }"#;
+
+    #[test]
+    fn compile_dom_fails_closed_on_validation_errors() {
+        let out = compile_dom(INVALID_IR);
+        assert!(
+            out.contains("\"ok\":false"),
+            "should refuse invalid IR: {out}"
+        );
+        assert!(
+            out.contains("validation error"),
+            "should explain why: {out}"
+        );
+    }
+
+    #[test]
+    fn compile_dom_compiles_valid_ir() {
+        let out = compile_dom(VALID_IR);
+        assert!(
+            out.contains("\"ok\":true"),
+            "valid IR should compile: {out}"
+        );
+    }
 }

@@ -9,6 +9,7 @@ pub mod forms;
 pub mod i18n;
 pub mod motion;
 pub mod references;
+pub mod responsive;
 pub mod security;
 pub mod seo;
 pub mod state_machine;
@@ -48,5 +49,6 @@ pub fn all_passes() -> Vec<Box<dyn ValidationPass>> {
         Box::new(forms::FormsPass),
         Box::new(i18n::I18nPass),
         Box::new(motion::MotionPass),
+        Box::new(responsive::ResponsivePass),
     ]
 }
