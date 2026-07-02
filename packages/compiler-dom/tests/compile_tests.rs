@@ -86,7 +86,14 @@ fn container_grid_emits_template_columns() {
 
     let result = compile(json, &CompileOptions::default()).unwrap();
     assert!(result.html.contains("display:grid"));
-    assert!(result.html.contains("grid-template-columns:1fr 1fr 1fr"));
+    // Equal-fraction grids become auto-fit so they collapse on narrow screens.
+    assert!(
+        result
+            .html
+            .contains("grid-template-columns:repeat(auto-fit, minmax(min(100%, 367px), 1fr))"),
+        "got: {}",
+        result.html
+    );
 }
 
 // ─── Text ───────────────────────────────────────────────────────
@@ -133,7 +140,12 @@ fn text_styles_emit_correctly() {
     }"#;
 
     let result = compile(json, &CompileOptions::default()).unwrap();
-    assert!(result.html.contains("font-size:24px"));
+    // px font sizes become rem (respects the user's font-size preference).
+    assert!(
+        result.html.contains("font-size:1.5rem"),
+        "got: {}",
+        result.html
+    );
     assert!(result.html.contains("font-weight:700"));
     assert!(result.html.contains("text-align:center"));
     assert!(result.html.contains("color:rgb(255,0,0)"));
@@ -685,4 +697,45 @@ fn reduced_motion_strategies_all_reduce() {
         html.contains("[data-voce-id=\"b\"]{transition:none!important;}"),
         "Simplify must fall back to a safe floor: {html}"
     );
+}
+
+#[test]
+fn large_heading_gets_fluid_clamp() {
+    let json = r#"{
+        "root": { "node_id": "root", "children": [
+            { "value_type": "TextNode", "value": { "node_id": "h", "content": "Big", "heading_level": 1,
+                "font_size": { "value": 56.0, "unit": "Px" } } }
+        ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    // Scales from a reduced floor up to the authored size, so it never
+    // overflows a narrow screen.
+    assert!(html.contains("font-size:clamp("), "got: {html}");
+    assert!(
+        html.contains("3.5rem)"),
+        "max should be the authored 56px: {html}"
+    );
+    assert!(!html.contains("font-size:56px"));
+}
+
+#[test]
+fn equal_fraction_grid_becomes_auto_fit_but_unequal_is_preserved() {
+    let equal = r#"{ "root": { "node_id": "root", "children": [
+        { "value_type": "Container", "value": { "node_id": "g", "layout": "Grid",
+            "grid_columns": [ {"value":1,"unit":"Fr"}, {"value":1,"unit":"Fr"} ], "children": [] } } ] } }"#;
+    let html = compile(equal, &CompileOptions::default()).unwrap().html;
+    assert!(
+        html.contains("repeat(auto-fit, minmax(min(100%, 550px), 1fr))"),
+        "got: {html}"
+    );
+
+    let unequal = r#"{ "root": { "node_id": "root", "children": [
+        { "value_type": "Container", "value": { "node_id": "g", "layout": "Grid",
+            "grid_columns": [ {"value":1,"unit":"Fr"}, {"value":2,"unit":"Fr"} ], "children": [] } } ] } }"#;
+    let html2 = compile(unequal, &CompileOptions::default()).unwrap().html;
+    assert!(
+        html2.contains("grid-template-columns:1fr 2fr"),
+        "unequal preserved: {html2}"
+    );
+    assert!(!html2.contains("auto-fit"));
 }

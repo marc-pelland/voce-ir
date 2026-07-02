@@ -59,6 +59,6 @@ form [role="alert"]{font-size:13px;color:var(--voce-error,#ef4444)}
 <body>
   <div style="background-color:rgb(200,200,200);" role="presentation" aria-hidden="true">
   </div>
-  <p style="font-size:16px;">Content below divider</p>
+  <p style="font-size:1rem;">Content below divider</p>
 </body>
 </html>
