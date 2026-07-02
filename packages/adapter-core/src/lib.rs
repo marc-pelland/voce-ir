@@ -61,11 +61,30 @@ impl Bundle {
     /// Write all bundle files to the output directory.
     pub fn write_to_disk(&self) -> Result<()> {
         for (rel_path, content) in &self.files {
+            Self::ensure_safe_relative(rel_path)?;
             let full_path = self.output_dir.join(rel_path);
             if let Some(parent) = full_path.parent() {
                 std::fs::create_dir_all(parent)?;
             }
             std::fs::write(&full_path, content)?;
+        }
+        Ok(())
+    }
+
+    /// Reject a bundle path that is absolute or escapes the output directory.
+    /// Asset names originate in untrusted (AI-generated) IR, so a `..`,
+    /// absolute, or drive-prefixed path must never be joined onto the output
+    /// dir; otherwise a key like `../../../.ssh/authorized_keys` writes
+    /// outside it.
+    fn ensure_safe_relative(rel_path: &Path) -> Result<()> {
+        use std::path::Component;
+        for component in rel_path.components() {
+            match component {
+                Component::Normal(_) | Component::CurDir => {}
+                Component::ParentDir | Component::RootDir | Component::Prefix(_) => {
+                    anyhow::bail!("unsafe bundle path: {}", rel_path.display());
+                }
+            }
         }
         Ok(())
     }
@@ -150,5 +169,47 @@ mod tests {
         let config = DeployConfig::default();
         assert!(config.adapter.is_empty());
         assert!(config.domain.is_none());
+    }
+
+    #[test]
+    fn write_to_disk_rejects_path_traversal() {
+        let tmp = std::env::temp_dir().join("voce-adapter-core-test-out");
+        let mut files = HashMap::new();
+        files.insert(PathBuf::from("../../../etc/voce-pwned"), b"x".to_vec());
+        let bundle = Bundle {
+            output_dir: tmp,
+            files,
+            summary: "t".into(),
+        };
+        let err = bundle.write_to_disk().unwrap_err();
+        assert!(err.to_string().contains("unsafe bundle path"));
+    }
+
+    #[test]
+    fn write_to_disk_rejects_absolute_path() {
+        let mut files = HashMap::new();
+        files.insert(PathBuf::from("/etc/voce-pwned"), b"x".to_vec());
+        let bundle = Bundle {
+            output_dir: PathBuf::from("dist"),
+            files,
+            summary: "t".into(),
+        };
+        assert!(bundle.write_to_disk().is_err());
+    }
+
+    #[test]
+    fn write_to_disk_accepts_safe_nested_path() {
+        let tmp = std::env::temp_dir().join("voce-adapter-core-ok-out");
+        let _ = std::fs::remove_dir_all(&tmp);
+        let mut files = HashMap::new();
+        files.insert(PathBuf::from("assets/img/logo.png"), b"x".to_vec());
+        let bundle = Bundle {
+            output_dir: tmp.clone(),
+            files,
+            summary: "t".into(),
+        };
+        bundle.write_to_disk().unwrap();
+        assert!(tmp.join("assets/img/logo.png").exists());
+        let _ = std::fs::remove_dir_all(&tmp);
     }
 }
