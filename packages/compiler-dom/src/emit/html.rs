@@ -86,6 +86,11 @@ pub fn emit(ir: &CompilerIr, options: &CompileOptions) -> HtmlOutput {
 
     // Body
     html.push_str("<body>\n");
+    // Skip link (WCAG 2.4.1) when the page declares a main landmark.
+    let has_main = ir.nodes.iter().any(|n| is_main_landmark(n, ir));
+    if has_main {
+        html.push_str("<a class=\"skip-link\" href=\"#main\">Skip to main content</a>\n");
+    }
     let root = &ir.nodes[ir.root.0];
     for &child_id in &root.children {
         emit_node_safe(&mut html, ir, child_id, 1, options, &interactive_targets);
@@ -210,6 +215,10 @@ fn emit_head(
     html.push_str("*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}\n");
     html.push_str("body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5;background:var(--voce-bg);color:var(--voce-fg)}\n");
     html.push_str("img{max-width:100%;height:auto;display:block}\n");
+    // Skip link: off-screen until focused, then visible at the top-left.
+    html.push_str(".skip-link{position:absolute;left:-9999px;top:0;z-index:1000;padding:8px 16px;background:var(--voce-bg);color:var(--voce-fg);border:2px solid var(--voce-primary)}\n");
+    html.push_str(".skip-link:focus{left:8px;top:8px}\n");
+    html.push_str("[id=\"main\"]:focus{outline:none}\n");
 
     // S64: typography rhythm. Headings get tight line-height + bottom margin;
     // paragraphs and list items get a comfortable rhythm. Last-child resets
@@ -521,9 +530,16 @@ fn emit_node(
             // Map SemanticNode role to semantic HTML element
             let semantic_tag = semantic_html_tag(node, ir);
             let btn_attrs = gesture_button_attrs(ir, &node.id, &aria_attrs);
+            // The main landmark gets a stable id + tabindex so the skip link can
+            // target it and move focus.
+            let landmark_attrs = if is_main_landmark(node, ir) {
+                " id=\"main\" tabindex=\"-1\""
+            } else {
+                ""
+            };
 
             html.push_str(&format!(
-                "{indent}<{semantic_tag} style=\"{style}\"{aria_attrs}{btn_attrs}{data_attr}>\n"
+                "{indent}<{semantic_tag} style=\"{style}\"{aria_attrs}{btn_attrs}{landmark_attrs}{data_attr}>\n"
             ));
             for &child_id in &node.children {
                 emit_node_safe(html, ir, child_id, depth + 1, options, interactive_targets);
@@ -1061,6 +1077,16 @@ fn alignment_to_css(align: &str) -> &str {
 
 /// Map a node's SemanticNode role to the correct HTML element.
 /// Falls back to "div" if no semantic role is attached.
+/// True when this node is the page's `main` landmark (role="main"), which the
+/// skip link targets.
+fn is_main_landmark(node: &CNode, ir: &CompilerIr) -> bool {
+    node.semantic_node_id
+        .as_ref()
+        .and_then(|s| ir.semantic_map.get(s))
+        .and_then(|s| s.role.as_deref())
+        == Some("main")
+}
+
 fn semantic_html_tag<'a>(node: &'a CNode, ir: &'a CompilerIr) -> &'a str {
     node.semantic_node_id
         .as_ref()

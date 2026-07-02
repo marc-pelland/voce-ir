@@ -866,3 +866,35 @@ fn form_radio_and_hidden_fields_are_labelled_correctly() {
         "hidden field must not be labelled"
     );
 }
+
+#[test]
+fn main_landmark_gets_skip_link_and_focus_target() {
+    let json = r#"{
+        "root": { "node_id": "root",
+            "semantic_nodes": [ { "node_id": "m", "role": "main" } ],
+            "children": [
+                { "value_type": "Container", "value": { "node_id": "content", "semantic_node_id": "m", "children": [] } }
+            ] }
+    }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    // Skip link present and points at the main landmark.
+    assert!(
+        html.contains("<a class=\"skip-link\" href=\"#main\">"),
+        "got: {html}"
+    );
+    // Main landmark is a <main> with a focusable id target.
+    assert!(html.contains("<main"));
+    assert!(html.contains("id=\"main\" tabindex=\"-1\""));
+}
+
+#[test]
+fn no_skip_link_without_a_main_landmark() {
+    let json = r#"{ "root": { "node_id": "root", "children": [
+        { "value_type": "TextNode", "value": { "node_id": "t", "content": "Hi" } }
+    ] } }"#;
+    let html = compile(json, &CompileOptions::default()).unwrap().html;
+    assert!(
+        !html.contains("skip-link\" href"),
+        "no skip link without a main landmark"
+    );
+}
