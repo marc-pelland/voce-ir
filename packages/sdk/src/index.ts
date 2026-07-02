@@ -13,7 +13,7 @@
  * ```
  */
 
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -86,8 +86,9 @@ export class VoceClient {
 
   /** Generate IR from a natural language prompt. Requires ANTHROPIC_API_KEY. */
   async generate(prompt: string): Promise<string> {
-    const output = execSync(
-      `voce generate "${prompt.replace(/"/g, '\\"')}"`,
+    const output = execFileSync(
+      "voce",
+      ["generate", prompt],
       { encoding: "utf-8", timeout: 60000, stdio: ["pipe", "pipe", "pipe"] }
     );
     return output;
